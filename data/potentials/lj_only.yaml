@@ -1,0 +1,17 @@
+# Simple Lennard-Jones potential configuration for initial testing
+potential_type: "classical"
+components:
+  - type: "lennard_jones"
+    cutoff: 10.0  # Angstroms
+    atom_parameters:
+      "O": { epsilon: 0.1521, sigma: 3.1507 }  # Water oxygen parameters
+      "H": { epsilon: 0.0000, sigma: 0.0000 }  # Typically zero for water hydrogen in most force fields
+    
+    # Global LJ parameters
+    mixing_rule: "geometric"  # Options: "geometric", "arithmetic", "none"
+    tail_correction: true     # Apply analytic tail correction for energy
+    shift_potential: false    # Whether to shift the potential to zero at cutoff
+    
+    # Computational settings
+    neighbor_list_radius: 12.0  # Slightly larger than cutoff for neighbor list construction
+    update_frequency: 10         # How often to update neighbor lists

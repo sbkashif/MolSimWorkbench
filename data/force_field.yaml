@@ -1,0 +1,22 @@
+# Force field parameters for atoms and bonds
+atom_types:
+  O:
+    mass: 15.999
+    parameters:
+      sigma: 3.166  # Lennard-Jones sigma (angstroms)
+      epsilon: 0.155  # Lennard-Jones epsilon (kcal/mol)
+  H:
+    mass: 1.008
+    parameters:
+      sigma: 0.0  # Hydrogen does not interact via LJ in this model
+      epsilon: 0.0
+
+bond_types:
+  O-H:
+    length: 0.958  # Bond length (angstroms)
+    force_constant: 450.0  # Force constant (kcal/mol/angstrom^2)
+
+angle_types:
+  H-O-H:
+    angle: 104.5  # Bond angle (degrees)
+    force_constant: 55.0  # Force constant (kcal/mol/radian^2)

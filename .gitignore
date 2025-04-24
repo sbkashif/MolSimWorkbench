@@ -1,0 +1,96 @@
+# Build directories
+build/
+bin/
+lib/
+obj/
+
+#Output files
+examples/output/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+Testing/
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Generated files
+*.log
+*.tlog
+*.dmp
+*.pdb
+*.ilk
+*.idb
+
+# Generated trajectory files
+*.dcd
+*.xyz
+*.pdb
+*.psf
+
+# Editor/IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+.vs/
+*.user
+*.suo
+*.workspace
+*.project
+*.cproject
+
+# Python related
+*.py[cod]
+*$py.class
+__pycache__/
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+.venv/

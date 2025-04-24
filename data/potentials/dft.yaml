@@ -1,0 +1,24 @@
+# DFT (Density Functional Theory) potential configuration
+potential_type: "quantum"
+method: "dft"
+parameters:
+  functional: "B3LYP"
+  basis_set: "6-31G*"
+  scf_convergence: 1.0e-6
+  max_scf_cycles: 100
+  grid_quality: "fine"
+  exchange_correlation_grid: "SG1"
+  
+# Optional settings for different DFT implementations
+implementations:
+  pyscf:
+    memory: "4GB"
+    num_threads: 4
+    
+  gaussian:
+    mem: "8GB"
+    nproc: 4
+    
+  q-chem:
+    mem_static: 2000
+    mem_total: 8000

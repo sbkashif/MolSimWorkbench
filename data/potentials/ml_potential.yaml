@@ -1,0 +1,26 @@
+# Machine Learning Potential configuration
+potential_type: "machine_learning"
+method: "neural_network"
+model_file: "models/water_nn_model.pt"
+descriptor: "soap"  # Smooth Overlap of Atomic Positions
+
+# Global descriptor parameters
+parameters:
+  cutoff_radius: 6.0
+  n_max: 8
+  l_max: 6
+  atom_gaussian_width: 0.3
+  
+# Training information (metadata)
+training:
+  database: "QM9"
+  training_size: 110000
+  validation_size: 10000
+  target_property: "energy"
+  rmse: 0.05  # kcal/mol
+  
+# Computational settings
+computation:
+  batch_size: 100
+  use_gpu: true
+  precision: "float32"

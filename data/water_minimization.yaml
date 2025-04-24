@@ -1,0 +1,32 @@
+# Simulation configuration for a water molecule
+simulation:
+  # General simulation parameters
+  general:
+    name: "Water molecule energy minimization"
+    description: "Energy minimization of a single water molecule using Lennard-Jones potential"
+    output_directory: "output"
+    save_trajectory: true
+    trajectory_filename: "water_minimization.xyz"
+    save_frequency: 10  # Save every 10 steps
+  
+  # Energy minimization parameters
+  minimization:
+    method: "steepest_descent"
+    max_iterations: 1000
+    energy_tolerance: 1.0e-6
+    force_tolerance: 1.0e-4
+    initial_step_size: 0.01
+    max_step_size: 0.2
+    adaptive_step_size: true
+  
+  # Lennard-Jones potential parameters
+  lj_potential:
+    cutoff_distance: 12.0  # Angstroms
+
+# Molecular structure for a water molecule
+molecule:
+  name: "Water"
+  atoms:
+    - { type: "O", position: [0.0, 0.0, 0.0] }
+    - { type: "H", position: [0.0, 0.76, 0.58] }
+    - { type: "H", position: [0.0, -0.76, 0.58] }

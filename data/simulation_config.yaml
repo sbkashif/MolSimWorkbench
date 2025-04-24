@@ -1,0 +1,30 @@
+# Simulation configuration for molecular simulations
+simulation:
+  type: "dynamics"  # Options: "dynamics" or "minimization"
+  timestep: 0.001  # in picoseconds
+  total_steps: 1000
+  temperature: 300  # in Kelvin
+  pressure: 1.0  # in atmospheres
+  output:
+    frequency: 100
+    trajectory: true
+    energy: true
+  
+  # Specific settings for dynamics
+  dynamics:
+    integrator: "velocity_verlet"  # Options: "velocity_verlet", "leapfrog", etc.
+    thermostat: "nose_hoover"     # Options: "none", "berendsen", "nose_hoover"
+    barostat: "none"              # Options: "none", "berendsen", "parrinello_rahman"
+  
+  # Specific settings for minimization
+  minimization:
+    algorithm: "steepest_descent"  # Options: "steepest_descent", "conjugate_gradient"
+    max_iterations: 1000
+    energy_tolerance: 1e-6
+    force_tolerance: 1e-4
+
+# References to other configuration files
+potential_config_files:
+  - "potentials/lj_only.yaml"  # Using only LJ potential for initial test
+
+geometry_file: "geometry/water.yaml"

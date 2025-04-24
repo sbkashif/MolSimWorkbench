@@ -1,0 +1,284 @@
+#include "yaml_parser.h"
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cstdio>
+#include <memory>
+#include <stdexcept>
+#include <array>
+#include <filesystem>
+#include <string>
+#include "../engine/potentials/lj_potential.h"
+
+YAMLParser::YAMLParser() {
+    // Constructor
+}
+
+YAMLParser::~YAMLParser() {
+    // Destructor
+}
+
+// Helper function to convert string to double, handling scientific notation
+double stringToDouble(const std::string& str) {
+    try {
+        return std::stod(str);
+    } catch (const std::exception& e) {
+        throw std::runtime_error("Failed to convert string to double: " + str);
+    }
+}
+
+nlohmann::json YAMLParser::parseYAMLFile(const std::string& filename) {
+    // Get the absolute path to the Python script
+    std::filesystem::path currentPath = std::filesystem::current_path();
+    std::string scriptPath = (currentPath / "src" / "utils" / "yaml_parser.py").string();
+    
+    // Check if the Python script exists
+    if (!std::filesystem::exists(scriptPath)) {
+        // Try the build directory
+        scriptPath = "yaml_parser.py";
+        if (!std::filesystem::exists(scriptPath)) {
+            std::cerr << "Warning: Python YAML parser script not found at " << scriptPath << std::endl;
+        }
+    }
+    
+    // Resolve the input file path
+    std::string resolvedFilePath = resolvePath(filename);
+    
+    // Build the command to execute the Python script
+    std::string command = "python \"" + scriptPath + "\" \"" + resolvedFilePath + "\"";
+    
+    // Execute the command and capture output
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
+    
+    if (!pipe) {
+        throw std::runtime_error("Failed to execute Python YAML parser");
+    }
+    
+    // Read the output
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    
+    // Parse the JSON output
+    try {
+        nlohmann::json jsonData = nlohmann::json::parse(result);
+        return jsonData;
+    } catch (const std::exception& e) {
+        throw std::runtime_error("Failed to parse YAML file: " + std::string(e.what()) + "\nOutput: " + result);
+    }
+}
+
+SimulationConfig YAMLParser::parseSimulationConfig(const std::string& filename) {
+    try {
+        std::cout << "Starting to parse simulation config: " << filename << std::endl;
+        nlohmann::json jsonData = parseYAMLFile(filename);
+        std::cout << "Successfully parsed JSON from YAML" << std::endl;
+        
+        SimulationConfig config;
+        
+        // Extract simulation type
+        std::cout << "Extracting simulation type..." << std::endl;
+        config.simulationType = jsonData["simulation"]["type"];
+        
+        // Extract file references
+        std::cout << "Extracting file references..." << std::endl;
+        for (const auto& potentialFile : jsonData["potential_config_files"]) {
+            // Add data/ prefix to make it relative to the project root
+            config.potentialConfigFiles.push_back("data/" + potentialFile.get<std::string>());
+        }
+        config.geometryFile = "data/" + jsonData["geometry_file"].get<std::string>();
+        
+        // Extract simulation parameters - match with the actual SimulationParameters structure
+        std::cout << "Parsing simulation parameters..." << std::endl;
+        SimulationParameters& params = config.simulationParams;
+        
+        // Map YAML fields to SimulationParameters structure
+        // Basic parameters
+        std::cout << "Parsing timestep..." << std::endl;
+        if (jsonData["simulation"]["timestep"].is_number()) {
+            params.timeStep = jsonData["simulation"]["timestep"].get<double>();
+        } else if (jsonData["simulation"]["timestep"].is_string()) {
+            params.timeStep = stringToDouble(jsonData["simulation"]["timestep"].get<std::string>());
+        }
+        
+        std::cout << "Parsing temperature..." << std::endl;
+        if (jsonData["simulation"]["temperature"].is_number()) {
+            params.temperature = jsonData["simulation"]["temperature"].get<double>();
+        } else if (jsonData["simulation"]["temperature"].is_string()) {
+            params.temperature = stringToDouble(jsonData["simulation"]["temperature"].get<std::string>());
+        }
+        
+        // Convert total_steps to totalTime
+        std::cout << "Parsing total steps..." << std::endl;
+        if (jsonData["simulation"].contains("total_steps")) {
+            int totalSteps = jsonData["simulation"]["total_steps"].get<int>();
+            params.totalTime = totalSteps * params.timeStep;
+        }
+        
+        // Minimization parameters
+        std::cout << "Setting minimization flag..." << std::endl;
+        if (config.simulationType == "minimization") {
+            params.useMinimization = true;
+        } else {
+            params.useMinimization = false;
+        }
+        
+        // Set minimization method based on algorithm string
+        std::cout << "Parsing minimization algorithm..." << std::endl;
+        std::string minimizationAlgo = jsonData["simulation"]["minimization"]["algorithm"].get<std::string>();
+        if (minimizationAlgo == "steepest_descent") {
+            params.minimization.method = MinimizationMethod::STEEPEST_DESCENT;
+        } else if (minimizationAlgo == "conjugate_gradient") {
+            params.minimization.method = MinimizationMethod::CONJUGATE_GRADIENT;
+        } else if (minimizationAlgo == "lbfgs") {
+            params.minimization.method = MinimizationMethod::LBFGS;
+        }
+        
+        // Set other minimization parameters
+        std::cout << "Parsing minimization maxIterations..." << std::endl;
+        params.minimization.maxIterations = jsonData["simulation"]["minimization"]["max_iterations"].get<int>();
+        
+        std::cout << "Parsing minimization energy_tolerance..." << std::endl;
+        if (jsonData["simulation"]["minimization"]["energy_tolerance"].is_number()) {
+            params.minimization.tolerance = jsonData["simulation"]["minimization"]["energy_tolerance"].get<double>();
+        } else if (jsonData["simulation"]["minimization"]["energy_tolerance"].is_string()) {
+            // Handle scientific notation in strings like "1e-6"
+            std::string toleranceStr = jsonData["simulation"]["minimization"]["energy_tolerance"].get<std::string>();
+            params.minimization.tolerance = stringToDouble(toleranceStr);
+        }
+        
+        std::cout << "Parsing minimization force_tolerance..." << std::endl;
+        if (jsonData["simulation"]["minimization"]["force_tolerance"].is_number()) {
+            params.minimization.forceTolerance = jsonData["simulation"]["minimization"]["force_tolerance"].get<double>();
+        } else if (jsonData["simulation"]["minimization"]["force_tolerance"].is_string()) {
+            // Handle scientific notation in strings like "1e-4"
+            std::string forceToleranceStr = jsonData["simulation"]["minimization"]["force_tolerance"].get<std::string>();
+            params.minimization.forceTolerance = stringToDouble(forceToleranceStr);
+        }
+        
+        std::cout << "Simulation config parsing complete" << std::endl;
+        return config;
+    } catch (const std::exception& e) {
+        std::cerr << "Error parsing simulation config: " << e.what() << std::endl;
+        throw; // Rethrow to let the caller handle it
+    }
+}
+
+Geometry YAMLParser::parseGeometry(const std::string& filename) {
+    nlohmann::json jsonData = parseYAMLFile(filename);
+    Geometry geometry;
+    
+    // Extract molecule data
+    std::string moleculeName = jsonData["molecule"]["name"];
+    
+    // Add atoms
+    for (const auto& atomJson : jsonData["molecule"]["atoms"]) {
+        std::string atomType = atomJson["type"];
+        std::array<double, 3> position = {
+            atomJson["position"][0],
+            atomJson["position"][1],
+            atomJson["position"][2]
+        };
+        
+        geometry.addAtom(atomType, position);
+    }
+    
+    // Set box dimensions if available
+    if (jsonData.contains("box")) {
+        std::array<double, 3> boxDimensions = {
+            jsonData["box"]["dimensions"][0],
+            jsonData["box"]["dimensions"][1],
+            jsonData["box"]["dimensions"][2]
+        };
+        geometry.setBoxDimensions(boxDimensions);
+    }
+    
+    return geometry;
+}
+
+std::shared_ptr<Potential> YAMLParser::parsePotential(const std::string& filename) {
+    nlohmann::json jsonData = parseYAMLFile(filename);
+    
+    // Determine potential type
+    std::string potentialType = jsonData["potential_type"];
+    
+    if (potentialType == "classical") {
+        return parseClassicalPotential(jsonData);
+    }
+    else if (potentialType == "quantum") {
+        return parseQuantumPotential(jsonData);
+    }
+    else if (potentialType == "machine_learning") {
+        return parseMLPotential(jsonData);
+    }
+    else {
+        throw std::runtime_error("Unknown potential type: " + potentialType);
+    }
+}
+
+std::shared_ptr<Potential> YAMLParser::parseClassicalPotential(const nlohmann::json& json) {
+    // For now, we'll only implement Lennard-Jones potential parsing
+    // Loop through each component in the potential
+    for (const auto& component : json["components"]) {
+        std::string componentType = component["type"];
+        
+        if (componentType == "lennard_jones") {
+            // Create a new LJ potential
+            auto ljPotential = std::make_shared<LJPotential>();
+            
+            // Set the cutoff
+            double cutoff = component["cutoff"];
+            ljPotential->setCutoff(cutoff);
+            
+            // Parse atom parameters
+            for (auto it = component["atom_parameters"].begin(); it != component["atom_parameters"].end(); ++it) {
+                std::string atomType = it.key();
+                double epsilon = it.value()["epsilon"];
+                double sigma = it.value()["sigma"];
+                
+                ljPotential->addAtomParameters(atomType, epsilon, sigma);
+            }
+            
+            // Set mixing rule if available
+            if (component.contains("mixing_rule")) {
+                ljPotential->setMixingRule(component["mixing_rule"]);
+            }
+            
+            return ljPotential;
+        }
+        // Add other component types here (electrostatic, bond, etc.)
+    }
+    
+    throw std::runtime_error("No recognized component found in classical potential");
+}
+
+std::shared_ptr<Potential> YAMLParser::parseQuantumPotential(const nlohmann::json& json) {
+    // TODO: Implement DFT potential parsing
+    throw std::runtime_error("DFT potential parsing not yet implemented");
+}
+
+std::shared_ptr<Potential> YAMLParser::parseMLPotential(const nlohmann::json& json) {
+    // TODO: Implement machine learning potential parsing
+    throw std::runtime_error("ML potential parsing not yet implemented");
+}
+
+std::string YAMLParser::resolvePath(const std::string& relativePath) {
+    // Try multiple paths to find the file
+    std::vector<std::string> pathsToTry = {
+        relativePath,
+        "../../" + relativePath,
+        "../" + relativePath
+    };
+    
+    for (const auto& path : pathsToTry) {
+        if (std::filesystem::exists(path)) {
+            return path;
+        }
+    }
+    
+    // If none of the paths worked, return the original path
+    // (the Python script will handle additional path resolution)
+    return relativePath;
+}

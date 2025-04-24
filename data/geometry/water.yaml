@@ -1,0 +1,13 @@
+# Simple water molecule geometry
+molecule:
+  name: "Water"
+  atoms:
+    - { type: "O", position: [0.0, 0.0, 0.0] }
+    - { type: "H", position: [0.0, 0.76, 0.58] }
+    - { type: "H", position: [0.0, -0.76, 0.58] }
+  # No bonds defined for this simple test
+  
+# Simulation box parameters
+box:
+  type: "cubic"
+  dimensions: [20.0, 20.0, 20.0]  # Angstroms - large box for a single molecule

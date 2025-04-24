@@ -1,0 +1,29 @@
+# Classical potential configuration
+potential_type: "classical"
+components:
+  - type: "lennard_jones"
+    cutoff: 12.0
+    atom_parameters:
+      "C": { epsilon: 0.0700, sigma: 3.55 }
+      "H": { epsilon: 0.0300, sigma: 2.42 }
+      "O": { epsilon: 0.1200, sigma: 3.07 }
+      "N": { epsilon: 0.1700, sigma: 3.25 }
+      # Add more atom types as needed
+    
+  - type: "electrostatic"
+    cutoff: 10.0
+    method: "pme"  # particle mesh ewald
+    atom_charges:
+      "H": 0.417
+      "O": -0.834
+      "N": -0.493
+      "C": 0.096
+      # Add more atom types as needed
+    
+  - type: "bond"
+    bond_parameters:
+      "C-C": { k: 300.0, r0: 1.54 }
+      "C-H": { k: 340.0, r0: 1.09 }
+      "C-O": { k: 320.0, r0: 1.43 }
+      "O-H": { k: 553.0, r0: 0.96 }
+      # Add more bond types as needed
