@@ -2,23 +2,133 @@
 potential_type: "quantum"
 method: "dft"
 parameters:
-  functional: "B3LYP"
-  basis_set: "6-31G*"
-  scf_convergence: 1.0e-6
-  max_scf_cycles: 100
-  grid_quality: "fine"
-  exchange_correlation_grid: "SG1"
+  functional: "B3LYP"              # Exchange-correlation functional
+  basis_set: "6-31G*"              # Basis set
+  scf_convergence: 1.0e-6          # SCF convergence threshold
+  max_scf_cycles: 100              # Maximum SCF iterations
+  grid_quality: "fine"             # DFT integration grid quality
+  exchange_correlation_grid: "SG1" # Grid for XC integration
   
-# Optional settings for different DFT implementations
+# Supported functionals and their properties
+functionals:
+  B3LYP:
+    type: "hybrid"
+    description: "Becke 3-parameter Lee-Yang-Parr hybrid functional"
+    exact_exchange: 0.2
+    applications: ["organic", "main_group", "transition_metals"]
+    
+  PBE:
+    type: "gga" 
+    description: "Perdew-Burke-Ernzerhof generalized gradient approximation"
+    exact_exchange: 0.0
+    applications: ["solids", "surfaces", "main_group"]
+    
+  PW91:
+    type: "gga"
+    description: "Perdew-Wang 91 functional"
+    exact_exchange: 0.0
+    applications: ["solids", "bulk_properties"]
+    
+  HF:
+    type: "wavefunction"
+    description: "Hartree-Fock method"
+    exact_exchange: 1.0
+    applications: ["reference", "small_molecules"]
+    
+  PBE0:
+    type: "hybrid"
+    description: "PBE0 hybrid functional"
+    exact_exchange: 0.25
+    applications: ["thermochemistry", "band_gaps"]
+
+# Supported basis sets and their properties
+basis_sets:
+  "STO-3G":
+    type: "minimal"
+    description: "Slater-type orbitals with 3 Gaussians"
+    quality: "low"
+    speed: "fast"
+    
+  "6-31G":
+    type: "split_valence"
+    description: "Split-valence basis set"
+    quality: "medium"
+    speed: "medium"
+    
+  "6-31G*":
+    type: "polarized"
+    description: "6-31G with d-functions on heavy atoms"
+    quality: "good"
+    speed: "medium"
+    
+  "6-31G**":
+    type: "polarized"
+    description: "6-31G with d-functions on heavy atoms and p-functions on H"
+    quality: "good"
+    speed: "medium"
+    
+  "cc-pVDZ":
+    type: "correlation_consistent"
+    description: "Correlation-consistent double-zeta basis"
+    quality: "high"
+    speed: "slow"
+    
+  "cc-pVTZ":
+    type: "correlation_consistent"
+    description: "Correlation-consistent triple-zeta basis"
+    quality: "very_high"
+    speed: "very_slow"
+    
+  "aug-cc-pVDZ":
+    type: "augmented"
+    description: "Augmented correlation-consistent double-zeta"
+    quality: "high"
+    speed: "slow"
+
+# Implementation-specific settings
 implementations:
   pyscf:
     memory: "4GB"
     num_threads: 4
+    conv_tol: 1e-8
+    max_cycle: 100
     
   gaussian:
     mem: "8GB"
     nproc: 4
+    scf_convergence: "tight"
+    integral_accuracy: "ultrafine"
     
   q-chem:
     mem_static: 2000
     mem_total: 8000
+    scf_convergence: 8
+    xc_grid: 3
+    
+  orca:
+    memory: 4000
+    nprocs: 4
+    scfconv: 1e-8
+    grid: 4
+
+# Performance recommendations
+recommendations:
+  small_molecules:
+    functional: "B3LYP"
+    basis_set: "6-31G*"
+    description: "Good balance of accuracy and speed"
+    
+  large_molecules:
+    functional: "PBE"
+    basis_set: "6-31G"
+    description: "Faster computation for large systems"
+    
+  high_accuracy:
+    functional: "PBE0"
+    basis_set: "cc-pVDZ"
+    description: "High accuracy calculations"
+    
+  transition_metals:
+    functional: "B3LYP"
+    basis_set: "6-31G*"
+    description: "Suitable for transition metal complexes"
