@@ -22,7 +22,7 @@ print("=" * 80)
 
 # Step 1: Determine the path to the project root and build directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(script_dir, '..'))
+project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))  # Go up two levels from examples/lj/
 build_dir = os.path.join(project_root, 'build')
 output_dir = os.path.join(script_dir, 'output')
 
@@ -63,7 +63,14 @@ except subprocess.CalledProcessError:
 src_trajectory_file = os.path.join(build_dir, "water_trajectory.xyz")
 if not os.path.exists(src_trajectory_file):
     print(f"Trajectory file not found at {src_trajectory_file}")
-    sys.exit(1)
+    # Also check in the tests output directory (if running from tests)
+    alt_trajectory_file = os.path.join(build_dir, "tests", "output", "water_trajectory.xyz")
+    if os.path.exists(alt_trajectory_file):
+        src_trajectory_file = alt_trajectory_file
+        print(f"Found trajectory file in tests output: {src_trajectory_file}")
+    else:
+        print(f"No trajectory file found. Please ensure the simulation generates output.")
+        sys.exit(1)
 
 # Copy trajectory file to output directory
 trajectory_file = os.path.join(output_dir, "water_trajectory.xyz")
