@@ -32,10 +32,10 @@ public:
     // Parse a potential from a YAML file
     std::shared_ptr<Potential> parsePotential(const std::string& filename);
     
-private:
     // Generic method to parse any YAML file to JSON
     nlohmann::json parseYAMLFile(const std::string& filename);
     
+private:
     // Specialized parsers for different potential types
     std::shared_ptr<Potential> parseClassicalPotential(const nlohmann::json& json);
     std::shared_ptr<Potential> parseQuantumPotential(const nlohmann::json& json);

@@ -30,15 +30,32 @@ double stringToDouble(const std::string& str) {
 nlohmann::json YAMLParser::parseYAMLFile(const std::string& filename) {
     // Get the absolute path to the Python script
     std::filesystem::path currentPath = std::filesystem::current_path();
-    std::string scriptPath = (currentPath / "src" / "utils" / "yaml_parser.py").string();
+    std::string scriptPath;
     
-    // Check if the Python script exists
-    if (!std::filesystem::exists(scriptPath)) {
-        // Try the build directory
-        scriptPath = "yaml_parser.py";
-        if (!std::filesystem::exists(scriptPath)) {
-            std::cerr << "Warning: Python YAML parser script not found at " << scriptPath << std::endl;
+    // Try multiple locations for the yaml_parser.py script
+    std::vector<std::string> possiblePaths = {
+        "yaml_parser.py",                                    // Current directory
+        "../yaml_parser.py",                                 // Parent directory (from build/)
+        "MolSimWorkbench/yaml_parser.py",                    // From parent of project
+        "src/utils/yaml_parser.py",                         // Source directory
+        (currentPath / "yaml_parser.py").string(),          // Absolute current
+        (currentPath / ".." / "yaml_parser.py").string(),   // Absolute parent
+        (currentPath / "MolSimWorkbench" / "yaml_parser.py").string(), // Absolute from parent
+        (currentPath / "src" / "utils" / "yaml_parser.py").string()  // Absolute source
+    };
+    
+    bool found = false;
+    for (const auto& path : possiblePaths) {
+        if (std::filesystem::exists(path)) {
+            scriptPath = std::filesystem::absolute(path).string();  // Use absolute path
+            found = true;
+            break;
         }
+    }
+    
+    if (!found) {
+        scriptPath = "yaml_parser.py";  // Default fallback
+        std::cerr << "Warning: Python YAML parser script not found at any expected location" << std::endl;
     }
     
     // Resolve the input file path
@@ -80,7 +97,11 @@ SimulationConfig YAMLParser::parseSimulationConfig(const std::string& filename) 
         
         // Extract simulation type
         std::cout << "Extracting simulation type..." << std::endl;
-        config.simulationType = jsonData["simulation"]["type"];
+        if (jsonData.contains("simulation") && jsonData["simulation"].contains("type")) {
+            config.simulationType = jsonData["simulation"]["type"].get<std::string>();
+        } else {
+            throw std::runtime_error("Missing simulation type in configuration");
+        }
         
         // Extract file references
         std::cout << "Extracting file references..." << std::endl;
@@ -268,8 +289,9 @@ std::string YAMLParser::resolvePath(const std::string& relativePath) {
     // Try multiple paths to find the file
     std::vector<std::string> pathsToTry = {
         relativePath,
-        "../../" + relativePath,
-        "../" + relativePath
+        "MolSimWorkbench/" + relativePath,  // From parent directory
+        "../" + relativePath,
+        "../../" + relativePath
     };
     
     for (const auto& path : pathsToTry) {
