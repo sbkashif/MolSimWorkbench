@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.6)
 
 project(MolSimWorkbench)
 
@@ -97,3 +97,10 @@ configure_file(
 
 # Add subdirectory for unit tests
 add_subdirectory(tests/unit)
+
+# Copy Python YAML parser to build directory for C++ code to find
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/yaml_parser.py
+    ${CMAKE_CURRENT_BINARY_DIR}/yaml_parser.py
+    COPYONLY
+)
