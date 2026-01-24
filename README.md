@@ -6,7 +6,7 @@ A molecular simulation workbench for educational purposes that enables experimen
 
 - **Modular Architecture**: Separation of molecular building, potential energy calculation, and dynamics simulation components
 - **Molecule Builder**: A simple builder module to create molecules, such as water.
-- **YAML Configuration**: Use YAML files for a one-shop-stop defintion of all force field parameters, molecular geometries, and simulation settings
+- **YAML Configuration**: Use YAML files for a one-stop-shop defintion of all force field parameters, molecular geometries, and simulation settings
 - **Python API**: Easy-to-use Python interface for running simulations
 - **C++ Engine**: High-performance C++ backend for molecular dynamics
 - **Unit Tests**: Comprehensive test suite for CI/CD integration
