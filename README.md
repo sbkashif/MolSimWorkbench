@@ -1,112 +1,131 @@
 # MolSimWorkbench
 
-MolSimWorkbench is a molecular dynamics simulation package designed to support various potential models, including classical Lennard-Jones potentials with plans to add ab initio and machine learning potentials. This project allows users to define and combine different potential functions, enabling flexible simulations of molecular systems.
+A molecular simulation workbench for educational purposes that enables experimentation with different potential types.
 
 ## Features
 
 - **Modular Architecture**: Separation of molecular building, potential energy calculation, and dynamics simulation components
-- **Lennard-Jones Potential**: Implementation of Lennard-Jones potential for molecular simulations
-- **Molecule Builder**: A simple builder module to create molecules, such as water, with the ability to manage coordinates and force field parameters
-- **YAML Configuration**: Use YAML files to define force field parameters, molecular geometries, and simulation settings
-- **Trajectory Generation**: Output of simulation trajectories in standard formats readable by visualization tools
-- **Comprehensive Testing**: Google Test integration with unit and simulation tests
+- **Molecule Builder**: A simple builder module to create molecules, such as water.
+- **YAML Configuration**: Use YAML files for a one-shop-stop defintion of all force field parameters, molecular geometries, and simulation settings
+- **Python API**: Easy-to-use Python interface for running simulations
+- **C++ Engine**: High-performance C++ backend for molecular dynamics
+- **Unit Tests**: Comprehensive test suite for CI/CD integration
 
-## Project Structure
+## Quick Start
 
-```
-MolSimWorkbench
-├── src
-│   ├── engine                  # Simulation engine components
-│   │   ├── molecular_dynamics.cpp/h
-│   │   ├── force_calculator.cpp/h
-│   │   └── potentials
-│   │       └── lj_potential.cpp/h
-│   ├── builder                 # Molecular structure components
-│   │   ├── molecule_builder.cpp/h
-│   │   └── geometry.cpp/h
-│   └── utils                   # Utility functions
-│       ├── yaml_parser.cpp/h
-│       ├── trajectory_writer.cpp/h
-│       └── yaml_parser.py
-├── data                        # Configuration data
-│   ├── simulation_config.yaml
-│   ├── geometry
-│   │   └── water.yaml
-│   └── potentials
-│       └── lj_only.yaml
-├── examples                    # Example simulations
-│   └── water_lj_sim.py
-├── tests                       # Testing framework
-│   └── unit
-│       ├── CMakeLists.txt
-│       └── test_water_lj_unit.cpp
-├── CMakeLists.txt
-└── README.md
-```
-
-## Installation
-
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/MolSimWorkbench.git
-   cd MolSimWorkbench
-   ```
-
-2. Build the project using CMake:
-   ```
-   mkdir build
-   cd build
-   cmake ..
-   make
-   ```
-
-3. Run the tests to verify the installation:
-   ```
-   cd build
-   ctest
-   ```
-
-## Usage
-
-### Running a Water Molecule Simulation
-
-The project includes a ready-to-use water molecule simulation using Lennard-Jones potentials:
+### Building the Project
 
 ```bash
-# From the build directory
-./WaterLJTest
+mkdir build && cd build
+cmake ..
+make
 ```
 
-This will run a simple simulation and output a trajectory file that can be visualized with VMD or other molecular visualization software.
+### Python API Usage
 
-### Using the Python Interface
+```python
+from molsimworkbench import MolSimWorkbench
 
-The `examples` directory contains a Python script demonstrating how to set up and run a water molecule simulation:
+# Create workbench instance
+wb = MolSimWorkbench()
 
+# Check available potentials
+print("Available potentials:", wb.get_available_potentials())
+
+# Run LJ simulation
+# Currently a hard-coded function. API improvement would be needed later.
+trajectory = wb.run_lj_simulation()
+
+```
+
+### Running Examples
+
+#### Lennard-Jones Water Simulation
 ```bash
-python examples/water_lj_sim.py
+cd examples/lj
+python water_lj_sim.py
 ```
 
-### Configuration Files
+#### Basic DFT optimization of water
+```bash
+cd examples/dft
+python run_dft_example.py
+```
 
-The simulation behavior can be modified by editing the YAML configuration files:
+### Running Tests
 
-- `data/geometry/water.yaml`: Defines water molecule geometry
-- `data/potentials/lj_only.yaml`: Defines Lennard-Jones parameters
-- `data/simulation_config.yaml`: Defines simulation parameters such as time step and number of steps
+#### C++ Unit Tests
+```bash
+cd build
+ctest --verbose
+```
 
-## Future Plans
+#### Python API Tests
+```bash
+python tests/test_python_api.py
+```
 
-- Integration of ab initio methods for more accurate potential energy calculations
-- Machine learning potential support for efficient simulations of complex systems
-- Additional minimization algorithms and integrators
-- Enhanced visualization and analysis tools
-- Parallel computing support for larger systems
+## Repository Structure
+
+```
+MolSimWorkbench/
+├── src/                    # C++ source code
+│   ├── engine/            # MD engine and potentials
+│   ├── builder/           # Geometry and molecule builder
+│   └── utils/             # Utilities (YAML parser, trajectory writer)
+├── examples/              # Example simulations
+│   ├── lj/               # Lennard-Jones examples
+│   └── dft/              # DFT examples
+├── tests/                 # Test suite
+│   ├── unit/             # C++ unit tests
+│   └── test_python_api.py # Python API tests
+├── data/                  # Configuration files
+│   ├── potentials/       # Potential definitions
+│   └── geometry/         # Molecular geometries
+├── molsimworkbench.py    # Python API
+└── build/                # Build directory
+```
+
+## Supported Potentials
+
+- **lj_only**: Lennard-Jones potential for classical molecular dynamics
+- **dft**: Density Functional Theory potential for electronic structure
+
+## Future work
+- **classical**: Full hamiltoninian found in a typical forcefield
+- **ml_potential**: Machine learning potentials (future)
+
+## Trajectory Visualization
+
+Generated XYZ trajectory files can be visualized using Visual Molecular Dynamics (VMD).
+
+## CI/CD Integration
+
+The workbench is designed for CI/CD with:
+- Unit tests using GoogleTest (C++)
+- Python API tests using pytest
+- Trajectory files stored in `build/` for artifact collection
+- Deterministic test environments
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a pull request or open an issue for any suggestions or improvements.
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Ensure all tests pass
+5. Submit a pull request
 
-## License
+## Educational Use
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This workbench is designed for learning:
+- Molecular dynamics concepts
+- Different potential energy functions
+- Trajectory analysis
+- Scientific computing with C++ and Python
+
+## Requirements
+
+- C++17 compatible compiler
+- Python 3.6+
+- CMake 3.12+
+- PyYAML (for YAML parsing)
