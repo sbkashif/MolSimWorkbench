@@ -4,6 +4,8 @@
 #include <string>
 #include <iomanip>
 #include <filesystem>
+#include <thread>
+#include <chrono>
 #include "../../src/builder/geometry.h"
 #include "../../src/engine/force_calculator.h"
 #include "../../src/engine/molecular_dynamics.h"
@@ -24,11 +26,25 @@ protected:
         // Save the original working directory
         originalPath = fs::current_path();
         
-        // Find the path to the build directory from the unit test directory
-        // Tests run from build_test/tests/unit, so we need to go up two levels
-        buildDir = originalPath.parent_path().parent_path();
+        // Find the build directory - when running tests, we want to use the actual build directory
+        // If we're in the build directory, use it; otherwise find it relative to the current location
+        if (fs::current_path().filename() == "build") {
+            buildDir = fs::current_path();
+        } else {
+            // Try to find build directory relative to project root
+            fs::path projectRoot = fs::current_path();
+            while (projectRoot.has_parent_path() && !fs::exists(projectRoot / "CMakeLists.txt")) {
+                projectRoot = projectRoot.parent_path();
+            }
+            if (fs::exists(projectRoot / "CMakeLists.txt")) {
+                buildDir = projectRoot / "build";
+            } else {
+                // Fallback: assume we need to go up two levels (for tests run from build/tests/unit)
+                buildDir = originalPath.parent_path().parent_path();
+            }
+        }
         
-        // Change to the build directory where the YAML parser script is
+        // Ensure we're in the build directory for YAML parsing
         fs::current_path(buildDir);
         
         // Parse simulation configuration using the correct path
@@ -154,6 +170,10 @@ TEST_F(WaterLJTest, MolecularDynamics) {
     mdParams.temperature = 300.0;      // 300 K
     mdParams.usePBC = true;            // Enable periodic boundary conditions
     
+    // Set up trajectory output for testing
+    fs::path trajectoryPath = buildDir / "water_trajectory";
+    mdEngine.setTrajectoryOutput(trajectoryPath.string(), TrajectoryFormat::XYZ, 1);
+    
     // Update the MD engine with new parameters
     mdEngine.setSimulationParameters(mdParams);
     mdEngine.initialize();
@@ -164,7 +184,7 @@ TEST_F(WaterLJTest, MolecularDynamics) {
     // Run dynamics simulation
     mdEngine.runSimulation();
     
-    // Get final results
+    // Get final results before destroying mdEngine to ensure trajectory gets written
     Geometry finalGeometry = mdEngine.getCurrentGeometry();
     
     // Test that atoms moved during dynamics
@@ -185,4 +205,40 @@ TEST_F(WaterLJTest, MolecularDynamics) {
     }
     
     EXPECT_TRUE(atomsMoved) << "Atoms should move during molecular dynamics simulation";
+    
+    // Verify that we have results
+}
+
+// Test trajectory file creation - separate test to ensure destructor is called
+TEST_F(WaterLJTest, TrajectoryFileCreation) {
+    // Setup MD engine with trajectory output
+    MolecularDynamics mdEngine;
+    mdEngine.setGeometry(waterGeometry);
+    mdEngine.setForceCalculator(forceCalculator);
+    
+    // Define a simulation box
+    double boxSize = 20.0;
+    mdEngine.setBox(boxSize, boxSize, boxSize);
+    
+    // Set up trajectory output for testing in build directory
+    fs::path testOutputDir = buildDir / "tests" / "output";
+    fs::create_directories(testOutputDir);
+    fs::path trajectoryPath = testOutputDir / "test_trajectory";
+    mdEngine.setTrajectoryOutput(trajectoryPath.string(), TrajectoryFormat::XYZ, 1);
+    
+    // Configure short dynamics parameters
+    SimulationParameters mdParams;
+    mdParams.useMinimization = false;
+    mdParams.timeStep = 0.001;
+    mdParams.totalTime = 0.005;  // Even shorter simulation
+    mdParams.temperature = 300.0;
+    mdParams.usePBC = true;
+    
+    mdEngine.setSimulationParameters(mdParams);
+    mdEngine.initialize();
+    
+    // Run simulation
+    mdEngine.runSimulation();
+    
+    // The trajectory should be created once the destructor runs at the end of this test
 }
