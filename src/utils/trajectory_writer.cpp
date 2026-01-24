@@ -77,6 +77,8 @@ bool TrajectoryWriter::writeFrame(const Geometry& geometry, double time, const s
     
     if (success) {
         frameCount++;
+        // Flush the output to ensure data is written to disk
+        outputFile.flush();
     }
     
     return success;
@@ -132,6 +134,10 @@ bool TrajectoryWriter::writeFrameWithVelocities(const Geometry& geometry,
     }
     
     frameCount++;
+    
+    // Flush the output to ensure data is written to disk
+    outputFile.flush();
+    
     return true;
 }
 
