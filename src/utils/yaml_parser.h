@@ -38,8 +38,8 @@ public:
 private:
     // Specialized parsers for different potential types
     std::shared_ptr<Potential> parseClassicalPotential(const nlohmann::json& json);
-    std::shared_ptr<Potential> parseQuantumPotential(const nlohmann::json& json);
-    std::shared_ptr<Potential> parseMLPotential(const nlohmann::json& json);
+    std::shared_ptr<Potential> parseQuantumPotential(const nlohmann::json& json, const std::string& sourcePath);
+    std::shared_ptr<Potential> parseMLPotential(const nlohmann::json& json, const std::string& sourcePath);
     
     // Helper methods
     std::string resolvePath(const std::string& relativePath);

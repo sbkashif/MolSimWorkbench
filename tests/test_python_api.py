@@ -4,7 +4,6 @@ Tests both LJ and DFT potentials through the Python API
 """
 
 import sys
-import os
 from pathlib import Path
 
 # Add the parent directory to the path to import molsimworkbench
@@ -13,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from molsimworkbench import MolSimWorkbench
 
 class TestMolSimWorkbench:
+    workbench: MolSimWorkbench
     
     def setup_method(self):
         """Set up test fixtures"""
@@ -33,29 +33,10 @@ class TestMolSimWorkbench:
         
     def test_lj_simulation(self):
         """Test running LJ simulation through Python API"""
-        try:
-            trajectory = self.workbench.run_lj_simulation()
-            assert trajectory.exists(), "Trajectory file should exist"
-            assert trajectory.suffix == ".xyz", "Trajectory should be XYZ format"
-            
-            # Check that trajectory has content
-            assert trajectory.stat().st_size > 0, "Trajectory should have content"
-            return True
-            
-        except Exception as e:
-            print(f"LJ simulation failed: {e}")
-            return False
-            
-    def test_unit_tests(self):
-        """Test that C++ unit tests pass"""
-        try:
-            output = self.workbench.run_tests()
-            assert "100% tests passed" in output, "All unit tests should pass"
-            return True
-            
-        except Exception as e:
-            print(f"Unit tests failed: {e}")
-            return False
+        trajectory = self.workbench.run_lj_simulation()
+        assert trajectory.exists(), "Trajectory file should exist"
+        assert trajectory.suffix == ".xyz", "Trajectory should be XYZ format"
+        assert trajectory.stat().st_size > 0, "Trajectory should have content"
 
 if __name__ == "__main__":
     # Run tests directly
@@ -73,9 +54,5 @@ if __name__ == "__main__":
     print("Testing LJ simulation...")
     test.test_lj_simulation()
     print("✓ LJ simulation test passed")
-    
-    print("Testing unit tests...")
-    test.test_unit_tests()
-    print("✓ Unit tests passed")
     
     print("\nAll tests passed! 🎉")

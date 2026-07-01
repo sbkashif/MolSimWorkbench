@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <string>
 #include "../engine/potentials/lj_potential.h"
+#include "../engine/potentials/dft_potential.h"
 
 YAMLParser::YAMLParser() {
     // Constructor
@@ -221,6 +222,7 @@ Geometry YAMLParser::parseGeometry(const std::string& filename) {
 
 std::shared_ptr<Potential> YAMLParser::parsePotential(const std::string& filename) {
     nlohmann::json jsonData = parseYAMLFile(filename);
+    std::string resolvedSourcePath = resolvePath(filename);
     
     // Determine potential type
     std::string potentialType = jsonData["potential_type"];
@@ -229,10 +231,10 @@ std::shared_ptr<Potential> YAMLParser::parsePotential(const std::string& filenam
         return parseClassicalPotential(jsonData);
     }
     else if (potentialType == "quantum") {
-        return parseQuantumPotential(jsonData);
+        return parseQuantumPotential(jsonData, resolvedSourcePath);
     }
     else if (potentialType == "machine_learning") {
-        return parseMLPotential(jsonData);
+        return parseMLPotential(jsonData, resolvedSourcePath);
     }
     else {
         throw std::runtime_error("Unknown potential type: " + potentialType);
@@ -275,12 +277,20 @@ std::shared_ptr<Potential> YAMLParser::parseClassicalPotential(const nlohmann::j
     throw std::runtime_error("No recognized component found in classical potential");
 }
 
-std::shared_ptr<Potential> YAMLParser::parseQuantumPotential(const nlohmann::json& json) {
-    // TODO: Implement DFT potential parsing
-    throw std::runtime_error("DFT potential parsing not yet implemented");
+std::shared_ptr<Potential> YAMLParser::parseQuantumPotential(const nlohmann::json& json, const std::string& sourcePath) {
+    std::string method = "dft";
+    if (json.contains("method") && json["method"].is_string()) {
+        method = json["method"].get<std::string>();
+    }
+
+    if (method != "dft") {
+        throw std::runtime_error("Unsupported quantum method: " + method);
+    }
+
+    return std::make_shared<DFTPotential>(sourcePath);
 }
 
-std::shared_ptr<Potential> YAMLParser::parseMLPotential(const nlohmann::json& json) {
+std::shared_ptr<Potential> YAMLParser::parseMLPotential(const nlohmann::json& json, const std::string& sourcePath) {
     // TODO: Implement machine learning potential parsing
     throw std::runtime_error("ML potential parsing not yet implemented");
 }

@@ -65,6 +65,18 @@ ctest --verbose
 python tests/test_python_api.py
 ```
 
+## Cross-Platform Infra (macOS + Linux)
+
+Run full project validation (configure, build, C++ tests, LJ example, DFT example):
+
+```bash
+bash scripts/ci/run_all.sh --clean
+```
+
+Matrix CI is provided in `.github/workflows/ci.yml` for:
+- `ubuntu-latest`
+- `macos-latest`
+
 ## Repository Structure
 
 ```
@@ -127,5 +139,5 @@ This workbench is designed for learning:
 
 - C++17 compatible compiler
 - Python 3.6+
-- CMake 3.12+
+- CMake 3.15+
 - PyYAML (for YAML parsing)

@@ -1,10 +1,27 @@
 #include "dft_potential.h"
+#include "../../utils/yaml_parser.h"
 #include <iostream>
 #include <cmath>
 #include <nlohmann/json.hpp>
 
 DFTPotential::DFTPotential(const std::string& parametersFile) {
     loadParameters(parametersFile);
+}
+
+double DFTPotential::calculateEnergy(const Geometry& geometry) {
+    return calculatePotentialEnergy(geometry);
+}
+
+void DFTPotential::calculateForces(const Geometry& geometry, std::vector<std::array<double, 3>>& forces) {
+    const std::vector<double> flatForces = calculateForces(geometry);
+    const size_t numAtoms = geometry.getNumberOfAtoms();
+
+    forces.assign(numAtoms, {0.0, 0.0, 0.0});
+    for (size_t i = 0; i < numAtoms; ++i) {
+        forces[i][0] = flatForces[i * 3];
+        forces[i][1] = flatForces[i * 3 + 1];
+        forces[i][2] = flatForces[i * 3 + 2];
+    }
 }
 
 void DFTPotential::loadParameters(const std::string& parametersFile) {

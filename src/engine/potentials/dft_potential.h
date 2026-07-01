@@ -4,12 +4,18 @@
 #include <vector>
 #include <string>
 #include <map>
-#include "../builder/geometry.h"
-#include "../../utils/yaml_parser.h"
+#include <array>
+#include "../force_calculator.h"
 
-class DFTPotential {
+class DFTPotential : public Potential {
 public:
     DFTPotential(const std::string& parametersFile);
+    ~DFTPotential() override = default;
+
+    double calculateEnergy(const Geometry& geometry) override;
+    void calculateForces(const Geometry& geometry, std::vector<std::array<double, 3>>& forces) override;
+    std::string getName() const override { return "DFT"; }
+
     double calculatePotentialEnergy(const Geometry& geometry);
     std::vector<double> calculateForces(const Geometry& geometry);
 

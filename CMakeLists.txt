@@ -22,9 +22,17 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_TAG release-1.12.1
 )
+
+FetchContent_Declare(
+    pybind11
+    GIT_REPOSITORY https://github.com/pybind/pybind11.git
+    GIT_TAG v2.13.1
+)
+
+set(PYBIND11_FINDPYTHON ON)
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(json googletest)
+FetchContent_MakeAvailable(json googletest pybind11)
 
 # Make gtest_discover_tests() available to subdirectories
 include(GoogleTest)
@@ -47,8 +55,20 @@ add_library(EngineLib STATIC
     src/engine/force_calculator.cpp
     src/engine/molecular_dynamics.cpp
     src/engine/potentials/lj_potential.cpp
+    src/engine/potentials/dft_potential.cpp
 )
 target_link_libraries(EngineLib PUBLIC BuilderLib)
+
+add_executable(run_simulation
+    src/tools/run_simulation.cpp
+)
+target_link_libraries(run_simulation PRIVATE BuilderLib EngineLib)
+
+pybind11_add_module(_molsim
+    src/bindings/molsim_bindings.cpp
+)
+target_link_libraries(_molsim PRIVATE BuilderLib EngineLib)
+target_include_directories(_molsim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # Copy Python YAML parser to build directory
 configure_file(
