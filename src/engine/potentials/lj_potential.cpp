@@ -20,19 +20,32 @@ double LJPotential::calculateEnergy(const Geometry& geometry) {
     // Get atom types and positions
     const auto& atoms = geometry.getAtoms();
     const auto& positions = geometry.getPositions();
+    const auto& boxDim = geometry.getBoxDimensions();
     
     // Loop through all atom pairs
     for (size_t i = 0; i < atoms.size(); ++i) {
         for (size_t j = i + 1; j < atoms.size(); ++j) {
-            // Calculate distance between atoms
+            // Calculate distance between atoms with minimum image convention (for PBC)
             double dx = positions[j][0] - positions[i][0];
             double dy = positions[j][1] - positions[i][1];
             double dz = positions[j][2] - positions[i][2];
+            
+            // Apply minimum image convention if box dimensions are set
+            if (boxDim[0] > 0.0) {
+                dx = dx - boxDim[0] * std::round(dx / boxDim[0]);
+            }
+            if (boxDim[1] > 0.0) {
+                dy = dy - boxDim[1] * std::round(dy / boxDim[1]);
+            }
+            if (boxDim[2] > 0.0) {
+                dz = dz - boxDim[2] * std::round(dz / boxDim[2]);
+            }
+            
             double distanceSquared = dx*dx + dy*dy + dz*dz;
             double distance = std::sqrt(distanceSquared);
             
-            // Skip if beyond cutoff
-            if (distance > cutoff) continue;
+            // Skip if beyond cutoff or too close (numerical safety)
+            if (distance > cutoff || distance < 1e-10) continue;
             
             // Get mixed LJ parameters for this pair
             auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);
@@ -59,19 +72,32 @@ void LJPotential::calculateForces(const Geometry& geometry, std::vector<std::arr
     // Get atom types and positions
     const auto& atoms = geometry.getAtoms();
     const auto& positions = geometry.getPositions();
+    const auto& boxDim = geometry.getBoxDimensions();
     
     // Loop through all atom pairs
     for (size_t i = 0; i < atoms.size(); ++i) {
         for (size_t j = i + 1; j < atoms.size(); ++j) {
-            // Calculate distance vector between atoms
+            // Calculate distance vector between atoms with minimum image convention
             double dx = positions[j][0] - positions[i][0];
             double dy = positions[j][1] - positions[i][1];
             double dz = positions[j][2] - positions[i][2];
+            
+            // Apply minimum image convention if box dimensions are set
+            if (boxDim[0] > 0.0) {
+                dx = dx - boxDim[0] * std::round(dx / boxDim[0]);
+            }
+            if (boxDim[1] > 0.0) {
+                dy = dy - boxDim[1] * std::round(dy / boxDim[1]);
+            }
+            if (boxDim[2] > 0.0) {
+                dz = dz - boxDim[2] * std::round(dz / boxDim[2]);
+            }
+            
             double distanceSquared = dx*dx + dy*dy + dz*dz;
             double distance = std::sqrt(distanceSquared);
             
-            // Skip if beyond cutoff
-            if (distance > cutoff) continue;
+            // Skip if beyond cutoff or too close (numerical safety)
+            if (distance > cutoff || distance < 1e-10) continue;
             
             // Get mixed LJ parameters for this pair
             auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);
