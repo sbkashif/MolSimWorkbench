@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.15)
 
 project(MolSimWorkbench)
 
@@ -8,15 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Enable testing support
 enable_testing()
 
-# Add include directories for our source code
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/builder
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/engine
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
-)
-
-# Find or fetch nlohmann/json for JSON parsing
+# Fetch dependencies
 include(FetchContent)
 FetchContent_Declare(
     json
@@ -33,6 +25,9 @@ FetchContent_Declare(
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(json googletest)
+
+# Make gtest_discover_tests() available to subdirectories
+include(GoogleTest)
 
 # Create a library for the builder components
 add_library(BuilderLib STATIC
@@ -55,20 +50,7 @@ add_library(EngineLib STATIC
 )
 target_link_libraries(EngineLib PUBLIC BuilderLib)
 
-# Add the water LJ minimization test as a standalone executable
-add_executable(WaterLJTest tests/unit/test_water_lj_unit.cpp)
-target_link_libraries(WaterLJTest PRIVATE
-    BuilderLib
-    EngineLib
-    gtest
-    gtest_main
-)
-target_include_directories(WaterLJTest PRIVATE
-    ${gtest_SOURCE_DIR}/include
-    ${gmock_SOURCE_DIR}/include
-)
-
-# Copy Python YAML parser to build directory to ensure it's accessible at runtime
+# Copy Python YAML parser to build directory
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/yaml_parser.py
     ${CMAKE_CURRENT_BINARY_DIR}/yaml_parser.py
@@ -95,12 +77,5 @@ configure_file(
     COPYONLY
 )
 
-# Add subdirectory for unit tests
+# Unit tests
 add_subdirectory(tests/unit)
-
-# Copy Python YAML parser to build directory for C++ code to find
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/yaml_parser.py
-    ${CMAKE_CURRENT_BINARY_DIR}/yaml_parser.py
-    COPYONLY
-)
