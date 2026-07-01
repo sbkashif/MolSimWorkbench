@@ -24,6 +24,7 @@ CMAKE_ARGS=(
   -B build
   -S .
   -DPython_EXECUTABLE="$(command -v "$PYTHON_BIN")"
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 )
 
 OS_NAME="$(uname -s)"
