@@ -104,13 +104,47 @@ SimulationConfig YAMLParser::parseSimulationConfig(const std::string& filename) 
             throw std::runtime_error("Missing simulation type in configuration");
         }
         
-        // Extract file references
+        // Extract system mode (default: geometry_file for backward compatibility)
+        std::cout << "Extracting system mode..." << std::endl;
+        config.systemMode = "geometry_file";  // Default
+        if (jsonData["simulation"].contains("system_mode")) {
+            config.systemMode = jsonData["simulation"]["system_mode"].get<std::string>();
+            std::cout << "System mode set to: " << config.systemMode << std::endl;
+        } else {
+            std::cout << "No system_mode found, using default: geometry_file" << std::endl;
+        }
+        
+        // Extract file references (required for geometry_file mode, optional for lj_particle_box)
         std::cout << "Extracting file references..." << std::endl;
         for (const auto& potentialFile : jsonData["potential_config_files"]) {
             // Add data/ prefix to make it relative to the project root
             config.potentialConfigFiles.push_back("data/" + potentialFile.get<std::string>());
         }
-        config.geometryFile = "data/" + jsonData["geometry_file"].get<std::string>();
+        
+        // Only require geometry file for geometry_file mode
+        if (config.systemMode == "geometry_file" && jsonData.contains("geometry_file")) {
+            config.geometryFile = "data/" + jsonData["geometry_file"].get<std::string>();
+        }
+        
+        // Parse LJ box configuration if in lj_particle_box mode
+        std::cout << "Parsing system mode specific config..." << std::endl;
+        if (config.systemMode == "lj_particle_box" && jsonData["simulation"].contains("lj_box")) {
+            auto& lj = jsonData["simulation"]["lj_box"];
+            config.ljBoxConfig.numParticles = lj.contains("num_particles") ? lj["num_particles"].get<std::size_t>() : 125;
+            config.ljBoxConfig.density = lj.contains("density") ? lj["density"].get<double>() : 0.8;
+            config.ljBoxConfig.temperature = lj.contains("temperature") ? lj["temperature"].get<double>() : 1.0;
+            config.ljBoxConfig.initialization = lj.contains("initialization") ? lj["initialization"].get<std::string>() : "cubic_lattice";
+            
+            if (lj.contains("equilibration_steps")) {
+                config.ljBoxConfig.equilibrationSteps = lj["equilibration_steps"].get<std::size_t>();
+            }
+            if (lj.contains("production_steps")) {
+                config.ljBoxConfig.productionSteps = lj["production_steps"].get<std::size_t>();
+            }
+            if (lj.contains("random_seed")) {
+                config.ljBoxConfig.randomSeed = lj["random_seed"].get<unsigned int>();
+            }
+        }
         
         // Extract simulation parameters - match with the actual SimulationParameters structure
         std::cout << "Parsing simulation parameters..." << std::endl;
@@ -178,6 +212,21 @@ SimulationConfig YAMLParser::parseSimulationConfig(const std::string& filename) 
             // Handle scientific notation in strings like "1e-4"
             std::string forceToleranceStr = jsonData["simulation"]["minimization"]["force_tolerance"].get<std::string>();
             params.minimization.forceTolerance = stringToDouble(forceToleranceStr);
+        }
+        
+        // Phase control and diagnostics (optional)
+        std::cout << "Parsing phase control parameters..." << std::endl;
+        if (jsonData["simulation"].contains("equilibration_steps")) {
+            params.equilibrationSteps = jsonData["simulation"]["equilibration_steps"].get<std::size_t>();
+        }
+        if (jsonData["simulation"].contains("production_steps")) {
+            params.productionSteps = jsonData["simulation"]["production_steps"].get<std::size_t>();
+        }
+        if (jsonData["simulation"].contains("random_seed")) {
+            params.randomSeed = jsonData["simulation"]["random_seed"].get<unsigned int>();
+        }
+        if (jsonData["simulation"].contains("energy_drift_tolerance")) {
+            params.energyDriftTolerance = jsonData["simulation"]["energy_drift_tolerance"].get<double>();
         }
         
         std::cout << "Simulation config parsing complete" << std::endl;
