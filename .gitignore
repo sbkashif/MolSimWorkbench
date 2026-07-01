@@ -4,8 +4,9 @@ bin/
 lib/
 obj/
 
-#Output files
+# Output files
 examples/output/
+examples/*/output/
 
 # CMake generated files
 CMakeFiles/
@@ -94,3 +95,6 @@ wheels/
 *.egg
 venv/
 .venv/
+
+# External AI-assistance docs (managed in separate repo via symlink)
+docs/ai_assistance

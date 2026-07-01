@@ -8,6 +8,7 @@
 #include <sstream>
 #include <memory>
 #include <stdexcept>
+#include <filesystem>
 
 // Use the Python YAML parser for configuration
 class YAMLDFTConfig {
@@ -24,8 +25,26 @@ public:
     }
     
     void loadFromYAML(const std::string& yamlFile) {
-        // Use the Python script to parse YAML (located in build directory)
-        std::string pythonScript = "yaml_parser.py";
+        // Resolve parser script across common run locations (repo root or build directory)
+        std::vector<std::string> parserCandidates = {
+            "yaml_parser.py",
+            "build/yaml_parser.py",
+            "src/utils/yaml_parser.py",
+            "../src/utils/yaml_parser.py"
+        };
+
+        std::string pythonScript;
+        for (const auto& candidate : parserCandidates) {
+            if (std::filesystem::exists(candidate)) {
+                pythonScript = candidate;
+                break;
+            }
+        }
+
+        if (pythonScript.empty()) {
+            throw std::runtime_error("Could not locate yaml_parser.py script");
+        }
+
         std::string command = "python \"" + pythonScript + "\" \"" + yamlFile + "\"";
         
         // Execute and capture output
