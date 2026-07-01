@@ -1,0 +1,16 @@
+# Lennard-Jones Potential Configuration for Bulk Simulations
+potential_type: "classical"
+components:
+  - type: "lennard_jones"
+    cutoff: 2.5  # Cutoff radius in reduced units
+    atom_parameters:
+      "LJ": { epsilon: 1.0, sigma: 1.0 }  # Standard LJ reduced units
+    
+    # Potential options
+    mixing_rule: "geometric"  # Options: "geometric", "arithmetic"
+    tail_correction: false  # Apply long-range correction (optional for v1)
+    shift_potential: false  # Shift potential to zero at cutoff
+    
+    # Computational settings (neighbor list for future optimization)
+    neighbor_list_radius: 3.0  # Slightly larger than cutoff
+    update_frequency: 10  # How often to update neighbor lists
