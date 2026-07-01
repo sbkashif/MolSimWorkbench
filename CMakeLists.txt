@@ -41,6 +41,7 @@ include(GoogleTest)
 add_library(BuilderLib STATIC
     src/builder/geometry.cpp
     src/builder/molecule_builder.cpp
+    src/builder/lj_particle_box_builder.cpp
     src/utils/yaml_parser.cpp
     src/utils/trajectory_writer.cpp  # Add trajectory writer
 )
