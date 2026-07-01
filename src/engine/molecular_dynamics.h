@@ -43,6 +43,14 @@ struct SimulationParameters {
     // Periodic boundary conditions
     bool usePBC = false;                // Use periodic boundary conditions
     SimulationBox box;                  // Simulation box dimensions
+    
+    // Phase control for LJ box simulations
+    std::size_t equilibrationSteps = 0; // Equilibration steps (NVE can skip with 0)
+    std::size_t productionSteps = 0;    // Production steps (if 0, use totalTime)
+    
+    // Diagnostics
+    double energyDriftTolerance = 0.01; // Relative energy drift threshold (NVE)
+    unsigned int randomSeed = 0;        // Random seed for reproducibility (0 = auto)
 };
 
 class MolecularDynamics {
