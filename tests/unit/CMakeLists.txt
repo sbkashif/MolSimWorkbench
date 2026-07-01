@@ -1,6 +1,7 @@
 # Unit tests
 add_executable(MolSimTests
     test_water_lj_unit.cpp
+    test_lj_particle_box.cpp
     # Add more test files here as needed
 )
 
