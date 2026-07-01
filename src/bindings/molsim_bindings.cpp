@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include "../builder/geometry.h"
+#include "../builder/lj_particle_box_builder.h"
 #include "../engine/force_calculator.h"
 #include "../engine/molecular_dynamics.h"
 #include "../engine/potentials/lj_potential.h"
@@ -65,8 +66,10 @@ PYBIND11_MODULE(_molsim, module) {
     py::class_<SimulationConfig>(module, "SimulationConfig")
         .def(py::init<>())
         .def_readwrite("simulationType", &SimulationConfig::simulationType)
+        .def_readwrite("systemMode", &SimulationConfig::systemMode)
         .def_readwrite("potentialConfigFiles", &SimulationConfig::potentialConfigFiles)
         .def_readwrite("geometryFile", &SimulationConfig::geometryFile)
+        .def_readwrite("ljBoxConfig", &SimulationConfig::ljBoxConfig)
         .def_readwrite("simulationParams", &SimulationConfig::simulationParams);
 
     py::class_<Geometry>(module, "Geometry")
@@ -125,6 +128,25 @@ PYBIND11_MODULE(_molsim, module) {
         .def("getCurrentEnergy", &MolecularDynamics::getCurrentEnergy)
         .def("getCurrentForces", &MolecularDynamics::getCurrentForces, py::return_value_policy::copy)
         .def("getCurrentGeometry", &MolecularDynamics::getCurrentGeometry, py::return_value_policy::reference_internal);
+
+    py::class_<LJBoxConfig>(module, "LJBoxConfig")
+        .def(py::init<>())
+        .def_readwrite("numParticles", &LJBoxConfig::numParticles)
+        .def_readwrite("density", &LJBoxConfig::density)
+        .def_readwrite("temperature", &LJBoxConfig::temperature)
+        .def_readwrite("initialization", &LJBoxConfig::initialization)
+        .def_readwrite("randomSeed", &LJBoxConfig::randomSeed)
+        .def_readwrite("equilibrationSteps", &LJBoxConfig::equilibrationSteps)
+        .def_readwrite("productionSteps", &LJBoxConfig::productionSteps);
+
+    py::class_<LJParticleBoxBuilder>(module, "LJParticleBoxBuilder")
+        .def_static("createCubicLattice", [](const LJBoxConfig& config) {
+            std::array<double, 3> boxSize;
+            Geometry geom = LJParticleBoxBuilder::createCubicLattice(config, boxSize);
+            // Store box size in geometry
+            geom.setBoxDimensions(boxSize);
+            return geom;
+        });
 
     py::class_<YAMLParser>(module, "YAMLParser")
         .def(py::init<>())

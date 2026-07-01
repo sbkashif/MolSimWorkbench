@@ -14,22 +14,32 @@ TrajectoryWriter::TrajectoryWriter(const std::string& filename, TrajectoryFormat
         return;
     }
     
+    // Strip extension if already present to avoid double extensions
+    std::string baseFilename = filename;
+    size_t dotPos = baseFilename.rfind('.');
+    if (dotPos != std::string::npos) {
+        std::string ext = baseFilename.substr(dotPos);
+        if (ext == ".xyz" || ext == ".dcd" || ext == ".xtc") {
+            baseFilename = baseFilename.substr(0, dotPos);
+        }
+    }
+    
     // Open the output file based on format
     switch (format) {
         case TrajectoryFormat::XYZ:
-            outputFile.open(filename + ".xyz");
+            outputFile.open(baseFilename + ".xyz");
             break;
             
         case TrajectoryFormat::DCD:
             // DCD is a binary format
-            outputFile.open(filename + ".dcd", std::ios::binary);
+            outputFile.open(baseFilename + ".dcd", std::ios::binary);
             break;
             
         case TrajectoryFormat::XTC:
             // Currently, we'll just use XYZ as a fallback for XTC format
             // since XTC requires external libraries (libxdrfile)
             std::cout << "Warning: XTC format not fully implemented. Using XYZ instead." << std::endl;
-            outputFile.open(filename + ".xyz");
+            outputFile.open(baseFilename + ".xyz");
             break;
     }
     
