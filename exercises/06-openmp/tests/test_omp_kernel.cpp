@@ -62,6 +62,7 @@ TEST(Ex06OpenMP, DeterministicGatherIsBitwiseReproducible) {
     const double e1 = ex06::deterministicGather(b.x, b.y, b.z, 4.0, 1.0, b.box[0],
                                                 b.box[1], b.box[2], b.cutoff,
                                                 ax, ay, az, 8);
+    EX_REQUIRE_IMPLEMENTED(ax, ay, az);
     for (int run = 0; run < 5; ++run) {
         const double e2 = ex06::deterministicGather(b.x, b.y, b.z, 4.0, 1.0,
                                                     b.box[0], b.box[1], b.box[2],

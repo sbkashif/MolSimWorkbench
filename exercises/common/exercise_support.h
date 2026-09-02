@@ -79,5 +79,23 @@ inline double maxRelError(const std::vector<std::array<double, 3>>& ref,
     return m;
 }
 
+// True if the kernel actually wrote something.
+//
+// An unimplemented stub leaves the force arrays zeroed, which would make
+// "is it deterministic?" and "does the thread count matter?" pass VACUOUSLY --
+// a kernel that does nothing is perfectly reproducible and perfectly
+// thread-independent. Every such test asserts this first.
+inline bool producedForces(const std::vector<double>& fx,
+                           const std::vector<double>& fy,
+                           const std::vector<double>& fz) {
+    if (fx.empty()) return false;
+    for (std::size_t i = 0; i < fx.size(); ++i) {
+        if (fx[i] != 0.0 || fy[i] != 0.0 || fz[i] != 0.0) return true;
+    }
+    return false;
+}
+
+#define EX_REQUIRE_IMPLEMENTED(fx, fy, fz)                                      ASSERT_TRUE(ex::producedForces((fx), (fy), (fz)))                               << "not implemented yet -- the kernel left every force at zero, "              "which would make this test pass without doing anything"
+
 }  // namespace ex
 #endif

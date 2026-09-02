@@ -56,6 +56,13 @@ TEST(Ex03Gather, TwoAtomsObeyNewtonsThirdLaw) {
 }
 
 TEST(Ex03Gather, SelfInteractionIsSkipped) {
+    // Prove the kernel computes anything at all before asserting that it
+    // computes nothing for a single atom.
+    {
+        std::vector<double> x2{0.0, 1.2}, y2{0.0, 0.0}, z2{0.0, 0.0}, ax, ay, az;
+        ex03::computeGather(x2, y2, z2, 4.0, 1.0, 0, 0, 0, 2.5, ax, ay, az);
+        EX_REQUIRE_IMPLEMENTED(ax, ay, az);
+    }
     std::vector<double> x{0.0}, y{0.0}, z{0.0}, fx, fy, fz;
     const double e = ex03::computeGather(x, y, z, 4.0, 1.0, 0, 0, 0, 2.5, fx, fy, fz);
     EXPECT_DOUBLE_EQ(e, 0.0);

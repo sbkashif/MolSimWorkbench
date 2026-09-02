@@ -95,6 +95,7 @@ TEST(Capstone, ParallelIsIndependentOfThreadCount) {
     const ex::Box b = ex::makeBox(800);
     View base = makeView(b);
     studentCompute(base.v, StudentBackend::Parallel, 1);
+    EX_REQUIRE_IMPLEMENTED(base.fx, base.fy, base.fz);
 
     for (int T : {2, 3, 5, 8, 16}) {
         View w = makeView(b);
@@ -112,6 +113,7 @@ TEST(Capstone, DeterministicBackendIsBitwiseReproducible) {
     const ex::Box b = ex::makeBox(800);
     View first = makeView(b);
     const double e1 = studentCompute(first.v, StudentBackend::ParallelDeterministic, 8);
+    EX_REQUIRE_IMPLEMENTED(first.fx, first.fy, first.fz);
 
     for (int run = 0; run < 5; ++run) {
         View w = makeView(b);
@@ -126,6 +128,12 @@ TEST(Capstone, DeterministicBackendIsBitwiseReproducible) {
 
 // R7: empty system.
 TEST(Capstone, HandlesEmptySystem) {
+    {   // a real system must work before "empty gives zero" means anything
+        const ex::Box real = ex::makeBox(200);
+        View w = makeView(real);
+        studentCompute(w.v, StudentBackend::Triangular, 1);
+        EX_REQUIRE_IMPLEMENTED(w.fx, w.fy, w.fz);
+    }
     ex::Box b;
     b.n = 0;
     View w = makeView(b);
@@ -136,6 +144,12 @@ TEST(Capstone, HandlesEmptySystem) {
 
 // R7: a single atom has no partners and must not self-interact.
 TEST(Capstone, HandlesSingleAtom) {
+    {   // same precondition: prove the kernel computes something at all
+        const ex::Box real = ex::makeBox(200);
+        View w = makeView(real);
+        studentCompute(w.v, StudentBackend::Triangular, 1);
+        EX_REQUIRE_IMPLEMENTED(w.fx, w.fy, w.fz);
+    }
     ex::Box b;
     b.n = 1;
     b.x = {0.0}; b.y = {0.0}; b.z = {0.0}; b.type = {0};
@@ -187,6 +201,7 @@ TEST(Capstone, BackendsAgreeWithEachOther) {
     const ex::Box b = ex::makeBox(700);
     View tri = makeView(b);
     studentCompute(tri.v, StudentBackend::Triangular, 1);
+    EX_REQUIRE_IMPLEMENTED(tri.fx, tri.fy, tri.fz);
     for (StudentBackend backend : {StudentBackend::Gather, StudentBackend::Parallel,
                                    StudentBackend::ParallelDeterministic}) {
         View w = makeView(b);
@@ -226,6 +241,7 @@ TEST(Capstone, TailEnergyMatchesTheClosedForm) {
 }
 
 TEST(Capstone, TailEnergyGuardsNonPhysicalInput) {
+    ASSERT_LT(studentTailEnergy(100, 125.0, 1.0, 1.0, 2.5), 0.0) << "not implemented yet";
     EXPECT_DOUBLE_EQ(studentTailEnergy(0, 100.0, 1.0, 1.0, 2.5), 0.0);
     EXPECT_DOUBLE_EQ(studentTailEnergy(100, 0.0, 1.0, 1.0, 2.5), 0.0);
     EXPECT_DOUBLE_EQ(studentTailEnergy(100, 100.0, 1.0, 1.0, 0.0), 0.0);

@@ -61,6 +61,7 @@ TEST(Ex04Pool, ResultIsIndependentOfThreadCount) {
     const double refE = ex04::parallelGather(b.x, b.y, b.z, 4.0, 1.0,
                                              b.box[0], b.box[1], b.box[2],
                                              b.cutoff, rx, ry, rz, 1);
+    EX_REQUIRE_IMPLEMENTED(rx, ry, rz);
     for (int T : {2, 3, 5, 8, 16}) {
         std::vector<double> fx, fy, fz;
         const double e = ex04::parallelGather(b.x, b.y, b.z, 4.0, 1.0,
@@ -82,6 +83,7 @@ TEST(Ex04Pool, RepeatedRunsAreBitwiseIdentical) {
     const double e1 = ex04::parallelGather(b.x, b.y, b.z, 4.0, 1.0,
                                            b.box[0], b.box[1], b.box[2],
                                            b.cutoff, ax, ay, az, 8);
+    EX_REQUIRE_IMPLEMENTED(ax, ay, az);
     const double e2 = ex04::parallelGather(b.x, b.y, b.z, 4.0, 1.0,
                                            b.box[0], b.box[1], b.box[2],
                                            b.cutoff, bx2, by2, bz2, 8);

@@ -31,6 +31,11 @@ TEST(Ex07Scaling, RecoversRepoSerialFraction) {
 }
 
 TEST(Ex07Scaling, SerialFractionIsClampedAndGuarded) {
+    // A normal case must work first, otherwise a stub returning 1.0 for
+    // everything would satisfy the guards below.
+    ASSERT_NEAR(ex07::amdahlSerialFraction(ex07::amdahlSpeedup(0.1, 4), 4), 0.1, 1e-9)
+        << "not implemented yet";
+
     EXPECT_DOUBLE_EQ(ex07::amdahlSerialFraction(4.0, 1), 1.0);   // no information
     const double s = ex07::amdahlSerialFraction(100.0, 4);       // superlinear
     EXPECT_GE(s, 0.0);
@@ -66,6 +71,11 @@ TEST(Ex07Scaling, BaselineIsFastestSerialNotFastestOverall) {
 }
 
 TEST(Ex07Scaling, BaselineHandlesNoSerialEntry) {
+    // Prove chooseBaseline finds a serial entry when one exists, so this test
+    // cannot pass on a stub that always returns an empty Timing.
+    const std::vector<ex07::Timing> ok{{"serial", 9.0, 1}, {"omp", 3.0, 8}};
+    ASSERT_EQ(ex07::chooseBaseline(ok).label, "serial") << "not implemented yet";
+
     const std::vector<ex07::Timing> t{{"omp", 3.0, 8}, {"threads", 4.0, 4}};
     EXPECT_TRUE(ex07::chooseBaseline(t).label.empty());
 }

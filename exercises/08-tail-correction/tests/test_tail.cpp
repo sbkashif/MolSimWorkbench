@@ -57,6 +57,11 @@ TEST(Ex08Tail, LargerCutoffMeansSmallerCorrection) {
 }
 
 TEST(Ex08Tail, GuardsNonPhysicalInput) {
+    // Valid input must produce a real answer first; otherwise a stub that
+    // returns 0.0 unconditionally would satisfy every assertion below.
+    ASSERT_LT(ex08::tailEnergy(100, 125.0, 1.0, 1.0, 2.5), 0.0) << "not implemented yet";
+    ASSERT_NE(ex08::tailPressure(100, 125.0, 1.0, 1.0, 2.5), 0.0) << "not implemented yet";
+
     EXPECT_DOUBLE_EQ(ex08::tailEnergy(0, 100.0, 1.0, 1.0, 2.5), 0.0);
     EXPECT_DOUBLE_EQ(ex08::tailEnergy(100, 0.0, 1.0, 1.0, 2.5), 0.0);
     EXPECT_DOUBLE_EQ(ex08::tailEnergy(100, -5.0, 1.0, 1.0, 2.5), 0.0);

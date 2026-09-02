@@ -29,6 +29,12 @@ TEST(Ex02Refactor, MixingTableArithmetic) {
 }
 
 TEST(Ex02Refactor, MixingTableUnknownRuleIsZero) {
+    // First prove a KNOWN rule produces something, so this test cannot pass
+    // just because buildMixingTable returns zeros for everything.
+    const auto known = ex02::buildMixingTable({1.0}, {1.0}, "geometric");
+    ASSERT_EQ(known.eps4.size(), 1u);
+    ASSERT_NE(known.eps4[0], 0.0) << "not implemented yet";
+
     const auto t = ex02::buildMixingTable({1.0}, {1.0}, "nonsense");
     ASSERT_EQ(t.eps4.size(), 1u);
     EXPECT_DOUBLE_EQ(t.eps4[0], 0.0);
