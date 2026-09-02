@@ -28,6 +28,9 @@ yourself with the 5.31× number.
 
 ## Lessons
 
+**New here? Read [START_HERE.md](START_HERE.md) first** — reading order,
+pacing, and the commands to run.
+
 | # | File | Covers |
 |---|---|---|
 | 00 | [00_starting_point.md](00_starting_point.md) | The code as it is today, and the exact lines parallelism goes into |
