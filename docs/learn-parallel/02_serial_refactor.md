@@ -130,10 +130,14 @@ Splitting the r² rewrite into its pre- and post-cutoff halves confirms it:
 
 | Variant | ms | gain |
 |---|---:|---:|
-| A original | 28.08 | — |
-| B **pre-cutoff fix only** (divisions → multiplies, branches gone) | 15.20 | **1.85×** |
-| C post-cutoff fix only (no `sqrt`, no normalisation) | 22.13 | 1.27× |
-| D both | 11.46 | 2.45× |
+| original | 28.08 | — |
+| **fix only the wrapping** (before the cutoff test) — divisions → multiplies, branches gone | 15.20 | **1.85×** |
+| fix only the `sqrt` (after the cutoff test) — no square root, no normalisation | 22.13 | 1.27× |
+| fix both | 11.46 | 2.45× |
+
+*(Both halves are suspect **(C)** from lesson 0. Splitting it in two shows that
+the part running before the cutoff test is worth more than the part running
+after it — which is the whole point.)*
 
 The minimum-image convention was the hot spot all along.
 
