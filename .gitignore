@@ -1,5 +1,7 @@
 # Build directories
 build/
+build-learn/
+build-tsan/
 bin/
 lib/
 obj/
