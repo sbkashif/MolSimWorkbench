@@ -72,6 +72,46 @@ add things up in a local variable and write out once at the end.
 
 ---
 
+## C++ you will meet in the exercises
+
+**`auto`**
+"Work out the type for me." `auto x = 3.14;` makes `x` a `double`, because that
+is what is on the right. The type is fixed when the program is compiled and can
+never change — this is **not** Python. Use it when the type is obvious or too
+ugly to be worth writing: the real type of a `chrono` timestamp is three lines
+long and tells you nothing.
+
+**`std::numeric_limits<T>`** (from `<limits>`)
+Asks questions about a number type, since different types hold different ranges.
+`std::numeric_limits<double>::max()` is the biggest value a `double` can hold
+(~1.8 × 10³⁰⁸) — handy as a starting point when hunting for a minimum, because
+the first real measurement is guaranteed to beat it.
+
+⚠️ For floating-point types `::min()` is **not** the most negative value — it is
+the smallest *positive* one. The most negative is `::lowest()`. For `int` they
+are the same, which is why this trips people up.
+
+**`template <typename F>`**
+A recipe with a blank in it. The compiler fills the blank in and generates a
+real function for whatever you pass. Needed when you want to accept "any piece
+of code" — a lambda has no type name you could write down, so there is nothing
+you could put in the parameter slot without a blank.
+
+You have already seen the other side of this: `std::map<std::string, Params>` is
+*filling in* someone else's blanks. `template <typename F>` is *declaring* one.
+
+**Lambda** — `[&]{ ++calls; }`
+A small unnamed function written where you need it. The `[&]` says "you may use
+the variables around you". Handy for passing a piece of work to something like
+`timeMs`.
+
+**`F&&`**
+"Take this without making a copy of it." For a big object, copying would be
+wasteful; for a lambda, often impossible. Read it as "hand me the thing itself".
+
+**Cache line**
+See below under memory and layout.
+
 ## Memory and layout
 
 **Cache line**
