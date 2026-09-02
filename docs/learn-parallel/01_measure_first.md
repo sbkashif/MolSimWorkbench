@@ -23,28 +23,92 @@ to run at. A good harness makes those visible instead of averaging them in.
 
 ### Warm-up: never time the first call
 
+Here is the timing helper, with every unfamiliar piece of C++ explained inline.
+
 ```cpp
+// "template <typename F>" means: this is a RECIPE, not a finished function.
+// F is a blank to be filled in. Whatever you pass as `f`, the compiler
+// generates a version of timeMs specialised for that exact type.
+//
+// We need this because `f` might be a lambda, a function pointer, or a
+// struct with operator() -- each of those is a DIFFERENT type, and none of
+// them has a name you could write down. The blank lets you accept all of them.
 template <typename F>
-double timeMs(F&& f, int reps) {
-    f();                              // <-- warm-up, deliberately untimed
-    double best = 1e300;
+double timeMs(F&& f, int reps) {         // F&& = take `f` without copying it
+                                         // reps = how many timed runs to do
+
+    f();                                 // WARM-UP. Called, deliberately NOT timed.
+                                         // Everything below this line is measured;
+                                         // this line is the price of admission.
+
+    double best = 1e300;                 // a deliberately absurd starting value,
+                                         // so the first real measurement is
+                                         // guaranteed to be smaller than it
+
     for (int r = 0; r < reps; ++r) {
-        const auto t0 = Clock::now();
-        f();
-        const auto t1 = Clock::now();
-        best = std::min(best, std::chrono::duration<double,std::milli>(t1-t0).count());
+        const auto t0 = Clock::now();    // `auto` = "work out the type for me";
+                                         // it is a timestamp, and its real type
+                                         // name is long and uninteresting
+        f();                             // the thing being measured
+        const auto t1 = Clock::now();    // timestamp again
+
+        // t1 - t0 is a duration. duration<double, std::milli> reinterprets it
+        // in milliseconds-as-a-double, and .count() pulls out the plain number.
+        best = std::min(best,
+                 std::chrono::duration<double, std::milli>(t1 - t0).count());
+                                         // keep whichever is smaller: the best
+                                         // so far, or this run
     }
-    return best;
+    return best;                          // the fastest of the `reps` runs
 }
 ```
 
-The first call to a function is not representative. It pays for:
+Note the clock is taken **inside** the loop, around each individual call. Timing
+the whole loop once and dividing by `reps` would give you the average, which is
+the thing we are trying to avoid.
 
-- **Page faults.** `std::vector` reserves address space; the OS only hands over
-  physical pages when you first touch them.
-- **Cold caches.** Nothing is in L1/L2 yet.
-- **Thread pool creation.** OpenMP builds its pool on first use. Timing that
-  once and attributing it to the kernel would make threading look terrible.
+### Why the warm-up is there
+
+"The first call is unrepresentative" is easy to say and easy to disbelieve.
+Here is the same kernel called eight times in a row, N=4096, nothing else
+changing:
+
+```
+  call    ms
+     1    7.48   <- first call
+     2    4.90
+     3    4.36
+     4    4.30
+     5    4.30
+     6    4.36
+     7    4.49
+     8    4.90
+```
+
+**The first call is 74% slower than the steady state.** Include it and you would
+report 7.48 ms for a kernel that costs 4.30 ms.
+
+Three things are being paid for on that first call, none of which is your
+kernel's actual work:
+
+- **Page faults.** When you ask for memory, the operating system does not
+  actually hand it over — it makes a note and waits. The real memory is only
+  attached the first time you *touch* each part of it, and each of those
+  attachments is an interruption. On the second call the memory is already
+  yours.
+- **Cold caches.** The processor keeps recently-used data in small fast
+  storage near the cores. On the first call nothing is in there yet, so every
+  number has to be fetched from main memory, which is far away and slow. By the
+  second call much of it is already close by.
+- **Worker startup.** The 8 workers do not exist until something asks for them.
+  Creating them costs real time. They are then kept alive and reused, so later
+  calls do not pay it. Charging that one-time cost to the kernel would make
+  parallelism look far worse than it is.
+
+Notice also that call 2 (4.90 ms) is still slightly elevated, and it does not
+truly settle until call 3 or 4. One warm-up removes most of the distortion, and
+taking the **minimum** of several runs mops up the rest — which is the next
+section.
 
 ### Minimum, not mean
 
