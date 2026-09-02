@@ -57,28 +57,48 @@ for (size_t i = 0; i < atoms.size(); ++i) {
 
 At N=4096 the inner body runs **8.4 million times** per call.
 
-## The four problems, in order of importance
+## Four suspects — deliberately not ranked
 
-**(D) The parameter lookup — the single biggest cost.**
+Below are the four things in that loop that could be costing you. They are
+listed in the order they catch the eye, which is **not** the order that matters.
+
+Ranking them is lesson 2's job, and it is done by measurement, because the
+obvious answer turns out to be wrong. Read these as suspects, form your own
+guess about which dominates, and write it down before you get to lesson 2. You
+will find out whether you did better than I did — I was confident, and I was
+wrong.
+
+**(D) The parameter lookup.**
 `getMixedParameters` takes two `std::string`s, does two red-black-tree descents
 in a `std::map`, then computes `std::sqrt(eps1*eps2)` for the mixing rule. It
-does this 8.4 million times to recompute *a constant*. For a single-component
-LJ fluid, the answer is the same every single time.
+does this 8.4 million times to recompute *a constant* — for a single-component
+LJ fluid the answer is identical every time.
 
-This is also the reason the loop cannot go on a GPU: there is no `std::map`
-and no `std::string` in a CUDA kernel. Deleting it is simultaneously the
-biggest CPU optimization and a hard prerequisite for the port. That is lesson 2,
-and it is why the course does serial work before touching threads.
+(A red-black tree is the balanced binary search tree `std::map` is built from.
+Looking up `"LJ"` walks from the root, comparing strings and chasing a pointer
+to a separately-allocated node at each step, until it finds the key. Compare
+that with what it becomes after the refactor: `eps4row[type[j]]`, a single
+integer index into a contiguous array.)
 
-**(C) The `sqrt`.** Taken for every pair, then immediately used as a divisor
-three times. Both the energy and the force can be written in terms of r²
-alone — the square root is never actually needed.
+Whatever it costs, it is a **hard blocker for the GPU**: there is no `std::map`
+and no `std::string` in a CUDA kernel. So this one has to go regardless of what
+the profiler says about it.
+
+**(C) The `sqrt` and the divisions.** A square root for every pair, then used as
+a divisor three more times to normalise the direction vector. Both the energy
+and the force can be written in terms of r² alone, so the square root is never
+actually needed. Note also the three divisions in the minimum-image convention
+just above it — `dx / boxDim[0]` and friends — which run *before* the cutoff
+test. Keep that timing in mind; it matters more than it looks.
 
 **(B) Array-of-Structures layout.** `positions` is
-`std::vector<std::array<double,3>>`, so x, y and z for one atom are adjacent
-in memory. But the loop wants *many atoms' x values* in sequence. Reorganising
-to Structure-of-Arrays (`x[]`, `y[]`, `z[]`) is what lets the CPU vectorize —
-and on a GPU it is the difference between coalesced and scattered memory access.
+`std::vector<std::array<double,3>>`, so x, y and z for one atom sit adjacent in
+memory. The conventional wisdom is that Structure-of-Arrays (`x[]`, `y[]`,
+`z[]`) is faster, and it is what a GPU needs for coalesced memory access.
+
+Whether it is faster *here*, on a scalar CPU loop, is a question worth actually
+measuring rather than assuming. Lesson 2 measures it. The answer is not the one
+the conventional wisdom predicts.
 
 **(A)+(E) The triangular loop with a two-sided write.** This is the subtle one,
 and it is the reason parallelizing is a *design* decision rather than a pragma.
@@ -181,9 +201,12 @@ and disagreeing wildly on speed. Everything that follows explains that table.
 ## Summary
 
 - One loop, `LJPotential::calculateForces`, is essentially the entire runtime.
-- It has four problems: a per-pair `std::map<std::string>` lookup, an unnecessary
-  `sqrt`, an AoS layout, and a two-sided write that races under threading.
-- The first three are fixed by a *serial* rewrite that is also the GPU port.
+- It has four suspects: a per-pair `std::map<std::string>` lookup, an unnecessary
+  `sqrt` (plus three divisions in the minimum-image convention), an AoS layout,
+  and a two-sided write that races under threading.
+- The first three are addressed by a *serial* rewrite that is also the GPU port.
+  Which of them actually dominates is measured in lesson 2, and it is not the
+  one most people pick.
 - The fourth is a formulation choice, not an optimization — lesson 3.
 - The original code is preserved as `calculateForcesReference()` and is the
   yardstick for everything else.
