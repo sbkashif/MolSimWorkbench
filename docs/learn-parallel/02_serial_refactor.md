@@ -141,6 +141,60 @@ after it — which is the whole point.)*
 
 The minimum-image convention was the hot spot all along.
 
+### First: nothing is being skipped
+
+The obvious objection, and it is the right instinct: *you have to compute the
+periodic distance to decide whether a pair is inside the cutoff. That work is
+necessary. How can it be waste?*
+
+It is necessary. And none of it is removed. **The same work is done with cheaper
+instructions.**
+
+**The wrapping.** You need the minimum-image displacement. You do not need a
+division to get it:
+
+```cpp
+// before — a DIVISION, 8,386,560 times
+dx -= bx * std::round(dx / bx);
+
+// after — the reciprocal taken ONCE, outside the loop
+const double invbx = 1.0 / bx;         // one division, ever
+dx -= bx * std::round(dx * invbx);     // a MULTIPLY, 8,386,560 times
+```
+
+`dx / bx` and `dx * (1/bx)` are the same quantity. Every pair still gets wrapped,
+`round` still runs, the displacement is identical. Only the instruction changed.
+
+**The square root.** This one was never needed at all. You want to know "is this
+pair closer than 2.5?" — and for non-negative numbers,
+
+$$r < r_c \iff r^2 < r_c^2$$
+
+Comparing squares gives exactly the same yes/no on every pair. Square `cutoff`
+once, before the loop, and test `r2 > cutoff2`.
+
+It goes further: the physics does not need `r` either. The energy can be written
+`(σ²/r²)³` instead of `(σ/r)⁶`, and the force as a scalar times the *raw*
+displacement vector — which removes the three divisions that were normalising it:
+
+$$\vec{F} = \frac{F}{r}\cdot\vec{r}, \qquad \frac{F}{r} = \frac{24\varepsilon}{r^{2}}\left[2\left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^{6}\right]$$
+
+So the square root disappears from the cutoff test *and* from the force. It was
+pure overhead in both places.
+
+**And the proof it is the same physics:** if corners had been cut, the numbers
+would move. They do not.
+
+```
+reference          -20105.493949019
+serial-triangular  -20105.493949019      max relative force difference: 1.5e-11
+```
+
+Nine matching decimal places. The 1.5e-11 residue is rounding from doing the
+same arithmetic in a different order, not a missing term.
+
+**No physics removed. No pair skipped. Identical answers. Cheaper instructions.**
+
 ### Why division is special
 
 On modern hardware a `double` multiply has ~4 cycles latency and is *fully
