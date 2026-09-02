@@ -79,16 +79,33 @@ The chunk size memory moves in — 64 bytes, or 8 doubles. Asking for one number
 always fetches its whole 64-byte neighbourhood. This is why *where* data sits
 matters as much as how much of it there is.
 
-**Array of Structures (AoS)**
-`positions[i]` holds x, y and z for atom i together, side by side. This is what
-the repo started with: `std::vector<std::array<double,3>>`.
+**Array of Structures (AoS)** — one folder per atom
+Each atom's x, y and z are kept together:
 
-**Structure of Arrays (SoA)**
-Three separate lists: all the x values, then all the y values, then all the z
-values. Standard advice says this is faster. In this course it measured **13%
-slower** on the CPU — because the loop wants x, y *and* z for one atom, which
-AoS already puts together. It is kept anyway because a graphics card needs it.
-Lesson 2.
+```
+[x0 y0 z0][x1 y1 z1][x2 y2 z2]
+```
+
+Like a filing cabinet with one folder per atom, each holding three sheets. This
+is what the repo started with (`std::vector<std::array<double,3>>`).
+
+**Structure of Arrays (SoA)** — one cabinet per coordinate
+Three separate lists instead:
+
+```
+x: [x0 x1 x2]     y: [y0 y1 y2]     z: [z0 z1 z2]
+```
+
+Like three filing cabinets — everyone's x sheets in one, everyone's y in
+another.
+
+**Which is better depends on the question you ask.** "Everything about atom 7"
+is one folder (AoS wins). "The x of atoms 0–31" is one cabinet (SoA wins).
+
+Our loop needs atom j's x, y *and* z to measure a distance — the folder
+question — so AoS wins, and SoA measured **13% slower**. A graphics card asks the
+other question: 32 workers each want a different atom's x at the same moment, so
+SoA wins there. The repo pays the 13% to keep that door open. Lesson 2.
 
 **Red-black tree**
 The structure behind `std::map`. To look something up, you start at the top and

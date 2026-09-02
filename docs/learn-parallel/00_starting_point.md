@@ -30,7 +30,8 @@ against it. Annotations are mine.
 ```cpp
 for (size_t i = 0; i < atoms.size(); ++i) {
     for (size_t j = i + 1; j < atoms.size(); ++j) {      // (A) triangular: i < j
-        double dx = positions[j][0] - positions[i][0];   // (B) AoS indexing
+        double dx = positions[j][0] - positions[i][0];   // (B) how positions
+                                                         //     are laid out
         double dy = positions[j][1] - positions[i][1];
         double dz = positions[j][2] - positions[i][2];
 
@@ -299,7 +300,8 @@ correctness baseline. The new path is a sibling:
 ```
 LJPotential::calculateForces(geometry, forces)
     │
-    ├─ buildView()              AoS + strings  →  flat SoA + integer type ids
+    ├─ buildView()              atom-at-a-time + text names
+    │                             →  three flat coordinate lists + integer ids
     │                           (this is the marshalling; O(N), done once per call)
     │
     └─ ljComputeGather(view, backend, numThreads)      ← src/engine/potentials/lj_kernels.cpp
@@ -316,7 +318,7 @@ nothing but raw pointers, `int`s and `double`s:
 
 ```cpp
 struct LJKernelView {
-    const double *x, *y, *z;      // SoA positions, not vector<array<double,3>>
+    const double *x, *y, *z;      // three separate coordinate lists
     const int    *type;           // integer ids, not std::string
     double       *fx, *fy, *fz;
     std::size_t   n;

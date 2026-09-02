@@ -173,25 +173,70 @@ fxi -= fOverR * dx;
 `F⃗ = (F/r)·r⃗` is the same vector, computed with three fewer divisions and no
 square root at all.
 
-## The uncomfortable one: SoA is slower here
+## The uncomfortable one: splitting the coordinates made it slower
 
-Converting to structure-of-arrays — separate `x[]`, `y[]`, `z[]` instead of
-`std::vector<std::array<double,3>>` — cost **13%**, consistently:
+### First, what the two layouts are
+
+Every atom has an x, a y and a z. There are two ways to keep them.
+
+**Array of Structures (AoS)** — what the repo started with. Each atom's three
+numbers live together:
+
+```
+[x0 y0 z0][x1 y1 z1][x2 y2 z2]
+  atom 0     atom 1     atom 2
+```
+
+**Structure of Arrays (SoA)** — three separate lists:
+
+```
+x: [x0 x1 x2]
+y: [y0 y1 y2]
+z: [z0 z1 z2]
+```
+
+Think of it as filing. **AoS is one folder per atom**, each folder holding three
+sheets. **SoA is three filing cabinets** — every atom's x sheet in the first,
+every y in the second, every z in the third.
+
+Now ask two different questions:
+
+| Question | AoS | SoA |
+|---|---|---|
+| "everything about atom 7" | open one folder | walk to three cabinets |
+| "the x of atoms 0–31" | open 32 folders, take one sheet from each | one cabinet, 32 sheets in a row |
+
+**Neither layout is better in the abstract.** It depends entirely on which
+question you ask.
+
+### Why the arrangement matters at all
+
+Memory does not arrive one number at a time. It arrives in **64-byte chunks**
+(a *cache line*). Ask for one number and its neighbours come along for free.
+Three doubles is 24 bytes — so in AoS, an atom's x, y and z all land in a single
+chunk.
+
+Our inner loop asks the **first** question: it needs atom j's x, y *and* z to
+work out a distance. AoS hands over all three in one fetch. SoA sends you to
+three separate places.
+
+### The measurement
+
+Converting to SoA cost **13%**, consistently:
 
 | | AoS | SoA | |
 |---|---:|---:|---:|
 | gather, N=4096 | 22.62 ms | 26.09 ms | 0.87× |
 | gather, N=15625 | 315.78 ms | 362.46 ms | 0.87× |
 
-The reason is straightforward once you look at the access pattern. The inner
-loop needs **all three components of atom j**. In AoS those are three adjacent
-doubles — one cache line, one load stream. In SoA they live in three separate
-arrays, so you touch three cache lines and run three streams. AoS wins.
+Exactly as the filing-cabinet picture predicts: one folder beats three cabinets
+when you want the whole folder.
 
-SoA pays off when you need *one component across many atoms* (SIMD across the
-j loop), or on a GPU, where consecutive threads in a warp read consecutive `j`
-and SoA makes those loads coalesce into a single transaction. Neither applies
-to a scalar CPU loop that wants x, y and z together.
+SoA wins when you ask the *other* question — one coordinate across many atoms.
+That is what a graphics card does: 32 workers move in lockstep, and each wants a
+*different* atom's x at the same instant. SoA lays those 32 numbers in a row so
+the hardware collects them in one go; AoS scatters them 24 bytes apart, so it
+fetches 32 chunks and discards two-thirds of each. Same data, opposite verdict.
 
 **The shipped kernel uses SoA anyway, and gives up 13%.** That is a deliberate
 trade: the entire point of `LJKernelView` is to be a layout a CUDA kernel can
