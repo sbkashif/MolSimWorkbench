@@ -57,48 +57,124 @@ for (size_t i = 0; i < atoms.size(); ++i) {
 
 At N=4096 the inner body runs **8.4 million times** per call.
 
+## What the loop is actually computing
+
+For every pair of atoms a distance *r* apart, the Lennard-Jones energy is
+
+$$U(r) = 4\varepsilon\left[\left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^{6}\right]$$
+
+and the force between them is the slope of that, with a minus sign:
+
+$$F(r) = -\frac{dU}{dr} = \frac{24\varepsilon}{r}\left[2\left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^{6}\right]$$
+
+The r⁻¹² term is the hard repulsion when atoms get too close; the r⁻⁶ term is
+the gentle attraction that pulls them together. This repo uses reduced units,
+ε = σ = 1, so those simplify to `4(r⁻¹² − r⁻⁶)` and `(24/r)(2r⁻¹² − r⁻⁶)`.
+
+### Two actual atoms
+
+Put atom A at the origin and atom B at r = 1.2:
+
+```
+(σ/r)⁶  = (1/1.2)⁶  = 0.334898
+(σ/r)¹² = 0.334898² = 0.112157
+
+U = 4 × (0.112157 − 0.334898) = −0.890965      attractive (negative)
+F = (24/1.2) × (2×0.112157 − 0.334898) = −2.211693
+```
+
+Now walk B further away and watch what happens:
+
+| r | U(r) | F(r) | |
+|---:|---:|---:|---|
+| 1.12 | −1.000 | 0.000 | the bottom of the well — atoms sit here |
+| 1.2 | −0.891 | −2.212 | strong pull |
+| 2.0 | −0.0615 | −0.182 | 14× weaker |
+| 2.5 | −0.0163 | −0.039 | **the cutoff — we stop here** |
+| 3.0 | −0.0055 | — | thrown away |
+
+By r = 2.5 the energy is 1.6% of what it was at the bottom of the well. That is
+why there is a cutoff: past that point you are doing full arithmetic to compute
+almost nothing. **Remember that the code has to measure the distance before it
+can know the answer is too small to matter.** That single fact is the key to
+this whole chapter.
+
+## What one worker actually does, per pair
+
+Picture a single worker with a checklist. For **every** pair of atoms they must:
+
+```
+  1. subtract the two positions                    3 subtractions
+  2. wrap around the box (nearest copy)            3 divisions, 3 roundings,
+                                                   3 multiplications, 3 branches
+  3. square and add up                             3 multiplications, 2 additions
+  4. take the square root                          1 square root
+  ─────────────────────────────────────────────────────────────────────
+  5. is it closer than 2.5?  NO  → throw it away and start the next pair
+                             YES → carry on:
+  ─────────────────────────────────────────────────────────────────────
+  6. look up ε and σ for this pair of atom types   2 std::map lookups + 1 sqrt
+  7. compute the push and apply it                 the actual physics
+```
+
+At N = 4096 there are 4096 × 4095 / 2 = **8,386,560 pairs**. And of those, only
+**113,910 — 1.36% — are closer than 2.5.**
+
+So steps 1–5 run **8,386,560 times**.
+Steps 6–7 run **113,910 times**.
+
+**That is a ratio of 74 to 1.** Your worker spends the overwhelming majority of
+their day carefully measuring the distance to atoms that turn out to be too far
+away to care about, then throwing the measurement in the bin.
+
+Anything you save in steps 1–5 you save 74 times over. Anything you save in
+steps 6–7, you save once.
+
 ## Four suspects — deliberately not ranked
 
-Below are the four things in that loop that could be costing you. They are
-listed in the order they catch the eye, which is **not** the order that matters.
+Here are the four things that could be costing you. They are listed in the order
+they catch the eye, which is **not** the order that matters.
 
 Ranking them is lesson 2's job, and it is done by measurement, because the
-obvious answer turns out to be wrong. Read these as suspects, form your own
-guess about which dominates, and write it down before you get to lesson 2. You
-will find out whether you did better than I did — I was confident, and I was
-wrong.
+obvious answer is wrong. Form your own guess and write it down before you get
+there. Hint: look again at which steps are above the line and which are below it.
 
-**(D) The parameter lookup.**
-`getMixedParameters` takes two `std::string`s, does two red-black-tree descents
-in a `std::map`, then computes `std::sqrt(eps1*eps2)` for the mixing rule. It
-does this 8.4 million times to recompute *a constant* — for a single-component
-LJ fluid the answer is identical every time.
+**(D) The parameter lookup — step 6.**
+`getMixedParameters` takes two atom names as text (`"LJ"`, `"O"`, `"H"`), looks
+each one up in a `std::map`, and computes `sqrt(ε₁ × ε₂)` for the mixing rule.
+For a single-component fluid the answer is *identical every single time*, so
+this is a lot of work to rediscover a constant.
 
-(A red-black tree is the balanced binary search tree `std::map` is built from.
-Looking up `"LJ"` walks from the root, comparing strings and chasing a pointer
-to a separately-allocated node at each step, until it finds the key. Compare
-that with what it becomes after the refactor: `eps4row[type[j]]`, a single
-integer index into a contiguous array.)
+(A `std::map` is not an index into a list. It is a tree: to find `"LJ"` you start
+at the top, compare text, follow a pointer to another node somewhere else in
+memory, compare again, and so on until you land on it. Each hop can be a slow
+trip to main memory. After the refactor this becomes `eps4row[type[j]]` — one
+integer index straight into a contiguous array.)
 
-Whatever it costs, it is a **hard blocker for the GPU**: there is no `std::map`
-and no `std::string` in a CUDA kernel. So this one has to go regardless of what
-the profiler says about it.
+This is the obvious suspect. Note carefully **which side of the cutoff test it
+sits on** before you decide how much it costs.
 
-**(C) The `sqrt` and the divisions.** A square root for every pair, then used as
-a divisor three more times to normalise the direction vector. Both the energy
-and the force can be written in terms of r² alone, so the square root is never
-actually needed. Note also the three divisions in the minimum-image convention
-just above it — `dx / boxDim[0]` and friends — which run *before* the cutoff
-test. Keep that timing in mind; it matters more than it looks.
+Either way it has to go, because it is a hard blocker for the GPU: there is no
+`std::map` and no text in a graphics-card kernel.
 
-**(B) Array-of-Structures layout.** `positions` is
-`std::vector<std::array<double,3>>`, so x, y and z for one atom sit adjacent in
-memory. The conventional wisdom is that Structure-of-Arrays (`x[]`, `y[]`,
-`z[]`) is faster, and it is what a GPU needs for coalesced memory access.
+**(C) The square root and the divisions — steps 2 and 4.**
+A square root for every pair, then used as a divisor three more times to make a
+unit direction vector. Both the energy and the force can be written using r²
+alone, so the square root is never actually needed.
 
-Whether it is faster *here*, on a scalar CPU loop, is a question worth actually
-measuring rather than assuming. Lesson 2 measures it. The answer is not the one
-the conventional wisdom predicts.
+And look at step 2: `dx / boxDim[0]` and its two friends. **Three divisions per
+pair, before the cutoff test.** Division is one of the slowest things a processor
+does — roughly 15–20× the cost of a multiplication, and unlike multiplication it
+cannot be overlapped with other work.
+
+**(B) How the positions are stored — everything.**
+`positions[i]` currently keeps atom i's x, y and z together, side by side. The
+usual advice is to split them into three separate lists (all the x's, then all
+the y's, then all the z's), because that is what a graphics card needs.
+
+Whether that is faster *here*, for one worker on a CPU, is worth measuring
+rather than assuming. Lesson 2 measures it. The answer is not the one the usual
+advice predicts.
 
 **(A)+(E) The triangular loop with a two-sided write.** This is the subtle one,
 and it is the reason parallelizing is a *design* decision rather than a pragma.
@@ -201,9 +277,12 @@ and disagreeing wildly on speed. Everything that follows explains that table.
 ## Summary
 
 - One loop, `LJPotential::calculateForces`, is essentially the entire runtime.
-- It has four suspects: a per-pair `std::map<std::string>` lookup, an unnecessary
-  `sqrt` (plus three divisions in the minimum-image convention), an AoS layout,
-  and a two-sided write that races under threading.
+- Of 8,386,560 pairs, only 113,910 (1.36%) are close enough to matter — but the
+  code must measure every one to find that out. Work before the cutoff test is
+  paid 74× more often than work after it.
+- Four suspects: the text-keyed parameter lookup, the square root and the three
+  divisions that wrap coordinates around the box, how positions are stored, and
+  the two-sided write that breaks under multiple workers.
 - The first three are addressed by a *serial* rewrite that is also the GPU port.
   Which of them actually dominates is measured in lesson 2, and it is not the
   one most people pick.

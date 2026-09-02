@@ -15,9 +15,9 @@ Reading the original loop, the obvious culprit is this:
 auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);
 ```
 
-Two `std::map<std::string, ...>` lookups plus a `sqrt`, executed 8.4 million
-times to recompute a constant. That has to be the problem. It is the kind of
-thing that gets flagged in code review, and I was confident about it.
+Two `std::map<std::string, ...>` lookups plus a `sqrt`, to recompute a constant.
+That has to be the problem. It is the kind of thing that gets flagged in code
+review, and I was confident about it.
 
 It is worth 10%.
 
@@ -34,11 +34,30 @@ N=4096:
 
 Two of my four predictions were wrong:
 
-- **The `std::map` lookup barely matters** (1.10×). Not because map lookups are
-  cheap, but because *this* map has one entry. A single-component LJ fluid means
-  a one-node tree and one short string compare. Put 30 atom types in it, as a
-  protein force field would, and this line becomes a real cost. It is a latent
-  problem, not a current one.
+- **The `std::map` lookup barely matters** (1.10×) — and the reason is worth
+  more than the measurement. Look at where the call actually sits:
+
+  ```cpp
+  if (distance > cutoff || distance < 1e-10) continue;      // 98.6% leave here
+  auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);
+  ```
+
+  It is **after** the cutoff test. So it does not run 8.4 million times — it runs
+  113,910 times, on the 1.36% of pairs that survive. I had assumed it was in the
+  hot path; I had misread which side of the `continue` it was on.
+
+  The arithmetic confirms it exactly. Removing it saved 2.87 ms across 113,910
+  calls = **25 ns per pair**, which is a perfectly reasonable price for two tree
+  lookups and a `sqrt`. Had it really run on all 8,386,560 pairs at 25 ns, it
+  would have cost **211 ms** — dwarfing everything else, precisely as predicted.
+
+  **The estimate of the cost was right. The estimate of the frequency was wrong
+  by a factor of 74.** That is the more common way performance intuition fails:
+  not mispricing an operation, but misjudging how often it runs.
+
+  (It is still a latent problem. With 30 atom types, as a protein force field
+  would have, this line gets slower — and it remains a hard blocker for the GPU
+  regardless of cost.)
 - **`std::pow(x, 6)` is free** (1.01×). Clang recognises a constant integer
   exponent and emits the multiply chain itself. Hand-optimising it changed
   nothing. The compiler had already done it.
