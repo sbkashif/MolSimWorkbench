@@ -20,6 +20,10 @@ MixingTable buildMixingTable(const std::vector<double>& epsilons,
     //   "arithmetic" -> eps_ab = 0.5*(eps_a + eps_b), sig_ab = 0.5*(sig_a + sig_b)
     //   anything else -> leave zeros
     //
+    if (rule == "geometric") {
+        t.eps4.assign(static_cast<std::size_t>(t.ntypes) * t.ntypes, 0.0);
+        t.sigma2.assign(static_cast<std::size_t>(t.ntypes) * t.ntypes, 0.0);
+       
     // Storing 4*eps and sigma^2 means the inner loop never has to compute them.
     (void)sigmas;
     (void)rule;
@@ -42,9 +46,34 @@ double computeTriangularFast(const std::vector<double>& x,
     fz.assign(n, 0.0);
 
     // TODO(2): hoist the reciprocal box lengths OUT of the loop.
+    //
     //   const double invbx = (bx > 0.0) ? 1.0 / bx : 0.0;   // and by, bz
+    //
     // Then inside the loop use   dx -= bx * std::round(dx * invbx);
-    // When bx == 0 this leaves dx alone, with no branch. Work out why.
+    //
+    // Two things are happening here.
+    //
+    // (a) DIVISION -> MULTIPLICATION. dx/bx and dx*(1/bx) are the same value,
+    //     but the reciprocal is now computed once instead of 8.4 million times.
+    //     Division is ~15-20 cycles and blocks; multiplication is ~4 and
+    //     pipelines.
+    //
+    // (b) THE BRANCH MOVED OUTSIDE THE LOOP. A box length of 0 means "no
+    //     wrapping on this axis". The original guarded that with an `if` on
+    //     every pair. Here the `?:` makes the decision ONCE, and the loop body
+    //     needs no test at all -- because with bx == 0 we set invbx = 0, and:
+    //
+    //         dx * 0.0        = 0.0
+    //         round(0.0)      = 0.0
+    //         bx * 0.0        = 0.0
+    //         dx -= 0.0       -> dx unchanged
+    //
+    //     The wrapping term collapses to zero on its own.
+    //
+    // The guard is NOT optional. Writing 1.0/bx unguarded when bx == 0 gives
+    // infinity, then 0.0 * infinity = NaN, and every force in the system
+    // becomes garbage. Choosing 0.0 for the no-box case is what makes the
+    // arithmetic safely do nothing.
 
     // TODO(3): hoist cutoff*cutoff out of the loop too.
 
