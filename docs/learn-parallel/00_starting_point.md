@@ -315,7 +315,10 @@ LJPotential::calculateForces(geometry, forces)
            ├─ Serial             gather, one thread                  (lesson 3)
            ├─ Threads            gather, hand-rolled std::thread pool (lesson 4)
            ├─ OpenMP             gather, #pragma omp parallel for     (lesson 6)
-           └─ [Cuda]             gather, one CUDA thread per atom     (lesson 9, not built)
+           ├─ OpenMPPrivate      i<j scatter, one force array PER     (lesson 5)
+           │                     worker, summed at the end
+           │                     -- fastest on this CPU
+           └─ [Cuda]             gather, one worker per atom          (lesson 9, not built)
 ```
 
 The seam is `LJKernelView` in `lj_kernels.h`. It is deliberately made of
@@ -373,8 +376,13 @@ cmake -B build -S . && cmake --build build --parallel
 ./build/benchmarks/bench_lj 4096 7
 ```
 
-You should see all four backends agreeing on the energy to nine decimal places
-and disagreeing wildly on speed. Everything that follows explains that table.
+You should see all five backends agreeing on the energy to nine decimal places
+and disagreeing wildly on speed. (The first row, `reference`, is not a backend —
+it is the original code, kept as the yardstick.)
+
+The two numbers are the system size and the repeat count: `4096` atoms, and time
+each backend `7` times keeping the fastest. Lesson 1 explains why the fastest
+rather than the average. Everything that follows explains that table.
 
 ## Summary
 
