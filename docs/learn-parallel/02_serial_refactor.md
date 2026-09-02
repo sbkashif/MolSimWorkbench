@@ -55,9 +55,43 @@ Two of my four predictions were wrong:
   by a factor of 74.** That is the more common way performance intuition fails:
   not mispricing an operation, but misjudging how often it runs.
 
-  (It is still a latent problem. With 30 atom types, as a protein force field
-  would have, this line gets slower — and it remains a hard blocker for the GPU
-  regardless of cost.)
+### The single-type measurement is the map's best case
+
+  1.10× is not a general result about `std::map`. This repo's example has **one
+  atom type** — a one-node tree and a two-character key. That is the friendliest
+  input the data structure will ever see, and the engine is built for arbitrary
+  mixtures.
+
+  Holding σ fixed so the set of pairs inside the cutoff is identical at every
+  type count, and varying only the number of types:
+
+  | types | map + text | flat table | map penalty | ns per lookup |
+  |---:|---:|---:|---:|---:|
+  | 1 | 32.28 ms | 29.37 ms | 1.10× | 25.6 |
+  | 2 | 32.82 | 29.33 | 1.12× | 30.6 |
+  | 5 | 34.68 | 29.34 | 1.18× | 46.9 |
+  | 10 | 36.88 | 29.41 | 1.25× | 65.6 |
+  | 20 | 38.25 | 29.36 | 1.30× | 78.1 |
+  | 50 | 41.45 | 29.41 | 1.41× | 105.6 |
+  | 100 | 44.09 | 29.84 | **1.48×** | **125.2** |
+
+  **The flat table does not move** — 29.37 to 29.84 ms across a hundredfold
+  change in type count, a 1.6% drift. One integer index costs the same whatever
+  `T` is. The map climbs by 5× per lookup: deeper tree, longer keys, more
+  pointer chasing to scattered nodes.
+
+  And the effect compounds with the other fixes. At 100 types the lookup adds
+  14.25 ms of overhead. Once the r² rewrite has brought the rest of the kernel
+  down to 11.6 ms, that overhead would be **more than half the total runtime** —
+  against 9% here.
+
+  So the honest statement is: the lookup is a minor cost *in this benchmark*, a
+  major one in the mixtures the engine is designed for, and a hard blocker for
+  the GPU in every case. Reproduce it yourself:
+
+  ```bash
+  ./build/benchmarks/bench_ablation 4096
+  ```
 - **`std::pow(x, 6)` is free** (1.01×). Clang recognises a constant integer
   exponent and emits the multiply chain itself. Hand-optimising it changed
   nothing. The compiler had already done it.
@@ -207,6 +241,7 @@ you can debug it with a print statement.
 
 ## Further Reading
 
+- [`benchmarks/bench_ablation.cpp`](../../benchmarks/bench_ablation.cpp) — reproduces both tables in this lesson
 - [`src/engine/potentials/lj_kernels.cpp`](../../src/engine/potentials/lj_kernels.cpp) — the result
 - Exercise: `exercises/02-serial-refactor/`
 

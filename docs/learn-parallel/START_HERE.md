@@ -29,6 +29,12 @@ Every lesson exists to explain one row of that table. Do not read on until you
 have run it — the whole course is calibrated to numbers from *your* machine, and
 yours will differ from these.
 
+Lesson 2's ablation tables have their own tool:
+
+```bash
+./build/benchmarks/bench_ablation 4096
+```
+
 ---
 
 ## Step 1 — Read (about 2 hours, splits cleanly into two sittings)

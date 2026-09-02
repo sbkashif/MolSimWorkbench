@@ -139,23 +139,42 @@ Ranking them is lesson 2's job, and it is done by measurement, because the
 obvious answer is wrong. Form your own guess and write it down before you get
 there. Hint: look again at which steps are above the line and which are below it.
 
-**(D) The parameter lookup — step 6.**
-`getMixedParameters` takes two atom names as text (`"LJ"`, `"O"`, `"H"`), looks
-each one up in a `std::map`, and computes `sqrt(ε₁ × ε₂)` for the mixing rule.
-For a single-component fluid the answer is *identical every single time*, so
-this is a lot of work to rediscover a constant.
+**(D) The parameter lookup — step 6.** *(on this list for a different reason
+than the other three — read on.)*
+`getMixedParameters` takes two atom names as text (`"LJ"`, `"CH3"`, `"OW"`),
+looks each one up in a `std::map`, and computes `sqrt(ε₁ × ε₂)` for the mixing
+rule.
 
-(A `std::map` is not an index into a list. It is a tree: to find `"LJ"` you start
-at the top, compare text, follow a pointer to another node somewhere else in
-memory, compare again, and so on until you land on it. Each hop can be a slow
+(A `std::map` is not an index into a list. It is a tree: to find `"CH3"` you
+start at the top, compare text, follow a pointer to another node somewhere else
+in memory, compare again, and so on until you land on it. Each hop can be a slow
 trip to main memory. After the refactor this becomes `eps4row[type[j]]` — one
 integer index straight into a contiguous array.)
 
-This is the obvious suspect. Note carefully **which side of the cutoff test it
-sits on** before you decide how much it costs.
+Note first **which side of the cutoff test it sits on**. It is below the line, so
+it runs 113,910 times, not 8,386,560. That alone should make you suspicious of
+how much it can possibly cost here.
 
-Either way it has to go, because it is a hard blocker for the GPU: there is no
-`std::map` and no text in a graphics-card kernel.
+But its case does not rest on its cost in *this* benchmark, and this is the
+important part:
+
+- **The work is redundant regardless of the mixture.** The mixing rule depends
+  only on the *pair of types*, not the pair of atoms. With `T` types there are at
+  most `T²` distinct answers, and the loop recomputes them 113,910 times. One
+  type means one answer computed 113,910 times; thirty types means 900 answers
+  computed 113,910 times. The redundancy never goes away.
+- **It gets worse as the mixture gets richer, not better.** This repo's example
+  has a single atom type, which is the map's *best possible case* — a one-node
+  tree and a two-character key. Measured at N=4096, going from 1 to 100 types
+  takes the lookup from 25.6 ns to 125.2 ns while the flat table does not move at
+  all. Lesson 2 has the table. Your engine is built for arbitrary mixtures, so
+  the single-type figure is the least representative number available.
+- **It is a hard blocker for the GPU.** There is no `std::map` and no text in a
+  graphics-card kernel. This is structural and has nothing to do with speed.
+
+So (D) is a *design* problem rather than a hot-spot. The other three below are
+genuine candidates for "where is the time actually going". Keep them separate in
+your head.
 
 **(C) The square root and the divisions — steps 2 and 4.**
 A square root for every pair, then used as a divisor three more times to make a
