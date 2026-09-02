@@ -207,6 +207,58 @@ forces[i] -= f;    // i is fixed for this whole inner loop — safe
 forces[j] += f;    // j ranges over everything — NOT safe
 ```
 
+### Why one minus and one plus
+
+Because of Newton's third law: if i pulls on j, j pulls back on i just as hard,
+in exactly the opposite direction. So the code computes the force **once** and
+applies it **twice, with opposite signs**. That is the "half the arithmetic"
+saving, in two lines.
+
+The direction comes from how the displacement was defined a few lines earlier:
+
+```cpp
+double dx = positions[j][0] - positions[i][0];   // an arrow FROM i TOWARD j
+```
+
+Run the two atoms from earlier through it — atom i at x = 0, atom j at x = 1.2:
+
+```
+dx      = 1.2 − 0 = +1.2                     arrow points from i at j
+r²      = 1.44
+(σ/r)⁶  = 0.334898      (σ/r)¹² = 0.112157
+
+fOverR  = 24 × (2×0.112157 − 0.334898) / 1.44
+        = −1.843067                          negative ⇒ attractive
+```
+
+```
+f[i] -= fOverR·dx  →  −(−1.843 × 1.2) = +2.2117   i moves in +x, toward j  ✓
+f[j] += fOverR·dx  →   (−1.843 × 1.2) = −2.2117   j moves in −x, toward i  ✓
+```
+
+Same size, opposite directions, pulling the two together — correct, because at
+r = 1.2 they attract. And 2.2117 is exactly the F(1.2) value from the table above.
+
+Push them closer than r = 1.122 and `(2sr12 − sr6)` turns positive, so `fOverR`
+turns positive, and both signs flip: they shove each other apart. **The same two
+lines cover attraction and repulsion** — only the sign of `fOverR` changes.
+
+The particular signs are a convention. Had you written
+`dx = positions[i] − positions[j]`, the arrow would point the other way and the
+`-=` and `+=` would swap. What is *not* a convention is that the two must be
+**opposite**. That is the physics.
+
+And it is precisely why this loop cannot be threaded:
+
+- `f[i] -= …` — `i` is fixed for the whole inner loop, so this worker owns it.
+  **Safe.**
+- `f[j] += …` — `j` sweeps over every other atom, so this worker is reaching into
+  memory another worker may be reaching into at the same instant. **Not safe.**
+
+Give up Newton's third law and the second line disappears — along with the 2×
+saving. That is the trade in lesson 3, and it begins right here, in the choice of
+`-=` and `+=`.
+
 Hand the outer loop to two threads. Thread A holds `i=10`, thread B holds
 `i=20`, and both eventually reach `j=999`. Both read `forces[999]`, both add to
 it, both write it back. One update is silently lost.
