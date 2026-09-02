@@ -159,17 +159,22 @@ how much it can possibly cost here.
 But its case does not rest on its cost in *this* benchmark, and this is the
 important part:
 
-- **The work is redundant regardless of the mixture.** The mixing rule depends
-  only on the *pair of types*, not the pair of atoms. With `T` types there are at
-  most `T²` distinct answers, and the loop recomputes them 113,910 times. One
-  type means one answer computed 113,910 times; thirty types means 900 answers
-  computed 113,910 times. The redundancy never goes away.
-- **It gets worse as the mixture gets richer, not better.** This repo's example
-  has a single atom type, which is the map's *best possible case* — a one-node
-  tree and a two-character key. Measured at N=4096, going from 1 to 100 types
-  takes the lookup from 25.6 ns to 125.2 ns while the flat table does not move at
-  all. Lesson 2 has the table. Your engine is built for arbitrary mixtures, so
-  the single-type figure is the least representative number available.
+- **It gets worse as the mixture gets richer, not better.** The *number* of
+  lookups never changes — it is 113,910 either way, fixed by how many pairs fall
+  inside the cutoff. What changes is the **cost of each one**. This repo's
+  example has a single atom type, which is the map's best possible case: a
+  one-node tree and a two-character key. Measured at N=4096, going from 1 to 100
+  types takes each lookup from 25.6 ns to 125.2 ns, while the flat table does not
+  move at all — a deeper tree and longer text keys cost more, an integer index
+  does not care. Lesson 2 has the table. Your engine is built for arbitrary
+  mixtures, so the single-type figure is the least representative number
+  available.
+- **It drags arithmetic into the loop that belongs outside it.** The mixing rule
+  `sqrt(ε₁ε₂)` depends only on the *pair of types*, so with `T` types there are
+  at most `T²` possible answers. The original computes them fresh on every
+  surviving pair, every timestep. Building the table once turns 227,820 square
+  roots per step into `T²` square roots once, ever. (At `T` = 30 that is 900,
+  computed at startup.)
 - **It is a hard blocker for the GPU.** There is no `std::map` and no text in a
   graphics-card kernel. This is structural and has nothing to do with speed.
 
