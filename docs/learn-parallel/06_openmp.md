@@ -1,5 +1,23 @@
 # Lesson 6: OpenMP
 
+> ### In plain English
+>
+> Chapter 4 built the worker management by hand — deciding how many workers,
+> dividing the atoms between them, starting them, waiting for them, adding up
+> their answers. About 25 lines.
+>
+> OpenMP does all of that if you write one line above the loop. The reason we
+> did it by hand first is so that line is something you understand rather than
+> something you copy.
+>
+> The interesting part of this chapter is what happens when your cores are not
+> all the same speed. Your Mac has 4 fast cores and 4 slow ones, and the
+> straightforward way of dividing up the work makes a **5-worker run slower
+> than a 4-worker run**. One line fixes it.
+>
+> New words here: **pragma**, **schedule**, **reduction**, **shared/private**,
+> **barrier** — see [GLOSSARY.md](GLOSSARY.md).
+
 ## Learning Objectives
 
 - Replace the hand-rolled pool from lesson 4 with two lines

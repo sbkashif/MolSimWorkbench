@@ -1,5 +1,23 @@
 # Lesson 9: Where This Goes
 
+> ### In plain English
+>
+> Two things happen here, and neither needs anything installed.
+>
+> First: the graphics-card version of this kernel is almost the same code. You
+> delete the outer loop and replace it with "which atom am I?" — because
+> chapter 3 already restructured it so each worker owns its own atoms. That
+> restructuring was the port; everything else is mechanical.
+>
+> Second: where your toy kernel sits relative to real MD software. The short
+> version is that the biggest win available here is not parallelism at all — the
+> loop checks 8.4 million pairs of atoms and only 114,000 of them are close
+> enough to matter. Skipping the other 98.6% would beat all eight of your cores
+> using one. That is what real codes do, and it is deliberately not built here.
+>
+> New words here: **kernel**, **warp**, **coalescing**, **shared memory**,
+> **cell list** — see [GLOSSARY.md](GLOSSARY.md).
+
 > **Read-only.** Nothing in this lesson is built and nothing needs installing.
 > There is no CUDA toolkit on this machine and the course does not require one.
 > The point is to show that the work you have already done is most of the port,

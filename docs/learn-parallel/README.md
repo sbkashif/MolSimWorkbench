@@ -28,7 +28,11 @@ yourself with the 5.31× number.
 
 ## Lessons
 
-**New here? Read [START_HERE.md](START_HERE.md) first** — reading order,
+**New here? Read [START_HERE.md](START_HERE.md) first**, and keep
+[GLOSSARY.md](GLOSSARY.md) open beside you — it defines every specialist term
+in plain words.
+
+**Reading order and pacing:** — reading order,
 pacing, and the commands to run.
 
 | # | File | Covers |

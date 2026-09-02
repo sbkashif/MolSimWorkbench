@@ -1,5 +1,26 @@
 # Lesson 3: Scatter vs Gather
 
+> ### In plain English
+>
+> The original loop computes the push between two atoms **once** and applies it
+> to both of them. That is the smart way to do it with one worker — you never
+> compute the same push twice.
+>
+> But it means a worker has to reach over and update an atom that some *other*
+> worker might be updating at the same moment. When that happens, one of the two
+> updates is silently thrown away.
+>
+> So we rewrite it: each worker owns certain atoms and works out everything
+> about them by itself. Nobody ever touches an atom they do not own, so nothing
+> can collide. The price is that every push now gets computed twice, once from
+> each atom's side.
+>
+> **That rewrite makes the code slower for one worker (15.2 ms → 28.3 ms) and
+> is the only reason eight workers are possible at all.**
+>
+> New words here: **scatter**, **gather**, **triangular loop** —
+> see [GLOSSARY.md](GLOSSARY.md).
+
 ## Learning Objectives
 
 - Distinguish a *scatter* from a *gather* and say why it decides everything

@@ -1,5 +1,22 @@
 # Lesson 5: The Race
 
+> ### In plain English
+>
+> "Add my push to atom 999" is not one step. It is three: read the current
+> total, add your bit, write it back. If two workers do that at the same moment
+> they both read the *old* total, and whoever writes second wipes out the other
+> one's contribution.
+>
+> Nothing crashes. You get a number that looks completely reasonable and is
+> quietly wrong. In this chapter, 2% of atoms came out wrong while the total
+> energy and every other summary check looked perfect — and the broken version
+> was the **fastest** one, because skipping safety is fast.
+>
+> Then we fix it three ways and compare what each costs.
+>
+> New words here: **data race**, **atomic**, **deterministic** —
+> see [GLOSSARY.md](GLOSSARY.md).
+
 ## Learning Objectives
 
 - Produce a real data race and observe what it does to physical results

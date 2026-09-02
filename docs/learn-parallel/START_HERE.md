@@ -33,6 +33,12 @@ yours will differ from these.
 
 ## Step 1 — Read (about 2 hours, splits cleanly into two sittings)
 
+Keep **[GLOSSARY.md](GLOSSARY.md)** open in another tab. It defines every
+specialist term in plain words, with why it matters here. Lessons 03, 05, 06 and
+09 each open with an "In plain English" box that gives you the whole idea before
+the technical version — read that box first, always.
+
+
 ### Sitting one — why the loop is slow (~70 min)
 
 | Read | Have this open beside it | Take away |
