@@ -209,55 +209,79 @@ forces[j] += f;    // j ranges over everything — NOT safe
 
 ### Why one minus and one plus
 
-Because of Newton's third law: if i pulls on j, j pulls back on i just as hard,
-in exactly the opposite direction. So the code computes the force **once** and
-applies it **twice, with opposite signs**. That is the "half the arithmetic"
-saving, in two lines.
+The signs look like two different operations. They are not. They are **one
+number applied at both ends of one thing**.
 
-The direction comes from how the displacement was defined a few lines earlier:
+Picture a stretched spring with atom i on one end and atom j on the other.
+There is only **one tension** in that spring. It is not "a force on i" and
+separately "a force on j" — it is a single interaction with two ends. If the
+spring pulls i toward j with a strength of 2.2, then it pulls j toward i with a
+strength of 2.2. Same number. Opposite ends.
+
+That is the whole thing. Everything else is bookkeeping about direction.
+
+**The direction comes from an arrow.** A few lines earlier the code computes:
 
 ```cpp
-double dx = positions[j][0] - positions[i][0];   // an arrow FROM i TOWARD j
+double dx = positions[j][0] - positions[i][0];   // an arrow FROM i, POINTING AT j
 ```
 
-Run the two atoms from earlier through it — atom i at x = 0, atom j at x = 1.2:
+Subtracting i's position from j's gives you an arrow that starts at i and points
+at j. Hold onto that: `dx` means "the direction from i to j".
+
+Now you have exactly two things: **one strength** (`fOverR`) and **one arrow**
+(`dx`). Atom i gets pushed along that arrow. Atom j gets pushed along the same
+arrow, backwards. The only way to write "the same arrow, backwards" is to flip
+the sign — so one line gets `-=` and the other gets `+=`.
+
+If you had defined the arrow the other way round
+(`dx = positions[i] − positions[j]`), it would point from j to i, and the `-=`
+and `+=` would swap places. Neither version is more correct. What is *not*
+optional is that the two are **opposite**, because there is only one spring.
+
+*(Physicists call this Newton's third law. The name is less useful here than the
+spring.)*
+
+**Watch it work.** Take the two atoms from earlier — i at x = 0, j at x = 1.2:
 
 ```
-dx      = 1.2 − 0 = +1.2                     arrow points from i at j
+dx      = 1.2 − 0 = +1.2                     arrow points from i at j, in +x
 r²      = 1.44
 (σ/r)⁶  = 0.334898      (σ/r)¹² = 0.112157
 
 fOverR  = 24 × (2×0.112157 − 0.334898) / 1.44
-        = −1.843067                          negative ⇒ attractive
+        = −1.843067                          negative ⇒ the spring is PULLING
 ```
 
 ```
-f[i] -= fOverR·dx  →  −(−1.843 × 1.2) = +2.2117   i moves in +x, toward j  ✓
-f[j] += fOverR·dx  →   (−1.843 × 1.2) = −2.2117   j moves in −x, toward i  ✓
+f[i] -= fOverR·dx  →  −(−1.843 × 1.2) = +2.2117   i moves in +x → toward j  ✓
+f[j] += fOverR·dx  →   (−1.843 × 1.2) = −2.2117   j moves in −x → toward i  ✓
 ```
 
-Same size, opposite directions, pulling the two together — correct, because at
-r = 1.2 they attract. And 2.2117 is exactly the F(1.2) value from the table above.
+Same size, opposite directions, both moving inward — correct, because at r = 1.2
+these atoms attract. And 2.2117 is exactly the F(1.2) value in the table above.
 
-Push them closer than r = 1.122 and `(2sr12 − sr6)` turns positive, so `fOverR`
-turns positive, and both signs flip: they shove each other apart. **The same two
-lines cover attraction and repulsion** — only the sign of `fOverR` changes.
+**Now squeeze them together.** Below r = 1.122 the `(2sr12 − sr6)` bracket turns
+positive, so `fOverR` turns positive, and *both* results flip sign: i moves in
+−x and j moves in +x. They shove each other apart. The spring is now a
+compressed spring rather than a stretched one — and the same two lines of code
+handle it, with nothing changed but the sign of one number.
 
-The particular signs are a convention. Had you written
-`dx = positions[i] − positions[j]`, the arrow would point the other way and the
-`-=` and `+=` would swap. What is *not* a convention is that the two must be
-**opposite**. That is the physics.
+**Why this matters for the rest of the course.** Those two lines are where the
+loop gets its speed: one distance measurement, one formula evaluation, and you
+learn what happens to *both* atoms. Half the work of asking each atom separately.
 
-And it is precisely why this loop cannot be threaded:
+They are also where it breaks:
 
-- `f[i] -= …` — `i` is fixed for the whole inner loop, so this worker owns it.
-  **Safe.**
-- `f[j] += …` — `j` sweeps over every other atom, so this worker is reaching into
-  memory another worker may be reaching into at the same instant. **Not safe.**
+- `f[i] -= …` — `i` is fixed for the entire inner loop, so this worker owns it.
+  Nobody else will touch it. **Safe.**
+- `f[j] += …` — `j` sweeps across every other atom in the box, so this worker is
+  reaching into a slot that another worker may be reaching into at the very same
+  moment. **Not safe.**
 
-Give up Newton's third law and the second line disappears — along with the 2×
-saving. That is the trade in lesson 3, and it begins right here, in the choice of
-`-=` and `+=`.
+Give up the saving — ask each atom separately, and let each worker touch only
+its own atoms — and the second line disappears entirely. That is the trade in
+lesson 3, and it begins right here, in the choice of `-=` and `+=`.
 
 Hand the outer loop to two threads. Thread A holds `i=10`, thread B holds
 `i=20`, and both eventually reach `j=999`. Both read `forces[999]`, both add to
