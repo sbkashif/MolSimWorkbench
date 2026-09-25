@@ -72,6 +72,81 @@ The r⁻¹² term is the hard repulsion when atoms get too close; the r⁻⁶ te
 the gentle attraction that pulls them together. This repo uses reduced units,
 ε = σ = 1, so those simplify to `4(r⁻¹² − r⁻⁶)` and `(24/r)(2r⁻¹² − r⁻⁶)`.
 
+![The Lennard-Jones potential and force](figures/lj_potential.svg)
+
+*(Regenerate with `python3 docs/learn-parallel/figures/make_lj_figure.py`.)*
+
+### What σ and ε actually mean
+
+The two parameters are a **length** and an **energy**, and between them they
+describe everything about how a pair of atoms behaves.
+
+**σ — the size of the atom.**
+
+It is the separation at which the energy crosses zero: closer than σ and the pair
+*repels*, further and it *attracts*. Think of it as where the two atoms are "just
+touching" — σ is roughly an atomic diameter.
+
+One thing the figure makes obvious and the formula does not: **σ is not the
+distance atoms want to sit at.** The bottom of the well is at
+
+$$r_{\min} = 2^{1/6}\,\sigma \approx 1.122\,\sigma$$
+
+about 12% further out than σ. Left alone, a pair settles there, not at σ. (You can
+get that from the formula by setting F = 0: `2(σ/r)¹² = (σ/r)⁶` gives
+`(σ/r)⁶ = ½`.)
+
+σ has units of length. For argon, σ ≈ 3.4 Å.
+
+**ε — how sticky the atoms are.**
+
+It is the **depth of the well** — the energy you would have to supply to drag a
+pair from their preferred distance `r_min` all the way apart. A bigger ε means a
+stronger bond, which in bulk means a higher boiling point and a denser liquid.
+
+ε has units of energy. For argon, ε/k_B ≈ 120 K, i.e. thermal motion at 120 K is
+comparable to the strength of one pair bond — which is why argon is a liquid only
+below about 87 K.
+
+**So together:** σ sets the horizontal scale of the curve, ε sets the vertical
+one. Change σ and the whole shape slides left or right; change ε and it gets
+deeper or shallower. The *shape* never changes.
+
+### Where the two terms come from
+
+Worth knowing, because one of them is physics and the other is convenience.
+
+**The r⁻⁶ attraction is real physics.** Electrons are constantly sloshing about,
+so at any instant an atom has a slight lopsidedness in its charge. That induces a
+matching lopsidedness in a neighbour, and the two attract. Working it out
+properly gives an r⁻⁶ falloff. This is the *London dispersion* force — the
+weakest of the van der Waals interactions, and the only one neutral atoms have.
+
+**The r⁻¹² repulsion is a convenient fiction.** Two atoms cannot overlap because
+their electrons cannot occupy the same states (Pauli exclusion). The true
+repulsion rises roughly *exponentially*, not as a power law. The 12 was chosen
+because **12 = 2 × 6**, so once you have computed `(σ/r)⁶` you get `(σ/r)¹²` with
+one extra multiplication.
+
+That is not a historical footnote — it is a decision that is still paying off in
+the code you are about to optimise:
+
+```cpp
+const double sr6  = sr2 * sr2 * sr2;   // (sigma/r)^6
+const double sr12 = sr6 * sr6;         // free, because 12 = 2 x 6
+```
+
+A physically better exponent would cost more arithmetic for an accuracy nobody
+usually needs.
+
+### Why reduced units
+
+Setting ε = σ = 1 does two things. All the interesting numbers land near 1, so
+nonsense is visible by eye — an energy of −20105 for 4096 atoms is about −4.9 per
+atom, which is plausible; a value of 10⁷ would not be. And one simulation now
+describes *every* LJ fluid at once: multiply lengths by your σ and energies by
+your ε afterwards.
+
 ### Two actual atoms
 
 Put atom A at the origin and atom B at r = 1.2:
