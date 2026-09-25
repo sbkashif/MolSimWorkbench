@@ -7,25 +7,60 @@ namespace ex02 {
 MixingTable buildMixingTable(const std::vector<double>& epsilons,
                              const std::vector<double>& sigmas,
                              const std::string& rule) {
+    // ---- ALREADY WRITTEN FOR YOU: setting up the empty table ---------------
+    //
+    // `epsilons` and `sigmas` hold ONE value per atom type. What the kernel
+    // needs instead is one value per PAIR of types, because the mixing rule
+    // combines two of them. With T types that is T*T combinations.
+
     MixingTable t;
-    t.ntypes = static_cast<int>(epsilons.size());
+    t.ntypes = static_cast<int>(epsilons.size());        // how many atom types
+
+    // .assign(count, value) means "make this vector hold `count` items, and set
+    // every one of them to `value`". So these two lines create T*T slots and
+    // fill them all with 0.0 -- an empty grid, ready to be written into.
+    //
+    // They do NOT compute anything. Calling .assign again later would just wipe
+    // the grid back to zeros.
     t.eps4.assign(static_cast<std::size_t>(t.ntypes) * t.ntypes, 0.0);
     t.sigma2.assign(static_cast<std::size_t>(t.ntypes) * t.ntypes, 0.0);
 
-    // TODO(1): for every ordered pair (a, b), apply the mixing rule and store
-    //          4*eps_ab   in t.eps4[a*ntypes + b]
-    //          sigma_ab^2 in t.sigma2[a*ntypes + b]
+    // ---- YOUR JOB: fill those slots in ------------------------------------
     //
-    //   "geometric"  -> eps_ab = sqrt(eps_a * eps_b), sig_ab = sqrt(sig_a * sig_b)
-    //   "arithmetic" -> eps_ab = 0.5*(eps_a + eps_b), sig_ab = 0.5*(sig_a + sig_b)
-    //   anything else -> leave zeros
+    // The vectors are FLAT, but they represent a GRID. With 2 atom types:
     //
+    //            b=0   b=1                stored as:
+    //     a=0  [  A  |  B  ]              [ A, B, C, D ]
+    //     a=1  [  C  |  D  ]                0  1  2  3
+    //
+    // The slot for "row a, column b" is at index   a * t.ntypes + b
+    // (check it: row 1, column 0 -> 1*2 + 0 = index 2 = C.)
+    //
+    // TODO(1): visit EVERY combination of a and b -- a loop inside a loop --
+    //          and for each one:
+    //
+    //            1. combine the two types' values using the mixing rule:
+    //                 "geometric"   eps = sqrt(epsilons[a] * epsilons[b])
+    //                               sig = sqrt(sigmas[a]   * sigmas[b])
+    //                 "arithmetic"  eps = 0.5 * (epsilons[a] + epsilons[b])
+    //                               sig = 0.5 * (sigmas[a]   + sigmas[b])
+    //                 anything else leave the slot at 0.0
+    //
+    //            2. store the PRE-CHEWED versions, not the raw ones:
+    //                 t.eps4  [a * t.ntypes + b] = 4.0 * eps;
+    //                 t.sigma2[a * t.ntypes + b] = sig * sig;
+    //
+    // Step 2 is the whole point of this exercise. Storing 4*eps and sigma^2
+    // means the inner loop -- which runs millions of times -- never has to
+    // multiply by 4 or square anything. You pay that cost once, here.
+    //
+    // The `rule` check is the same for every pair, so it can sit outside the
+    // loops if you prefer. This runs once at startup, so either is fine.
     if (rule == "geometric") {
         t.eps4.assign(static_cast<std::size_t>(t.ntypes) * t.ntypes, 0.0);
         t.sigma2.assign(static_cast<std::size_t>(t.ntypes) * t.ntypes, 0.0);
        
-    // Storing 4*eps and sigma^2 means the inner loop never has to compute them.
-    (void)sigmas;
+    (void)sigmas;   // delete these two once you actually use sigmas and rule
     (void)rule;
     return t;
 }

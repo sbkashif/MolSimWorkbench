@@ -28,6 +28,9 @@ yourself with the 5.31× number.
 
 ## Lessons
 
+**Picking up where you left off?** [PROGRESS.md](PROGRESS.md).
+**Want the code change in plain language?** [CODE_TOUR.md](CODE_TOUR.md).
+
 **New here? Read [START_HERE.md](START_HERE.md) first**, and keep
 [GLOSSARY.md](GLOSSARY.md) open beside you — it defines every specialist term
 in plain words.
