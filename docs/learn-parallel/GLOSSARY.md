@@ -72,6 +72,32 @@ add things up in a local variable and write out once at the end.
 
 ---
 
+## Design vocabulary
+
+**Seam**
+A deliberate joint in the code where you can swap one piece for another *without
+editing anything around it*. Borrowed from sewing: a seam is where two pieces of
+fabric meet on purpose, so you can replace a sleeve without re-cutting the shirt.
+(A real term of art, from Michael Feathers' *Working Effectively with Legacy
+Code*.)
+
+The seam in this repo is `LJKernelView` in `lj_kernels.h`:
+
+```
+    LJPotential::calculateForces()        knows about Geometry, atom names, YAML
+    ─────────────────────────────────     <- the seam
+    ljComputeGather(view, backend, ...)   knows only numbers and addresses
+```
+
+The test is: **can one side change without touching the other?** Adding a
+graphics-card version means adding a file below the line and one name to the list
+of arrangements — nothing above the line changes. The alternative, `#ifdef
+USE_CUDA` inside `lj_potential.cpp`, tangles two unrelated concerns in the one
+file everything depends on.
+
+Keeping a seam narrow has a price — here, restricting it to plain data costs 13%
+on the CPU (see AoS/SoA). That is the trade being made deliberately.
+
 ## C++ you will meet in the exercises
 
 **`auto`**
