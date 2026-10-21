@@ -18,10 +18,10 @@
 
 // A flat, structure-of-arrays (SoA) view of the system.
 //
-// SoA (x[], y[], z[]) rather than AoS (vector<array<double,3>>) because:
-//   - the cutoff test only needs x/y/z streamed contiguously,
-//   - it vectorizes,
-//   - on a GPU it is what makes memory accesses coalesce across a warp.
+// SoA (x[], y[], z[]) rather than AoS (vector<array<double,3>>) because on a
+// GPU it is what makes memory accesses coalesce across a warp. On this CPU it
+// is measured ~13% SLOWER than AoS (docs/learn-parallel/02) -- a deliberate
+// trade for GPU portability, not a CPU optimisation.
 struct LJKernelView {
     // Positions, length n each.
     const double* x = nullptr;

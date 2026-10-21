@@ -9,9 +9,9 @@ LJPotential::LJPotential() {
     // OpenMP happened to be available at configure time.
     //
     // Turn it on explicitly with one of:
-    //   - C++/Python: setBackend(LJBackend::OpenMP)
-    //   - YAML:       simulation.parallel.backend: "openmp"
-    //   - env:        MOLSIM_LJ_BACKEND=openmp
+    //   - C++: setBackend(LJBackend::OpenMP)
+    //   - env: MOLSIM_LJ_BACKEND=openmp
+    // There is no YAML key or Python binding for this yet.
     backend = LJBackend::Serial;
 
     // Env-var override, purely for benchmarking convenience: it lets you A/B

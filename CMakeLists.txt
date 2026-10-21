@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 3.15)
 
 project(MolSimWorkbench)
 
+# Default to an optimised build. Without this, a plain `cmake -B build -S .`
+# compiles with no optimisation, and every timing in docs/learn-parallel/ is
+# meaningless (mini_lj runs ~12x slower at -O0). Pass -DCMAKE_BUILD_TYPE=Debug
+# explicitly when you want a debug build.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
