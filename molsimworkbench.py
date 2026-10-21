@@ -48,6 +48,7 @@ class System:
             # Update simulation box dimensions
             box_dims = geometry.getBoxDimensions()
             config.simulationParams.box = _molsim.SimulationBox(box_dims[0], box_dims[1], box_dims[2])
+            config.simulationParams.usePBC = True
         else:
             # Explicit geometry file mode
             geometry = parser.parseGeometry(config.geometryFile)

@@ -128,6 +128,12 @@ void MolecularDynamics::initializeVelocities(double temperature) {
     // Using kB = 1 and m = 1 in reduced units (standard in MD)
     double stddev = std::sqrt(temperature);
     std::normal_distribution<double> dist(0.0, stddev);
+
+    // A nonzero random_seed makes the run reproducible; 0 keeps the
+    // random_device seed, so every run differs.
+    if (params.randomSeed != 0) {
+        gen.seed(params.randomSeed);
+    }
     
     // Assign random velocities from the distribution
     std::cout << "Initializing velocities for temperature: " << temperature << " K" << std::endl;
