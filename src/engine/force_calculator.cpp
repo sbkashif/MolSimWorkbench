@@ -20,6 +20,11 @@ double ForceCalculator::calculateEnergy(const Geometry& geometry) {
 
 void ForceCalculator::calculateForces(const Geometry& geometry, 
                                    std::vector<std::array<double, 3>>& forces) {
+    calculateForcesAndEnergy(geometry, forces);
+}
+
+double ForceCalculator::calculateForcesAndEnergy(const Geometry& geometry,
+                                                 std::vector<std::array<double, 3>>& forces) {
     // Initialize forces to zero
     size_t numAtoms = geometry.getNumberOfAtoms();
     forces.resize(numAtoms, {0.0, 0.0, 0.0});
@@ -27,13 +32,15 @@ void ForceCalculator::calculateForces(const Geometry& geometry,
         force = {0.0, 0.0, 0.0};
     }
     
+    double totalEnergy = 0.0;
+
     // Calculate forces from each potential
     for (const auto& potential : potentials) {
         // Create a temporary forces vector for this potential
         std::vector<std::array<double, 3>> potentialForces(numAtoms, {0.0, 0.0, 0.0});
         
-        // Calculate forces for this potential
-        potential->calculateForces(geometry, potentialForces);
+        // Calculate forces (and energy) for this potential
+        totalEnergy += potential->calculateForcesAndEnergy(geometry, potentialForces);
         
         // Add to total forces
         for (size_t i = 0; i < numAtoms; ++i) {
@@ -42,6 +49,7 @@ void ForceCalculator::calculateForces(const Geometry& geometry,
             }
         }
     }
+    return totalEnergy;
 }
 
 void ForceCalculator::clearPotentials() {

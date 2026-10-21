@@ -234,8 +234,8 @@ void MolecularDynamics::initialize() {
     forces.resize(numAtoms, {0.0, 0.0, 0.0});
     
     // Calculate initial energy and forces
-    currentEnergy = calculatePotentialEnergy();
     calculateForces();
+    currentEnergy = potentialEnergy;
     
     currentStep = 0;
 }
@@ -264,8 +264,8 @@ void MolecularDynamics::runSimulation() {
         // Apply temperature control
         applyTemperatureControl();
         
-        // Calculate potential energy
-        double potentialEnergy = calculatePotentialEnergy();
+        // Potential energy at the new positions, computed alongside the forces
+        // inside integrateVelocityVerlet (the thermostat only rescales velocities)
         
         // Calculate kinetic energy
         double kineticEnergy = 0.0;
@@ -335,7 +335,7 @@ void MolecularDynamics::calculateForces() {
         throw std::runtime_error("Force calculator not set");
     }
     
-    forceCalculator->calculateForces(geometry, forces);
+    potentialEnergy = forceCalculator->calculateForcesAndEnergy(geometry, forces);
 }
 
 bool MolecularDynamics::minimizeSteepestDescent() {
@@ -346,8 +346,8 @@ bool MolecularDynamics::minimizeSteepestDescent() {
     double stepSize = params.minimization.initialStepSize;
     
     // Calculate initial energy and forces
-    double energy = calculatePotentialEnergy();
     calculateForces();
+    double energy = potentialEnergy;
     
     // Write initial frame to trajectory if writer is set up
     if (trajectoryWriter && trajectoryWriter->isOpen()) {
@@ -368,8 +368,8 @@ bool MolecularDynamics::minimizeSteepestDescent() {
         }
         
         // Calculate new energy and forces
-        double newEnergy = calculatePotentialEnergy();
         calculateForces();
+        double newEnergy = potentialEnergy;
         
         // Check for convergence
         double maxForce = 0.0;

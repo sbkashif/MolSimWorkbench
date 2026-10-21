@@ -158,18 +158,26 @@ double LJPotential::calculateEnergy(const Geometry& geometry) {
 
 void LJPotential::calculateForces(const Geometry& geometry,
                                   std::vector<std::array<double, 3>>& forces) {
+    calculateForcesAndEnergy(geometry, forces);
+}
+
+// One kernel pass gives both. The MD loop calls this every step, so the energy
+// it reports costs no second sweep over the pairs.
+double LJPotential::calculateForcesAndEnergy(const Geometry& geometry,
+                                             std::vector<std::array<double, 3>>& forces) {
     const std::size_t n = geometry.getAtoms().size();
     if (forces.size() != n) forces.resize(n, {0.0, 0.0, 0.0});
-    if (n == 0) return;
+    if (n == 0) return 0.0;
 
     LJKernelView view;
     buildView(geometry, view);
-    ljComputeGather(view, backend, numThreads);
+    const double energy = ljComputeGather(view, backend, numThreads);
 
     // Scatter SoA back into the AoS interface the rest of the engine expects.
     for (std::size_t i = 0; i < n; ++i) {
         forces[i] = {sfx[i], sfy[i], sfz[i]};
     }
+    return energy + tailCorrectionEnergy(geometry);
 }
 
 

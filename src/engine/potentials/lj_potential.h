@@ -20,6 +20,8 @@ public:
     // These dispatch to lj_kernels via the currently selected backend.
     double calculateEnergy(const Geometry& geometry) override;
     void calculateForces(const Geometry& geometry, std::vector<std::array<double, 3>>& forces) override;
+    double calculateForcesAndEnergy(const Geometry& geometry,
+                                    std::vector<std::array<double, 3>>& forces) override;
     std::string getName() const override { return "Lennard-Jones"; }
 
     // LJ-specific methods
