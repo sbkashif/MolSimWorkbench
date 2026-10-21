@@ -1,5 +1,7 @@
 # 05 — Python Interface
 
+> **Where we are.** This is a "widen later" read (deep dive later). [04](04_builders_and_config.md) showed how a run is set up in C++ from YAML; this doc shows the same pipeline reached from Python through pybind11.
+
 ## How Python talks to C++
 
 The C++ engine is compiled into a shared library (`_molsim.so` / `_molsim.dylib`) using **pybind11**. pybind11 is a header-only library that lets C++ classes and functions appear as native Python objects. The CMake build fetches it automatically from source.
@@ -156,3 +158,5 @@ python test_dft_module.py
 ---
 
 That's the full stack. Go back to [01_architecture.md](01_architecture.md) for the overview, or dive into any individual layer doc.
+
+**Next:** if you have not done it yet, [learn-parallel/START_HERE.md](../learn-parallel/START_HERE.md) answers how the LJ loop under all of this is made fast on many cores.

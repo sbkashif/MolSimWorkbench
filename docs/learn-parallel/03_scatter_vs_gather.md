@@ -21,6 +21,8 @@
 > New words here: **scatter**, **gather**, **triangular loop** —
 > see [GLOSSARY.md](GLOSSARY.md).
 
+> **Where we are.** Lesson 2 made the loop 2.29× faster on one core without changing what it computes. The loop still writes to two atoms per pair, which is the fourth suspect from lesson 0, and it is what stands between us and threads.
+
 ## Learning Objectives
 
 - Distinguish a *scatter* from a *gather* and say why it decides everything
@@ -204,4 +206,4 @@ synchronisation is everything. The formulation is chosen for where it is going.
 
 - Exercise: `exercises/03-scatter-vs-gather/`
 
-**Next:** [04_threads_by_hand.md](04_threads_by_hand.md)
+**Next:** [04_threads_by_hand.md](04_threads_by_hand.md) — the loop is now safe to split. Lesson 4 answers: how do you actually start threads, divide the atoms between them, and collect their results, by hand?

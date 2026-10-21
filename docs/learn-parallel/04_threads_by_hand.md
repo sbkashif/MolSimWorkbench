@@ -1,5 +1,7 @@
 # Lesson 4: Threads by Hand
 
+> **Where we are.** Lesson 3 rewrote the loop as a gather, so each atom's force is written by exactly one worker. Now it is safe to split the atoms across real threads, and this lesson does it by hand with `std::thread`.
+
 ## Learning Objectives
 
 - Create, partition work for, and join `std::thread`s without a framework
@@ -128,7 +130,7 @@ would make the total energy jitter run to run — reproducible science requires
 the fixed order. This is a real difference from OpenMP's `reduction(+:)`, which
 does *not* guarantee order (lesson 6).
 
-### Every piece has a CUDA counterpart
+### Every piece has a CUDA counterpart (deep dive later)
 
 | Built here by hand | CUDA equivalent |
 |---|---|
@@ -168,4 +170,4 @@ reduction becomes the hard part rather than a `for` loop.
 
 - Exercise: `exercises/04-threads-by-hand/`
 
-**Next:** [05_the_race.md](05_the_race.md)
+**Next:** [05_the_race.md](05_the_race.md) — you threaded the safe (gather) loop. Lesson 5 answers: what really happens if you thread the original scatter loop instead, and why does nothing seem to catch it?

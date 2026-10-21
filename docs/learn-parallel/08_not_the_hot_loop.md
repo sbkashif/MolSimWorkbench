@@ -1,5 +1,7 @@
 # Lesson 8: What Does Not Belong in the Hot Loop
 
+> **Where we are.** Lesson 7 settled the honest speedup of the pair loop: 4.03× on 8 threads. This lesson steps out of that loop and adds a term that costs almost nothing, to show that not every improvement belongs in the parallel kernel.
+
 ## Learning Objectives
 
 - Derive why the dispersion tail correction contributes zero force
@@ -129,7 +131,7 @@ the physics it carries.**
 the array. Caching the counts would make it genuinely O(1). It is not worth
 doing at 2.4%, which is itself the lesson.)
 
-### When the assumption breaks
+### When the assumption breaks (deep dive later)
 
 The correction rests on g(r) = 1 beyond r_c: uniform density, isotropic. That
 holds for a bulk homogeneous fluid, which is exactly what
@@ -181,4 +183,4 @@ lj.setTailCorrection(true);    // you assert the fluid is homogeneous
 - [GROMACS manual — dispersion correction](https://manual.gromacs.org/current/reference-manual/functions/long-range-vdw.html)
 - Exercise: `exercises/08-tail-correction/`
 
-**Next:** [09_where_this_goes.md](09_where_this_goes.md)
+**Next:** [09_where_this_goes.md](09_where_this_goes.md) — the CPU story is complete. Lesson 9 answers: what does this kernel become on a GPU, and why do production codes like GROMACS look the way they do?

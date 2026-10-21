@@ -138,6 +138,74 @@ wasteful; for a lambda, often impossible. Read it as "hand me the thing itself".
 **Cache line**
 See below under memory and layout.
 
+### C++ you will meet in `lj_kernels.{h,cpp}`
+
+Every construct in the kernel file that is not already covered above, in the
+order you hit them. Line numbers are `lj_kernels.cpp` unless marked `.h`.
+
+**Pointer** — `const double* x` (`.h:27`)
+A variable that holds an *address* — where a block of numbers starts in memory —
+not the numbers themselves. `x[i]` means "the i-th number after that address".
+`const double*` means "you may read through this address, not write". `double*`
+(no `const`, as on `fx`) means you may write. `nullptr` is "points at nothing yet".
+Python has no direct equivalent; the nearest picture is a NumPy array's data
+buffer without the array object around it.
+
+**`.data()`** — `sx.data()` (`lj_potential.cpp:136`)
+Gives the raw address of a `std::vector`'s storage, so it can be handed out as a
+pointer. This is how the kernel view is filled.
+
+**`struct`** — `struct LJKernelView { … };` (`.h:25`)
+A bundle of named fields. Same as `class` except everything is public by
+default. Closest Python: a `@dataclass` with no methods.
+
+**`enum class`** — `enum class LJBackend { Serial, … };` (`.h:58`)
+A fixed list of named choices, written `LJBackend::Serial`. Closest Python:
+`enum.Enum`. The compiler rejects any value not on the list — no typo strings.
+
+**Reference parameter** — `const LJKernelView& v` (`:29`)
+"Use the caller's object, do not copy it, and do not change it." The view is
+passed this way to every function.
+
+**`std::size_t` / `std::ptrdiff_t`**
+Integer types for sizes and indices. `size_t` cannot be negative;
+`ptrdiff_t` can. OpenMP loops use `ptrdiff_t` (`:223`) because older OpenMP
+versions require a signed loop counter.
+
+**`static_cast<T>(x)`** — `static_cast<std::size_t>(ti)` (`:55`)
+An explicit, compiler-checked type conversion. Python: `int(x)`, `float(x)`.
+
+**Anonymous namespace** — `namespace { … }` (`:12` to `:271`)
+"These functions are private to this file." `computeRange`, `computeTriangular`
+and `computePrivateScatter` live in it, so only `ljComputeGather` is callable
+from outside. Python's nearest convention: a leading `_` on a module function —
+except here the compiler enforces it.
+
+**`switch` / `case` / `break`** — `:282`
+Pick one branch by value. Python: `match` / `case`. Forgetting `break` falls
+through into the next case, which is why every case ends with `break` or
+`return`.
+
+**`#ifdef _OPENMP` … `#else` … `#endif`** — `:8`, `:183`, `:284`
+Decided by the **preprocessor**, before compiling: if the compiler was run with
+OpenMP, keep the first block, otherwise keep the second. The `#else` branches
+are why the code still builds — and falls back to serial — on a machine with no
+OpenMP.
+
+**Lambda capture list** — `[&v, i0, i1, t, &partial]() { … }` (`:322`)
+Names what the lambda may use from around it: `&v` and `&partial` by reference
+(share the caller's object), `i0, i1, t` **by value** (each thread gets its own
+copy taken right now). Capturing `i0`/`i1` by reference here would be a bug:
+the loop changes them before the thread reads them.
+
+**`std::thread` / `.join()`** — `:308`, `:326`
+`pool.emplace_back(lambda)` starts a thread running that lambda immediately.
+`join()` waits for it to finish. Python: `threading.Thread(target=…).start()`
+and `.join()` — but these C++ threads run truly in parallel (no GIL).
+
+**Range `for`** — `for (double p : partial)` (`:331`)
+Python's `for p in partial:`.
+
 ## Memory and layout
 
 **Cache line**

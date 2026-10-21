@@ -1,5 +1,7 @@
 # Lesson 1: Measure First
 
+> **Where we are.** Lesson 0 found the hot loop and four suspects, but nothing has been changed yet. Before changing anything, this lesson builds the measuring tool every later number comes from.
+
 ## Learning Objectives
 
 - Write a benchmark that measures the kernel rather than the weather
@@ -172,7 +174,7 @@ There is a floor to how small a parallel task can usefully be, it is on the
 order of tens of microseconds, and N=125 is below it. **Every exercise in this
 course uses N ≥ 4000.**
 
-### While you are here: confirm the complexity
+### While you are here: confirm the complexity (deep dive later)
 
 The same table proves the loop is O(N²). From N=4096 to N=8000, N grows 1.95×
 and time grows 55.30/15.16 = 3.65×. And 1.95² = 3.80. That is the quadratic
@@ -209,4 +211,4 @@ out linear, something would have been badly wrong with the cutoff.
 - [`benchmarks/bench_lj.cpp`](../../benchmarks/bench_lj.cpp) — the harness this lesson describes
 - Exercise: `exercises/01-measure-first/`
 
-**Next:** [02_serial_refactor.md](02_serial_refactor.md)
+**Next:** [02_serial_refactor.md](02_serial_refactor.md) — with a harness you trust, lesson 2 answers: which of lesson 0's four suspects actually costs the time, and how much can one core gain before any threads?

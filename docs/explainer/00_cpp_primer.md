@@ -6,6 +6,12 @@
 >
 > Open `src/engine/potentials/lj_potential.h` beside this document and follow along.
 
+> **Note.** This primer walks the 48-line `lj_potential.h` as it was before the parallel LJ work, and
+> quotes it in full below, so it reads on its own. Today's file is longer (about 105 lines): the
+> additions are the backend switches, tail correction and kernel tables described in
+> [`docs/implementation/parallel_lj.md`](../implementation/parallel_lj.md). Line numbers below refer to
+> the quoted listing, not to the current file.
+
 ---
 
 ## The file, in full
@@ -237,7 +243,7 @@ Read `:` here as "**is a**". `LJPotential` **inherits** from `Potential`:
 
 The derived class automatically gets everything the base declared, and must fulfil any promises the base left unfulfilled. `public` inheritance means the "is-a" relationship is visible to everyone: anywhere the code wants a `Potential`, an `LJPotential` is accepted.
 
-`DFTPotential` and `MachineLearningPotential` do the same thing. The three of them are **siblings** — each derives from `Potential`, none knows the others exist.
+`DFTPotential` does the same thing. The two of them are **siblings** — each derives from `Potential`, neither knows the other exists. (`MachineLearningPotential` looks like a third sibling but is not: it does not derive from `Potential` and is not built — see the "unbuilt" note near the end of this primer.)
 
 ### Go look at the base class
 

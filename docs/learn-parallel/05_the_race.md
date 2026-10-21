@@ -17,6 +17,8 @@
 > New words here: **data race**, **atomic**, **deterministic** —
 > see [GLOSSARY.md](GLOSSARY.md).
 
+> **Where we are.** Lesson 4 threaded the gather loop safely, and lesson 3 claimed the original scatter loop would break under threads. This lesson stops arguing and runs the broken version to see what actually goes wrong.
+
 ## Learning Objectives
 
 - Produce a real data race and observe what it does to physical results
@@ -105,7 +107,7 @@ register across iterations, reordering the store, vectorising in a way that
 assumes exclusivity. "It gave the right answer on my machine" is not a defence;
 it may stop doing so under a different optimisation level.
 
-### Finding it with ThreadSanitizer
+### Finding it with ThreadSanitizer (deep dive later)
 
 ```bash
 cmake -B build-tsan -S . -DCMAKE_BUILD_TYPE=Debug \
@@ -225,4 +227,4 @@ unacceptable. `reduction(+:)` has exactly the same property (lesson 6).
 - Exercise: `exercises/05-the-race/` — you will write the race yourself
 - [`src/engine/potentials/lj_kernels.cpp`](../../src/engine/potentials/lj_kernels.cpp) — `computePrivateScatter`
 
-**Next:** [06_openmp.md](06_openmp.md)
+**Next:** [06_openmp.md](06_openmp.md) — you now know the machinery and the hazards. Lesson 6 answers: how does OpenMP do all of lesson 4 in two lines, and why can adding a fifth thread make it slower?

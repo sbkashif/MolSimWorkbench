@@ -29,13 +29,13 @@ yourself with the 5.31× number.
 ## Lessons
 
 **Picking up where you left off?** [PROGRESS.md](PROGRESS.md).
-**Want the code change in plain language?** [CODE_TOUR.md](CODE_TOUR.md).
+**Want the code change in plain language?** See the [implementation notes](../implementation/parallel_lj.md).
 
 **New here? Read [START_HERE.md](START_HERE.md) first**, and keep
 [GLOSSARY.md](GLOSSARY.md) open beside you — it defines every specialist term
 in plain words.
 
-**Reading order and pacing:** — reading order,
+**Reading order and pacing:** [START_HERE.md](START_HERE.md) — reading order,
 pacing, and the commands to run.
 
 | # | File | Covers |
@@ -60,14 +60,14 @@ automatically on macOS:
 
 ```bash
 brew install libomp          # only if `brew list libomp` comes up empty
-cmake -B build -S .
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ```
 
 Confirm the parallel backend is available:
 
 ```
-$ cmake -B build -S . | grep OpenMP
+$ cmake -B build -S . -DCMAKE_BUILD_TYPE=Release | grep OpenMP
 -- OpenMP 5.1 found - parallel LJ backend available (opt-in)
 ```
 

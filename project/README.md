@@ -61,7 +61,7 @@ double studentCompute(const LJKernelView& view, StudentBackend backend, int numT
 ### Interface
 
 ```bash
-cmake -B build -S . -DMOLSIM_BUILD_LEARN=ON
+cmake -B build -S . -DMOLSIM_BUILD_LEARN=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 cd build && ctest -L learn -R Capstone --output-on-failure
 ./build/project/capstone_report 4096        # your own measurements

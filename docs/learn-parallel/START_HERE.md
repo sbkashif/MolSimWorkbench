@@ -3,12 +3,17 @@
 Reading and working plan for the parallelization course. Follow it top to
 bottom; everything else in this folder is reference.
 
+**Before this course:** C++ basics from [docs/learn-cpp/](../learn-cpp/) (chapters 01–10), and this
+program's structure from [docs/explainer/](../explainer/README.md) 01–04. If you did learn-cpp, you have
+already written lesson 00's loop: `mini_lj` in learn-cpp chapters 04 and 06 computes the same reference
+energy, −20105.493949 at N=4096, as the `reference` row of `bench_lj` in Step 0 below.
+
 ---
 
 ## Step 0 — See the thing you are going to explain (5 min)
 
 ```bash
-cmake -B build -S .
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ./build/benchmarks/bench_lj 4096 7
 ```
@@ -73,7 +78,7 @@ demolition" in 02.**
 ## Step 2 — Write code
 
 ```bash
-cmake -B build-learn -S . -DMOLSIM_BUILD_LEARN=ON
+cmake -B build-learn -S . -DMOLSIM_BUILD_LEARN=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build-learn --parallel
 cd build-learn && ctest -L learn --output-on-failure
 ```

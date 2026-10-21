@@ -1,5 +1,7 @@
 # 01 — Architecture: The Big Picture
 
+> **Where we are.** You have read or written C++ classes (learn-cpp, or [00_cpp_primer.md](00_cpp_primer.md)) and seen this repo build and run. Now step back: before reading any one file, see how all the pieces fit together.
+
 ## What this repo is
 
 MolSimWorkbench is a C++ molecular simulation engine with a Python interface bolted on through pybind11. You write a YAML config file (or a few lines of Python), and it runs Lennard-Jones (or DFT, or ML-potential) molecular dynamics for you.
@@ -47,7 +49,7 @@ Two ways to produce a `Geometry` object from scratch:
 Three concrete potential classes, all inheriting from the abstract `Potential` base:
 - `LJPotential` — the workhorse for this repo right now.
 - `DFTPotential` — stub/integration point for DFT energy.
-- `MachineLearningPotential` — stub for ML force fields.
+- `MachineLearningPotential` — stub for ML force fields. Not built, and it does not derive from `Potential` yet.
 
 Each potential can compute an energy scalar **and** the force vector on every atom.
 
@@ -128,4 +130,4 @@ data/
 
 ---
 
-Next: [02_lj_implementation.md](02_lj_implementation.md) — how the LJ equation actually lives in `lj_potential.cpp`.
+**Next:** [02_lj_implementation.md](02_lj_implementation.md) — you now know the layers; the next doc opens the one that does almost all the work, and answers how the LJ equation actually lives in `lj_potential.cpp`.

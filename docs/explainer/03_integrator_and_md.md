@@ -1,5 +1,7 @@
 # 03 — Integrator and MD Loop
 
+> **Where we are.** [02](02_lj_implementation.md) left you able to compute energy and forces for one fixed set of positions. This doc is about the loop that calls that code over and over to move the atoms.
+
 ## From forces to motion
 
 Once you have forces from `LJPotential`, you need to integrate Newton's second law:
@@ -143,4 +145,4 @@ struct SimulationParameters {
 
 ---
 
-Next: [04_builders_and_config.md](04_builders_and_config.md) — how the simulation is set up before the loop starts.
+**Next:** [04_builders_and_config.md](04_builders_and_config.md) — the loop assumes atoms, a box, and parameters already exist; the next doc answers where they come from: how the simulation is set up before the loop starts.

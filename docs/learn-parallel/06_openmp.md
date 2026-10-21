@@ -18,6 +18,8 @@
 > New words here: **pragma**, **schedule**, **reduction**, **shared/private**,
 > **barrier** — see [GLOSSARY.md](GLOSSARY.md).
 
+> **Where we are.** Lessons 4 and 5 gave you a hand-built thread pool and three ways to keep it race-free. This lesson replaces the hand-built machinery with OpenMP, and finds out what happens on cores of different speeds.
+
 ## Learning Objectives
 
 - Replace the hand-rolled pool from lesson 4 with two lines
@@ -163,7 +165,7 @@ and only measurement tells you when that starts to matter.
 > divergence* — threads in a warp taking different branches — and *tail effect*,
 > a final block that leaves most of the GPU idle.
 
-### The clause-to-CUDA table
+### The clause-to-CUDA table (deep dive later)
 
 | OpenMP | CUDA | Concept |
 |---|---|---|
@@ -206,4 +208,4 @@ manage by hand.
 - [OpenMP 5.1 specification](https://www.openmp.org/spec-html/5.1/openmp.html)
 - Exercise: `exercises/06-openmp/` — reproduce the scheduling table yourself
 
-**Next:** [07_honest_speedup.md](07_honest_speedup.md)
+**Next:** [07_honest_speedup.md](07_honest_speedup.md) — you have a full table of fast backends. Lesson 7 answers: which speedup is the honest one to report, and what stops it from growing with more cores?

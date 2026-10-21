@@ -18,6 +18,8 @@
 > New words here: **kernel**, **warp**, **coalescing**, **shared memory**,
 > **cell list** — see [GLOSSARY.md](GLOSSARY.md).
 
+> **Where we are.** Lessons 0–8 took one CPU loop from 34.85 ms to 3.77 ms and showed which parts of that were serial, parallel, and physics. This lesson widens out: what the same kernel looks like on a GPU, and where it sits in production MD codes.
+
 > **Read-only.** Nothing in this lesson is built and nothing needs installing.
 > There is no CUDA toolkit on this machine and the course does not require one.
 > The point is to show that the work you have already done is most of the port,
@@ -132,7 +134,7 @@ The layout that cost 13% on a scalar CPU loop is worth several-fold on a GPU.
 This is the clearest example in the course of an architectural decision that is
 correct *only* when you know where the code is going.
 
-### Shared-memory tiling
+### Shared-memory tiling (deep dive later)
 
 The naive kernel reads all N positions from global memory for every one of the N
 threads — N² global reads. But every thread in a block wants the *same* j values.
@@ -154,7 +156,7 @@ Global traffic drops by a factor of `blockDim.x`. This is the canonical N-body
 optimisation from *GPU Gems 3*, chapter 31, and it is why all-pairs N-body is the
 standard GPU teaching kernel — it maps onto the hardware almost too well.
 
-### The block reduction
+### The block reduction (deep dive later)
 
 Summing the energy is where CUDA stops resembling OpenMP. `reduction(+:acc)` was
 one word. On a GPU there is no global `+=` across 100,000 threads; you build a
@@ -209,7 +211,7 @@ The CPU version of this idea is already in the repo: `sx`, `sy`, `sz` are
 `LJPotential` *members*, not locals, so a 5000-step run allocates them once. Same
 principle, milder stakes.
 
-### If you do run it on Perlmutter
+### If you do run it on Perlmutter (deep dive later)
 
 NERSC Perlmutter GPU nodes carry 4 NVIDIA A100s (Ampere, compute capability 8.0),
 40 or 80 GB HBM2e each. Compile for `-arch=sm_80`; the default `cudatoolkit`
@@ -299,5 +301,7 @@ recognise it.
 - [NERSC Perlmutter architecture](https://docs.nersc.gov/systems/perlmutter/architecture/)
 - [GROMACS long-range VdW](https://manual.gromacs.org/current/reference-manual/functions/long-range-vdw.html)
 - Páll et al., *Tackling Exascale Software Challenges in MD with GROMACS* — [arXiv:1506.00716](https://arxiv.org/pdf/1506.00716)
+
+**Next:** the capstone, [`project/README.md`](../../project/README.md) — the lessons are done, and it answers: can you write all four backends yourself against the real `LJKernelView` seam, and explain why each one is as fast as it is? To widen out afterwards, [../explainer/05_python_interface.md](../explainer/05_python_interface.md) shows how this same engine is driven from Python.
 
 **Back to:** [README.md](README.md) · **Capstone:** [`project/`](../../project/)

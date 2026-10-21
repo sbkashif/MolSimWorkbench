@@ -10,7 +10,7 @@ The engine is written in C++17 and exposed to Python through a pybind11 native m
 - **LJ Bulk Box**: Automatic cubic-lattice initialization from density — no geometry file needed
 - **Velocity Verlet Integrator**: Symplectic integrator with Maxwell-Boltzmann velocity initialization and optional Berendsen thermostat
 - **Energy Minimization**: Steepest descent, conjugate gradient, and L-BFGS minimizers for pre-MD relaxation
-- **Pluggable Potentials**: `LJPotential`, `DFTPotential`, and `MachineLearningPotential` all share the same `Potential` interface; multiple potentials can be stacked in one `ForceCalculator`
+- **Pluggable Potentials**: `LJPotential` and `DFTPotential` share the same `Potential` interface; multiple potentials can be stacked in one `ForceCalculator` (`MachineLearningPotential` is an unbuilt stub that does not yet implement it)
 - **Molecule Builder**: Build explicit molecules (e.g. water) from YAML geometry files
 - **YAML Configuration**: One file drives geometry, potential parameters, integrator settings, and output
 - **Python API**: High-level `System.from_yaml()` and low-level direct object API
@@ -170,7 +170,7 @@ MolSimWorkbench/
 |---|---|---|
 | `LJPotential` | **Active** | Full energy + forces, PBC, cutoff, mixing rules |
 | `DFTPotential` | Integration stub | Interface wired; DFT backend pluggable |
-| `MachineLearningPotential` | Stub | Interface placeholder for ML force fields |
+| `MachineLearningPotential` | Stub | Placeholder for ML force fields; not built, does not derive from `Potential` |
 
 ## Current Limitations / Planned Work
 
@@ -201,6 +201,13 @@ vmd -e examples/output/load_trajectory.vmd
 ---
 
 ## Documentation
+
+**Learning C++ and the parallel kernel from scratch?** Start at
+[`docs/LEARNING_PATH.md`](docs/LEARNING_PATH.md): C++ basics
+([`docs/learn-cpp/`](docs/learn-cpp/README.md)) → this codebase → the
+parallelization course ([`docs/learn-parallel/`](docs/learn-parallel/START_HERE.md)).
+Implementation notes for the parallel LJ kernel are in
+[`docs/implementation/parallel_lj.md`](docs/implementation/parallel_lj.md).
 
 Layer-by-layer explanations of the codebase are in [`docs/explainer/`](docs/explainer/README.md):
 

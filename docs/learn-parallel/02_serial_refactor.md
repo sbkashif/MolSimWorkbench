@@ -1,5 +1,7 @@
 # Lesson 2: The Serial Refactor — and Why It Is Also the Port
 
+> **Where we are.** Lesson 1 gave you a harness you can trust: warm-up, minimum of several runs, correctness printed beside speed. Now use it on lesson 0's suspects, one at a time, still on a single core.
+
 ## Learning Objectives
 
 - Find the real hot path by ablation instead of by intuition
@@ -55,7 +57,7 @@ Two of my four predictions were wrong:
   by a factor of 74.** That is the more common way performance intuition fails:
   not mispricing an operation, but misjudging how often it runs.
 
-### The single-type measurement is the map's best case
+### The single-type measurement is the map's best case (deep dive later)
 
   1.10× is not a general result about `std::map`. This repo's example has **one
   atom type** — a one-node tree and a two-character key. That is the friendliest
@@ -195,7 +197,7 @@ same arithmetic in a different order, not a missing term.
 
 **No physics removed. No pair skipped. Identical answers. Cheaper instructions.**
 
-### Why division is special
+### Why division is special (deep dive later)
 
 On modern hardware a `double` multiply has ~4 cycles latency and is *fully
 pipelined* — you can start a new one every cycle. Division has ~13–20 cycles
@@ -348,4 +350,4 @@ you can debug it with a print statement.
 - [`src/engine/potentials/lj_kernels.cpp`](../../src/engine/potentials/lj_kernels.cpp) — the result
 - Exercise: `exercises/02-serial-refactor/`
 
-**Next:** [03_scatter_vs_gather.md](03_scatter_vs_gather.md)
+**Next:** [03_scatter_vs_gather.md](03_scatter_vs_gather.md) — three suspects are dealt with; the fourth is the two-sided write `f[i]`, `f[j]`. Lesson 3 answers: how do you reshape the loop so several workers can run it without colliding, and what does that cost?

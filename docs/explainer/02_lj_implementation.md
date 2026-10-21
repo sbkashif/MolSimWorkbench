@@ -1,5 +1,7 @@
 # 02 — LJ Implementation: From Equation to Code
 
+> **Where we are.** [01](01_architecture.md) gave you the map: geometry → potentials → force calculator → MD driver. This doc zooms into the potentials layer, where the LJ energy and forces are computed.
+
 ## The equation you know
 
 $$V_{LJ}(r) = 4\varepsilon \left[ \left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^{6} \right]$$
@@ -152,4 +154,4 @@ These are the natural next performance/accuracy improvements flagged in the code
 
 ---
 
-Next: [03_integrator_and_md.md](03_integrator_and_md.md) — how the forces get turned into motion.
+**Next:** [03_integrator_and_md.md](03_integrator_and_md.md) — you can now compute energy and forces for one frozen configuration; the next doc answers how those forces get turned into motion, step after step.

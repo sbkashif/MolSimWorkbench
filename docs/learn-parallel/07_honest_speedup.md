@@ -1,5 +1,7 @@
 # Lesson 7: Honest Speedup
 
+> **Where we are.** Lessons 2–6 produced a table of backends with speedups as high as 9.24×. This lesson asks which of those numbers you are allowed to quote, and what limits them.
+
 ## Learning Objectives
 
 - Choose a baseline you can defend, and recognise the flattering one
@@ -104,7 +106,7 @@ Two consequences worth carrying with you:
 The scaling curve bending at exactly the P-core count is a *hardware fingerprint*.
 When you see a knee, ask what changed at that thread count.
 
-### Strong vs weak scaling
+### Strong vs weak scaling (deep dive later)
 
 The table above is **strong scaling**: fixed problem, more processors. It answers
 "can I get my answer sooner?" It is bounded by Amdahl and degrades as *T* grows,
@@ -176,4 +178,4 @@ When you report a number, state all of it:
 
 - Exercise: `exercises/07-scaling/` — produce your own scaling study
 
-**Next:** [08_not_the_hot_loop.md](08_not_the_hot_loop.md)
+**Next:** [08_not_the_hot_loop.md](08_not_the_hot_loop.md) — the pair loop is done. Lesson 8 answers: what about work that is *not* in the hot loop, and how do you tell when something should not be parallelized at all?

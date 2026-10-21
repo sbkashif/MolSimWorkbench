@@ -1,7 +1,15 @@
-# Code Tour
+# Parallel LJ — implementation notes
 
-What changed in the repo, in plain language, using the worker analogy. Read this
-if you know the original serial code and want to see what was done to it.
+What was changed in the repo to make the LJ force loop parallel, and where it
+lives. This is a record of the implementation, not a lesson: the reasoning and
+the measurements behind each decision are taught in
+[`docs/learn-parallel/`](../learn-parallel/START_HERE.md).
+
+Part 1 is the plain-language tour (formerly `learn-parallel/CODE_TOUR.md`).
+Part 2 is the technical reference: entry points, line numbers, tests, and
+known gaps.
+
+# Part 1 — Plain-language tour
 
 ---
 
@@ -117,8 +125,9 @@ MOLSIM_LJ_BACKEND=openmp-private ./build/run_simulation data/lj_bulk_simulation.
 ```
 
 **Parallelism is off by default.** A stock build behaves exactly as it did
-before. You turn it on deliberately — from C++ with `setBackend()`, from the
-environment as above, or from YAML.
+before. You turn it on deliberately — from C++ with `setBackend()`, or from the
+environment as above. (There is no YAML switch yet, and no Python one — see
+*Known gaps* below.)
 
 ---
 
@@ -130,3 +139,81 @@ environment as above, or from YAML.
 | `benchmarks/bench_ablation.cpp` | reproduces lesson 2's two tables |
 | `tests/unit/test_lj_kernels.cpp` | 11 tests: every arrangement must match the original, for any worker count, reproducibly |
 | tail correction | in `lj_potential.cpp` — the one piece of *physics* added. Opt-in, off by default, worth 8.73% of the energy, contributes exactly zero force |
+
+---
+
+# Part 2 — Technical reference
+
+Line numbers verified on 2026-10-07, branch `parallelization-curriculum`.
+
+## Call path
+
+```
+LJPotential::calculateForces          src/engine/potentials/lj_potential.cpp:159
+  └─ LJPotential::buildView           lj_potential.cpp:91    AoS + strings -> SoA + int type ids
+       └─ rebuildTables (if dirty)    lj_potential.cpp:56    pre-mixed eps4 / sigma2 tables
+  └─ ljComputeGather(view, backend, numThreads)
+                                      src/engine/potentials/lj_kernels.cpp:273   dispatch on LJBackend
+  └─ copy SoA forces back to AoS      lj_potential.cpp:170
+```
+
+`calculateEnergy` (`lj_potential.cpp:147`) takes the same path and adds the
+optional tail correction (`:156`).
+
+## Backends
+
+| `LJBackend` | Function | Lines in `lj_kernels.cpp` | Form |
+|---|---|---|---|
+| `SerialTriangular` | `computeTriangular` | 120–168 | scatter, i<j, 1 thread |
+| `Serial` (default) | `computeRange(v, 0, n)` | 29–106 | gather, 1 thread |
+| `Threads` | `computeRange` per slice, `std::thread` pool | 302–333 | gather, balanced static split |
+| `OpenMP` | `computeRange` per atom | 335–362 | gather, `schedule(guided)` + `reduction(+:acc)` |
+| `OpenMPPrivate` | `computePrivateScatter` | 184–268 | scatter into per-thread buffers, `schedule(static, 16)`, ordered reduction |
+
+The seam is `LJKernelView` (`lj_kernels.h:25-54`): raw pointers, ints and
+doubles only, so a CUDA backend could take it unchanged.
+
+## Selecting a backend
+
+- C++: `lj.setBackend(LJBackend::OpenMPPrivate)`, `lj.setNumThreads(n)` (`lj_potential.h:33`, `:36`).
+- Environment, read once in the `LJPotential` constructor (`lj_potential.cpp:19-36`):
+  `MOLSIM_LJ_BACKEND=serial|threads|openmp|openmp-private`, `MOLSIM_LJ_THREADS=n`.
+- `numThreads < 1` means the OpenMP default; it is capped at N (`lj_kernels.cpp:276-278`).
+- Without OpenMP at build time, the OpenMP backends fall back to serial code (`#else` branches).
+
+## Correctness contract
+
+`tests/unit/test_lj_kernels.cpp`, 11 tests:
+
+| Suite | Tests |
+|---|---|
+| `LJKernels` | all backends match the reference forces and energy; result independent of thread count; repeated runs bit-identical; net force zero; empty and single-atom systems; unparameterised type contributes nothing |
+| `LJTailCorrection` | changes no force; lowers the energy; matches the analytic formula; off by default and needs a box |
+
+The reference is the original serial code, kept as
+`calculateEnergyReference` / `calculateForcesReference` (`lj_potential.cpp:269`, `:299`).
+
+## Measured (2026-10-07, Apple M1, 4 P + 4 E cores, `bench_lj 4096 7`)
+
+```
+backend               ms/call    vs ref           energy      max|df|      max rel
+reference              35.057     1.00x -20105.493949019            -            -
+serial-triangular      15.060     2.33x -20105.493949019    1.137e-13    1.490e-11
+serial-gather          28.336     1.24x -20105.493949019    1.137e-13    1.490e-11
+std::thread             6.594     5.32x -20105.493949019    1.137e-13    1.490e-11
+openmp-gather           6.726     5.21x -20105.493949019    1.137e-13    1.490e-11
+openmp-private          3.763     9.32x -20105.493949019    1.279e-13    1.158e-11
+```
+
+Honest speedup (against `serial-triangular`): `openmp-private` 4.00×.
+
+## Known gaps
+
+| Gap | Where | Note |
+|---|---|---|
+| No YAML switch | `src/utils/yaml_parser.cpp` | there is no config key for the backend |
+| No Python switch | `src/bindings/molsim_bindings.cpp` | `setBackend` / `LJBackend` are not exposed; from Python only the environment variables work |
+| Demo config too small | `data/lj_bulk_simulation.yaml` uses 125 atoms | threading is a net loss below ~1000 atoms (lesson 01) |
+| O(N) marshalling every call | `buildView` | cheap against the O(N²) kernel on CPU; on a GPU it would be a host→device copy per step (lesson 09) |
+| No neighbour list | — | intentional scope (`CLAUDE.md`); 98.6% of pairs are outside the cutoff |
+

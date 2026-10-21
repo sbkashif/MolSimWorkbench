@@ -2,7 +2,7 @@
 
 Where you are in the course, and the exact next thing to do. Update as you go.
 
-_Last updated: 2026-09-25_
+_Last updated: 2026-10-14_
 
 ---
 
@@ -10,7 +10,7 @@ _Last updated: 2026-09-25_
 
 | | |
 |---|---|
-| **Lessons read** | 00 ✅ · 01 ✅ · 02 ✅ (partly — see below) |
+| **Lessons read** | 00 ✅ · 01 ✅ · 02 ✅ (partly — see below) · 03 ✅ (quizzed in chat, 2026-10-07) |
 | **Exercises done** | 01 ✅ 6/6 passing |
 | **Exercise in progress** | **02 — currently does not compile** |
 | **Branch** | `parallelization-curriculum` |
@@ -124,8 +124,51 @@ Kept as a record, because finding them was the most useful reading you did.
 8. **Vacuous tests.** 15 of 64 exercise tests passed against empty stubs — the
    consistency ones passed because a kernel that does nothing is trivially
    deterministic. All 64 now fail until implemented.
+9. **"f[i] is safe" in the racy triangular loop.** Lesson 05 (code comment +
+   "Every update to f[i] was safe") and the chat teaching both said so. Wrong:
+   a thread owns *rows*, not boxes — box k is also written as f[j] by every
+   thread holding a row < k. Both writes race. (Found 2026-10-14; lesson text
+   not yet fixed.)
+10. **(Suspected, unverified) "Net force ΣF = 0 passes" under the race.** Lesson
+   05 says lost contributions "come in ± pairs and cancel". A lost +push on j
+   leaves its −push on i, so ΣF ≠ 0; the strict `NetForceIsZero` test (1e-12
+   relative) would probably fail. Not yet measured.
+
+## Lesson 05 — in progress (2026-10-14)
+
+- Step 1 (read-add-write race, measured table) ✅ 2/3 — Q1 was flawed teaching (#9).
+- Quick check: B can never write box 100 (j > i); gather → 1 writer ✅.
+- Step 2 (why aggregates miss it) ✅ ~2/3 + quick check 2/2 — sharpen: energy is
+  private per thread (not a common counter, that would race); totals hide errors
+  by size *and* +/− cancellation (taught via school-grades example).
+- **Step 3** (three fixes) next.
+- Minor: lesson says per-thread buffers at 100k GPU threads = 72 GB; at N=4096
+  it is ~10 GB (100k × 4096 × 3 × 8 B). Used ~10 GB in chat.
 
 ---
+
+## Lesson 03 — quizzed in chat (2026-10-07)
+
+Re-taught from scratch with a 4-atom example (weeks since 00–02). ~6/8.
+- Missed: pair (i,j) in the triangular loop writes **both** f[i] and f[j], not just f[i].
+- Partial: gather's `j` starts at 0 because nobody else writes f[i] any more —
+  atom i must collect every push itself (true even on one thread).
+- Partial: gather pays off with **many threads**, not many atoms — it is what
+  makes splitting the work safe.
+
+## Lesson 04 — in progress
+
+- Step 1 (std::thread, join, start-up cost) ✅ — note: join waits for *that thread*.
+- Step 2 (balanced split, lj_kernels.cpp:312-317) ✅
+- Step 3 (partial[t], false sharing, write once :42/:323) ✅ 2½/3 — sharpen: the
+  conflict is over the 64-byte cache *line*, not the slot.
+- Step 4 (lambda capture, taught plain / kitchen job-card) 2/3 — missed: capture
+  by value gives *each* thread its own copy, so the real `partial` stays 0.0.
+- Step 5 (fixed-order sum :331, reserve :309) ✅ ~2/3 — sharpen: robots finish in
+  random order, so summing on arrival changes the order each run; the problem is
+  reproducibility (can't tell a bug from reordering), not wrongness.
+- **Lesson 04 done** (CUDA table skipped — deep dive later).
+- **Resume at lesson 05** — the race.
 
 ## Still to come
 

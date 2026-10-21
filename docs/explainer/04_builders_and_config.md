@@ -1,5 +1,7 @@
 # 04 — Builders and Configuration
 
+> **Where we are.** [03](03_integrator_and_md.md) showed the MD loop, assuming a `Geometry` and parameters already exist. This doc goes back to the start of a run and shows how they are built from YAML.
+
 ## Two ways to start a simulation
 
 Before any MD loop can run, you need a `Geometry` — a populated list of atom types and positions. There are two paths in this repo:
@@ -160,4 +162,6 @@ For LJ-bulk NVE, minimisation is typically skipped (`useMinimization: false`) be
 
 ---
 
-Next: [05_python_interface.md](05_python_interface.md) — running all of this from Python.
+**Next:** [learn-parallel/START_HERE.md](../learn-parallel/START_HERE.md) — you now know the whole program, from YAML to trajectory, and that nearly all its time goes into the LJ pair loop from [02](02_lj_implementation.md). The parallel course answers how to make that loop fast on many cores.
+
+(Later, to widen out: [05_python_interface.md](05_python_interface.md) — running all of this from Python. Not needed before learn-parallel.)

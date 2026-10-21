@@ -1,5 +1,13 @@
 # Lesson 0: The Starting Point
 
+> **Coming from learn-cpp?** The "original loop" below is the same `i < j` pair loop you wrote in `mini_lj`
+> ([`LJPotential::calculateEnergy` in learn-cpp `examples/06/lj_potential.cpp`](../learn-cpp/examples/06/lj_potential.cpp)),
+> with forces accumulated alongside the energy. Its energy at N=4096 is the reference you already reached in
+> learn-cpp chapter 04: −20105.493949. And the "Two actual atoms" section at r = 1.2 reproduces `mini_lj`
+> chapter 02's numbers: U = −0.890965, F = −2.21169.
+
+> **Where we are.** You have C++ basics (learn-cpp), the program's structure (explainer 01–04), and a built repo. This lesson finds the one loop that eats nearly all the runtime and lists what is wrong with it, before anything is changed.
+
 ## Learning Objectives
 
 - Locate the exact loop that all nine lessons modify
@@ -112,7 +120,7 @@ below about 87 K.
 one. Change σ and the whole shape slides left or right; change ε and it gets
 deeper or shallower. The *shape* never changes.
 
-### Where the two terms come from
+### Where the two terms come from (deep dive later)
 
 Worth knowing, because one of them is physics and the other is convenience.
 
@@ -447,7 +455,7 @@ simulation:
 ## Try it now
 
 ```bash
-cmake -B build -S . && cmake --build build --parallel
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel
 ./build/benchmarks/bench_lj 4096 7
 ```
 
@@ -475,4 +483,4 @@ rather than the average. Everything that follows explains that table.
 - The original code is preserved as `calculateForcesReference()` and is the
   yardstick for everything else.
 
-**Next:** [01_measure_first.md](01_measure_first.md) — before changing anything, learn to measure it.
+**Next:** [01_measure_first.md](01_measure_first.md) — before changing anything, learn to measure it. Lesson 1 answers: how do you time this loop so that a speedup you see is one you actually got?
