@@ -1,0 +1,84 @@
+/* Interactive LJ curve (lj_explorer.js). */
+.lj-explorer {
+  margin: 1.5em 0;
+  padding: 1em;
+  border: 1px solid var(--pst-color-border, #dadce0);
+  border-radius: 8px;
+}
+.lj-explorer-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em 2em;
+  margin-bottom: 0.75em;
+}
+.lj-explorer-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex: 1 1 260px;
+}
+.lj-explorer-slider span { min-width: 9.5em; }
+.lj-explorer-slider input { flex: 1; accent-color: #1a9e9a; }
+.lj-explorer-slider output {
+  font-family: var(--pst-font-family-monospace, monospace);
+  min-width: 3em;
+  text-align: right;
+}
+.lj-explorer canvas { display: block; }
+.lj-explorer-readout {
+  font-size: 0.9em;
+  color: var(--pst-color-text-muted, #5f6368);
+  margin: 0.5em 0;
+}
+.lj-explorer button {
+  font-size: 0.85em;
+  padding: 0.2em 0.8em;
+  border: 1px solid var(--pst-color-border, #dadce0);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Home page: "Behind sim.run()" as a call stack with a concept column
+   (index.md, container concept-stack). Badges use the cover's colours. */
+.concept-stack { position: relative; padding-top: 1.6em; }
+.concept-stack::before {
+  content: "Concept";
+  position: absolute; right: 0; top: 0;
+  font-size: 0.85em; font-weight: 600;
+  color: var(--pst-color-text-muted, #5f6368);
+}
+.concept-stack ul { list-style: none; padding-left: 0; margin: 0; }
+.concept-stack li { position: relative; padding-right: 11em; margin: 0.6em 0; }
+.concept-stack li > ul { margin-right: -11em; padding-left: 1.6em; }
+.concept-stack li li::before {
+  content: "\2514"; position: absolute; left: -1.2em; top: 0.05em;
+  color: var(--pst-color-border, #b0b4ba);
+}
+.concept-stack li p { margin: 0; color: var(--pst-color-text-muted, #5f6368); }
+.concept-stack li p code { font-weight: 600; font-size: 0.95em; }
+.concept-stack .sd-badge {
+  position: absolute; right: 0; top: 0;
+  font-size: 0.8em; font-weight: 600; color: #fff !important;
+  padding: 0.35em 0.8em; border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  cursor: pointer; text-decoration: none !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+}
+.concept-stack .sd-badge::after { content: " \2192"; }   /* arrow: "go there" */
+.concept-stack .sd-bg-info    { background-color: #1a9e9a !important; }  /* molecular simulation */
+.concept-stack .sd-bg-primary { background-color: #2f6db5 !important; }  /* C++ */
+.concept-stack .sd-bg-warning { background-color: #d9822b !important; }  /* pybind11 */
+.concept-stack .sd-bg-danger  { background-color: #8a4fbf !important; }  /* parallel */
+.concept-stack .sd-badge:hover {
+  filter: brightness(1.1); transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+}
+.concept-stack .sd-badge:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+@media (max-width: 640px) {            /* phones: badge under the text */
+  .concept-stack li { padding-right: 0; }
+  .concept-stack li > ul { margin-right: 0; }
+  .concept-stack .sd-badge { position: static; display: inline-block; margin-top: 0.2em; }
+  .concept-stack::before { display: none; }
+}

@@ -102,3 +102,6 @@ venv/
 docs/ai_assistance
 /CLAUDE.md
 /docs/claude
+
+# Sphinx website build
+website/_build/
