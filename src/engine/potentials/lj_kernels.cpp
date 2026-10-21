@@ -338,15 +338,15 @@ double ljComputeGather(const LJKernelView& v, LJBackend backend, int numThreads)
             double acc = 0.0;
             // schedule(guided), not schedule(static).
             //
-            // Measured on an 8-core M-series (4 performance + 4 efficiency),
-            // N=4096: static took 9.43 ms on 5 threads vs 7.62 ms on 4 -- adding
+            // Measured on an Apple M4 (4 performance + 6 efficiency cores),
+            // N=4096: static took 6.07 ms on 5 threads vs 5.01 ms on 4 -- adding
             // a thread made it SLOWER. static hands every thread an equal slice,
             // so the slice that lands on an efficiency core finishes last and
-            // the other seven threads sit at the barrier waiting for it.
+            // the other threads sit at the barrier waiting for it.
             //
             // guided hands out shrinking chunks on demand, so a slow core simply
-            // takes fewer of them. Same result, no straggler: 7.06 ms on 5
-            // threads, 5.84 ms on 8.
+            // takes fewer of them. Same result, no straggler: 4.52 ms on 5
+            // threads, 3.17 ms on 10 (static: 3.87 ms on 10).
             //
             // Reproduce this yourself in exercise 06 before believing it.
             #pragma omp parallel for schedule(guided) reduction(+:acc) num_threads(numThreads)
