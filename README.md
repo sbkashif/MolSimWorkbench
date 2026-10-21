@@ -22,14 +22,27 @@ The engine is written in C++17 and exposed to Python through a pybind11 native m
 ### Build
 
 ```bash
+git clone https://github.com/sbkashif/MolSimWorkbench.git
+cd MolSimWorkbench
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
+make -j$(nproc)          # macOS: make -j$(sysctl -n hw.ncpu)
+cd ..
 ```
+
+You need a C++17 compiler, CMake 3.15 or newer, and Python 3.7 or newer. The first
+`cmake` run downloads the other dependencies, so it needs network access. Python
+scripts are run from the top folder of the repository; nothing needs to be
+`pip install`ed.
 
 This produces:
 - `build/run_simulation` — CLI binary
 - `build/_molsim.cpython-*.so` — Python extension module
+
+The parallel LJ backends need OpenMP. GCC on Linux has it built in. Apple clang
+does not: install Homebrew's runtime with `brew install libomp` before configuring,
+and CMake finds it on its own. Without it the build still succeeds, and the OpenMP
+backends fall back to serial code.
 
 ### Run a simulation from Python (YAML-driven)
 
@@ -197,6 +210,7 @@ vmd -e examples/output/load_trajectory.vmd
 - CMake 3.15+
 - Python 3.7+
 - Dependencies fetched automatically by CMake: pybind11, nlohmann/json, GoogleTest
+- Optional: OpenMP for the parallel LJ backends (macOS: `brew install libomp`)
 
 ---
 
