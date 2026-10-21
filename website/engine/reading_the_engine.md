@@ -100,6 +100,11 @@ The `Potential` class is the socket of the
 `calculateForces` without knowing which energy function it is talking to
 ([The plug](../cpp/05_the_plug.md)).
 
+`calculateForcesAndEnergy` is `virtual` too, but it has a body: a default
+that calls the other two. A kind of `Potential` may replace it. `LJPotential`
+does, because its pair loop yields the forces and the energy in one pass, and
+the default would run that loop twice.
+
 `LJPotential` is one such kind. Its declaration starts:
 
 ```{literalinclude} ../../src/engine/potentials/lj_potential.h
@@ -143,7 +148,8 @@ across processor cores is the subject of the parallel programming module.
 
 ## The force step: ForceCalculator
 
-`ForceCalculator` holds the list of potentials and adds up their forces:
+`ForceCalculator` holds the list of potentials and adds up their forces and
+energies:
 
 ```{literalinclude} ../../src/engine/force_calculator.cpp
 :language: cpp
@@ -175,12 +181,13 @@ two calls, the integrator and the thermostat:
 ```{literalinclude} ../../src/engine/molecular_dynamics.cpp
 :language: cpp
 :start-at: for (currentStep = 0; currentStep < totalSteps; ++currentStep) {
-:end-before: // Calculate potential energy
+:end-before: // Potential energy at the new positions
 :dedent: 4
 ```
 
-The rest of the pass computes the energies, prints a line every 10 steps,
-and writes a frame of the trajectory.
+The rest of the pass adds the kinetic energy to the potential energy, which
+the force step inside the integrator has already computed, prints a line
+every 10 steps, and writes a frame of the trajectory.
 
 **The integrator** is the Velocity-Verlet step of the architecture page,
 with every mass equal to 1:

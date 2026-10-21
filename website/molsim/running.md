@@ -5,25 +5,23 @@ that moves the atoms. This page runs it: the files that describe a run, how
 to start one, what comes out, and how to check that the run on the home page
 really ends as an equilibrium liquid.
 
-Everything on this page is Python, and works the same in a script or in a
-Jupyter notebook. You need no C++ for it.
+The code on this page is Python, and works the same in a script or in a
+Jupyter notebook.
 
-:::{admonition} Before you start: build the engine once
+:::{admonition} Before you start
 :class: note
-The engine is C++, so it has to be compiled once on your computer before
-Python can use it. The commands are in the repository's README (Quick Start,
-Build); they take a few minutes. After that, all commands on this page run
-from the top folder of the repository.
+Install MolSimWorkbench with the
+[installation instructions](https://github.com/sbkashif/MolSimWorkbench#build)
+in the repository's README. All commands on this page run from the top folder
+of the repository.
 :::
 
-:::{admonition} The same page as a notebook
+:::{admonition} In a Jupyter notebook
 :class: tip
-{download}`Download running.ipynb <examples/running.ipynb>`: it runs the
-simulation, reads the trajectory and computes the mean-square displacement
-of this page, cell by cell. Open it anywhere inside the repository. In a
-notebook, keep the result of `sim.run()` in a variable and print it in the
-next cell: the engine's own printed lines reach the notebook by a separate
-route and can mix with Python's output in the same cell.
+Each code block on this page can be a cell of its own. Keep the result of
+`sim.run()` in a variable and print it in the next cell: the engine's own
+printed lines reach the notebook by a separate route and can mix with
+Python's output in the same cell.
 :::
 
 ## Three configuration files

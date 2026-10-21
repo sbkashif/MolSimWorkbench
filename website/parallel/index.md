@@ -16,7 +16,7 @@ Chapters:
 
 1. [Measure first](01_measure_first.md)
 2. [Threads and races](02_threads_and_races.md)
-3. [OpenMP and honest speedup](03_openmp_and_speedup.md)
+3. [OpenMP and speedup](03_openmp_and_speedup.md)
 
 The C++ module's chapters on [functions](../cpp/02_functions.md) and on
 memory ([A first program](../cpp/01_first_program.md)) are enough to follow

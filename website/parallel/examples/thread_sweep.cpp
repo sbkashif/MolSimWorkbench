@@ -1,8 +1,10 @@
 // Times the engine's force backends at several system sizes and thread
 // counts, and checks every result against the serial triangular kernel.
 //
-//   clang++ -std=c++17 -O3 -I <repo>/src thread_sweep.cpp \
-//       <repo>/build/libEngineLib.a <repo>/build/libBuilderLib.a -o thread_sweep
+//   OMP=$(brew --prefix libomp)        # macOS; on Linux drop the -I/-L parts
+//   clang++ -std=c++17 -O3 -Xclang -fopenmp -I $OMP/include -I <repo>/src \
+//       thread_sweep.cpp <repo>/build/libEngineLib.a <repo>/build/libBuilderLib.a \
+//       -L $OMP/lib -lomp -o thread_sweep
 #include "builder/lj_particle_box_builder.h"
 #include "engine/potentials/lj_potential.h"
 
@@ -62,11 +64,18 @@ int main() {
         const double gat = best_ms([&] { lj.calculateForces(g, f); }, reps);
         std::printf("%6zu %-18s %7d %10.4f %12.3e\n", n, "serial-gather", 1, gat, max_diff(ref, f));
 
-        lj.setBackend(LJBackend::Threads);
-        for (int t : {1, 2, 4, 6, 8, 10}) {
-            lj.setNumThreads(t);
-            const double ms = best_ms([&] { lj.calculateForces(g, f); }, reps);
-            std::printf("%6zu %-18s %7d %10.4f %12.3e\n", n, "std::thread-gather", t, ms, max_diff(ref, f));
+        const struct { LJBackend backend; const char* name; } parallel[] = {
+            {LJBackend::Threads, "std::thread-gather"},
+            {LJBackend::OpenMP, "openmp-gather"},
+            {LJBackend::OpenMPPrivate, "openmp-private"},
+        };
+        for (const auto& p : parallel) {
+            lj.setBackend(p.backend);
+            for (int t : {1, 2, 4, 6, 8, 10}) {
+                lj.setNumThreads(t);
+                const double ms = best_ms([&] { lj.calculateForces(g, f); }, reps);
+                std::printf("%6zu %-18s %7d %10.4f %12.3e\n", n, p.name, t, ms, max_diff(ref, f));
+            }
         }
     }
     return 0;

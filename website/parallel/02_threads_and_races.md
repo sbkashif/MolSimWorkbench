@@ -34,8 +34,8 @@ Measured with `thread_sweep.cpp` at N = 4096 (the faster of two runs):
 
 | Kernel | Writes per pair | Time per call |
 | --- | --- | --- |
-| `serial-triangular` (scatter) | 2 | 9.89 ms |
-| `serial-gather` | 1 (each pair visited twice) | 17.81 ms |
+| `serial-triangular` (scatter) | 2 | 10.14 ms |
+| `serial-gather` | 1 (each pair visited twice) | 18.82 ms |
 
 Split across threads, the difference is in who writes what
 ({numref}`par-scatter-gather-figure`). With gather, thread A writes only the
@@ -121,13 +121,14 @@ slots are added up after all threads have finished, always in thread order 0,
 Gather pays for its safety with the doubled arithmetic measured above. The
 engine has one more backend, `OpenMPPrivate`, that keeps scatter and removes
 the race differently: each thread adds into its own private copy of the whole
-force array, and the copies are summed at the end. It needs OpenMP (next
-chapter), which this machine's compiler does not provide, so it is not
-measured here.
+force array, and the copies are summed at the end. It is written with OpenMP,
+the subject of the next chapter, and it turns out to be the fastest.
 
 The threaded gather gives exactly the serial answer, to the last bit, at
 every thread count and every N that `thread_sweep.cpp` measured: the largest
-difference from `serial-triangular`, in any force component, is 0.
+difference from `serial-triangular`, in any force component, is 0. Gather and
+scatter add up the same numbers, and here even in an order that rounds the
+same way.
 
 :::{admonition} If you know Python
 :class: tip
@@ -154,12 +155,12 @@ ever write the same slot.
 :::{dropdown} 3. Gather does twice the arithmetic of scatter. Why use it?
 Because every force then has one writer: threads never write the same memory,
 so there is no race and no need for locks or private copies. On one thread it
-is about 1.8 times slower (17.8 against 9.9 ms at N = 4096); the threads have
+is about 1.9 times slower (18.8 against 10.1 ms at N = 4096); the threads have
 to win that back.
 :::
 
 ## Next
 
-[OpenMP and honest speedup](03_openmp_and_speedup.md) writes the same split
-with one line of OpenMP, and measures how much faster the threaded gather is
-than the best serial kernel.
+[OpenMP and speedup](03_openmp_and_speedup.md) writes the same split with one
+line of OpenMP, adds the private-copy scatter, and measures how much faster
+each is than the best serial kernel.

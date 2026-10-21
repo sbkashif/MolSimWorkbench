@@ -31,7 +31,7 @@ html_theme_options = {
     "show_toc_level": 2,
     # License and AI-use note on every page (full text: website/LICENSE.md).
     "extra_footer": (
-        'Pages, figures, notebooks and code examples: '
+        'Pages, figures and code examples: '
         '<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> '
         '(credit the author, no commercial use, share adaptations alike). '
         'The engine\'s source code: MIT. '

@@ -24,29 +24,31 @@ def rows(name):
 
 
 def fig_time_vs_n():
-    """Force step and the rest of a step against N, log-log, with N and N^2
-    guide lines."""
+    """Whole step (before and after the one-pass fix) and the rest of a step
+    against N, log-log, with N and N^2 guide lines."""
     import numpy as np
     d = rows("par_step_split.csv")
+    before = rows("par_step_split_before.csv")
     N = np.array([float(r["N"]) for r in d])
-    forces = np.array([float(r["forces_ms"]) for r in d])
-    energy = np.array([float(r["energy_ms"]) for r in d])
+    step = np.array([float(r["step_ms"]) for r in d])
+    old = np.array([float(r["step_ms"]) for r in before])
     rest = np.array([float(r["rest_ms"]) for r in d])
     fig, ax = plt.subplots(figsize=(7.2, 4.4), dpi=100)
-    ax.loglog(N, forces, "o-", color=PAR, lw=2.2, label="force step")
-    ax.loglog(N, energy, "s--", color=PAR, lw=1.4, alpha=0.6,
-              label="energy evaluation (also every step)")
+    ax.loglog(N, old, "s--", color=PAR, lw=1.4, alpha=0.55,
+              label="whole step, energy as a second pair loop")
+    ax.loglog(N, step, "o-", color=PAR, lw=2.2,
+              label="whole step, energy from the force pass")
     ax.loglog(N, rest, "o-", color=PLUG, lw=2.2,
-              label="everything else in a step")
+              label="everything except the pair loop")
     # Guide lines through the last point: slope 2 (all pairs) and slope 1.
-    ax.loglog(N, forces[-1] * (N / N[-1]) ** 2, ":", color=MUTED, lw=1.2)
-    ax.text(N[1], forces[-1] * (N[1] / N[-1]) ** 2 * 0.55, "∝ N²",
+    ax.loglog(N, step[-1] * (N / N[-1]) ** 2, ":", color=MUTED, lw=1.2)
+    ax.text(N[1], step[-1] * (N[1] / N[-1]) ** 2 * 0.55, "∝ N²",
             color=MUTED, fontsize=11)
     ax.loglog(N, rest[-1] * (N / N[-1]), ":", color=MUTED, lw=1.2)
     ax.text(N[1], rest[-1] * (N[1] / N[-1]) * 1.6, "∝ N", color=MUTED,
             fontsize=11)
     ax.set_xlabel("number of atoms N", fontsize=12)
-    ax.set_ylabel("time per call (ms)", fontsize=12)
+    ax.set_ylabel("time per step (ms)", fontsize=12)
     ax.legend(frameon=False, fontsize=10.5, loc="upper left")
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
@@ -178,32 +180,55 @@ def fig_race():
     save(fig, "par_race.svg")
 
 
-def fig_speedup():
-    """Speedup of the threaded gather kernel over the fastest serial kernel."""
-    d = rows("par_thread_sweep.csv")
-    fig, ax = plt.subplots(figsize=(7.2, 4.4), dpi=100)
-    colors = {"125": "#b0b4ba", "512": "#9b7cc4", "1000": "#7a52b3",
-              "2197": "#5b2f9e", "4096": "#3d1680"}
-    for N, col in colors.items():
-        base = next(float(r["ms_best_of_2_runs"]) for r in d
-                    if r["N"] == N and r["backend"] == "serial-triangular")
-        pts = [(int(r["threads"]), base / float(r["ms_best_of_2_runs"]))
-               for r in d if r["N"] == N and r["backend"] == "std::thread-gather"]
-        ax.plot(*zip(*pts), "o-", color=col, lw=2, label=f"N = {N}")
+def _speedups(d, N, backend):
+    base = next(float(r["ms_best_of_2_runs"]) for r in d
+                if r["N"] == N and r["backend"] == "serial-triangular")
+    return [(int(r["threads"]), base / float(r["ms_best_of_2_runs"]))
+            for r in d if r["N"] == N and r["backend"] == backend]
+
+
+def _speedup_axes(ax, ymax):
     ax.axhline(1, color=MUTED, lw=1, ls="--")
-    ax.text(10.2, 1.02, "no gain", color=MUTED, fontsize=10.5, va="bottom",
-            ha="right")
+    ax.text(10.2, 1.04, "serial speed", color=MUTED, fontsize=10.5,
+            va="bottom", ha="right")
     ax.axvspan(4.5, 10.5, color="#f6f8fb", zorder=0)
-    ax.text(7.5, 2.78, "threads 5-10 also use efficient cores", ha="center",
-            fontsize=10.5, color=MUTED)
+    ax.text(7.5, ymax * 0.95, "threads 5-10 also use efficiency cores",
+            ha="center", fontsize=10.5, color=MUTED)
     ax.set_xlim(0.5, 10.5)
-    ax.set_ylim(0, 2.9)
+    ax.set_ylim(0, ymax)
     ax.set_xticks([1, 2, 4, 6, 8, 10])
     ax.set_xlabel("threads", fontsize=12)
     ax.set_ylabel("speedup over serial-triangular", fontsize=12)
     ax.legend(frameon=False, fontsize=10.5, loc="upper left")
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
+
+
+def fig_backends():
+    """The three parallel backends at N = 4096, against the best serial."""
+    d = rows("par_thread_sweep.csv")
+    fig, ax = plt.subplots(figsize=(7.2, 4.4), dpi=100)
+    for backend, col, style in [("openmp-private", PAR, "o-"),
+                                ("openmp-gather", THREAD_A, "s-"),
+                                ("std::thread-gather", THREAD_B, "^-")]:
+        ax.plot(*zip(*_speedups(d, "4096", backend)), style, color=col, lw=2,
+                label=backend)
+    _speedup_axes(ax, 5.2)
+    fig.tight_layout()
+    save(fig, "par_backends.svg")
+
+
+def fig_speedup():
+    """Speedup of the private-buffer OpenMP kernel over the fastest serial
+    kernel, for each system size."""
+    d = rows("par_thread_sweep.csv")
+    fig, ax = plt.subplots(figsize=(7.2, 4.4), dpi=100)
+    colors = {"125": "#b0b4ba", "512": "#9b7cc4", "1000": "#7a52b3",
+              "2197": "#5b2f9e", "4096": "#3d1680"}
+    for N, col in colors.items():
+        ax.plot(*zip(*_speedups(d, N, "openmp-private")), "o-", color=col,
+                lw=2, label=f"N = {N}")
+    _speedup_axes(ax, 5.2)
     fig.tight_layout()
     save(fig, "par_speedup.svg")
 
@@ -213,4 +238,5 @@ if __name__ == "__main__":
     fig_cores_threads()
     fig_scatter_gather()
     fig_race()
+    fig_backends()
     fig_speedup()

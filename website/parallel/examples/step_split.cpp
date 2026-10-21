@@ -1,8 +1,13 @@
 // Where does one MD step spend its time? Times the force step, the energy
 // evaluation and a whole step of the real engine at several system sizes.
+// With the argument `openmp`, the LJ potential uses the OpenMPPrivate backend.
 //
+//   OMP=$(brew --prefix libomp)        # macOS; on Linux drop the -L part
 //   clang++ -std=c++17 -O3 -I <repo>/src step_split.cpp \
-//       <repo>/build/libEngineLib.a <repo>/build/libBuilderLib.a -o step_split
+//       <repo>/build/libEngineLib.a <repo>/build/libBuilderLib.a \
+//       -L $OMP/lib -lomp -o step_split
+//   ./step_split            # serial (the engine's default backend)
+//   ./step_split openmp     # private-buffer OpenMP, all cores
 #include "builder/lj_particle_box_builder.h"
 #include "engine/force_calculator.h"
 #include "engine/molecular_dynamics.h"
@@ -45,7 +50,8 @@ double best_ms(F&& f, int reps) {
     return best;
 }
 
-int main() {
+int main(int argc, char** argv) {
+    const bool openmp = argc > 1 && std::string(argv[1]) == "openmp";
     std::printf("%6s %10s %10s %10s %10s\n", "N", "step_ms", "forces_ms", "energy_ms", "rest_ms");
     for (int side : {5, 7, 9, 11, 13, 16}) {
         LJBoxConfig cfg;
@@ -58,6 +64,7 @@ int main() {
         auto lj = std::make_shared<LJPotential>();
         lj->addAtomParameters("LJ", 1.0, 1.0);
         lj->setCutoff(2.5);
+        if (openmp) lj->setBackend(LJBackend::OpenMPPrivate);
         auto fc = std::make_shared<ForceCalculator>();
         fc->addPotential(lj);
 

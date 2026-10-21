@@ -3,11 +3,11 @@
 *Prepared as part of the [US-RSE Mentorship Program](https://us-rse.org/wg/mentorship-program),
 with mentorship from [Chris Neely](https://github.com/cjneely10).*
 
-MolSimWorkbench teaches programming through one running example: a molecular
-dynamics simulation, which follows atoms as they move by Newton's laws. The
-engine that runs it is written in C++, and Python drives it. The course
-builds that engine up from its parts and shows the programming each part
-needs.
+MolSimWorkbench teaches C++, serial and parallel, through one running
+example: a molecular dynamics simulation of Lennard-Jones atoms, which
+follows atoms as they move by Newton's laws. The engine is a C++ library with a
+Python interface: Python scripts set up and start a run, and the C++ code
+does the computing.
 
 Below is a real run. A five-line Python script reads a settings file and
 runs the engine; the film is the result: 512 atoms start on a grid and settle
@@ -60,6 +60,13 @@ the page that teaches it.
 
 Alongside the engine, tests such as `TEST(LJKernels, NetForceIsZero)` check
 that every change still gives the right forces.
+
+:::{admonition} Only here for molecular simulation?
+:class: tip
+The **Molecular simulation** module uses only the Python interface, which
+runs the C++ engine for you. You can follow it without any of the C++
+modules.
+:::
 
 ## The course
 
