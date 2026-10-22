@@ -1,4 +1,4 @@
-# Running a simulation
+# Running the minimal simulation algorithm
 
 [A minimal molecular simulation algorithm](architecture.md) described the loop
 that moves the atoms. This page runs it: the files that describe a run, how

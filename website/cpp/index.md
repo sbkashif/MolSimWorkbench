@@ -1,14 +1,15 @@
 # About the C++ module
 
-[Running a simulation](../molsim/running.md) did everything from Python, yet
+[Running the minimal simulation algorithm](../molsim/running.md) did everything from Python, yet
 the work inside `sim.run()` is done by an engine written in C++.
 
 ::::{admonition} Detour: why the engine is not Python
 :class: detour
 
-This project was for me to learn C++. It also has a practical reason: plain
-Python is slow for the one loop that matters. Every step of a run visits every pair of atoms, and this
-is how slow that gets. The same pass over all pairs of the home page's 512
+I built this project to learn C++, because plain Python was getting
+abysmally slow for the applications I was building. A molecular simulation
+shows why in one loop: every step of a run visits every pair of atoms, and
+this is how slow that gets in Python. The same pass over all pairs of the home page's 512
 atoms, written once in plain Python and once in C++
 (`examples/why_cpp/pairs.py` and `pairs.cpp`), gives the same energy and very
 different times:

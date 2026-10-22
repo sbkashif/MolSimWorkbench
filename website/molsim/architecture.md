@@ -268,5 +268,5 @@ integrator and thermostat still work on positions, velocities and forces.
 ## Next
 
 The loop is now a figure and a table of classes, but nothing has moved yet.
-[Running a simulation](running.md) runs it: three configuration files, one Python
+[Running the minimal simulation algorithm](running.md) puts it to work: three configuration files, one Python
 call, and a check that the atoms on the home page really end as a liquid.

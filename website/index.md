@@ -2,9 +2,10 @@
 
 *Prepared as part of the [US-RSE Mentorship Program](https://us-rse.org/wg/mentorship-program), with mentorship from [Chris Neely](https://github.com/cjneely10).*
 
-Programming tutorials are hard to follow without using them to build an application, and
-simulation theory is hard to grasp without writing the code. This website is developed to learn the two together, on one running example: a molecular dynamics
-simulation of Lennard-Jones atoms.
+Simulation theory is hard to grasp without writing the code, and programming
+tutorials are hard to follow without building an application with them.
+These pages let you learn the two together, on one running example: a
+molecular dynamics simulation of Lennard-Jones atoms.
 
 ::::{grid} 1 1 2 2
 :gutter: 3
@@ -18,19 +19,15 @@ Lennard-Jones energy function, laid out step by step so each one can
 become C++ later.
 :::
 
-:::{grid-item-card} Learn C++ programming, through a molecular simulation app
+:::{grid-item-card} Learn C++ programming, through a molecular simulation engine
 :link: cpp/01_first_program
 :link-type: doc
 
-C++ from a first program to loops on many cores, each idea arriving where
-the simulation needs it.
+C++ from a first program that computes the energy of two atoms to the
+classes the engine is built from, each idea arriving where the simulation
+needs it.
 :::
 ::::
-
-These pages grew out of my 2018 course project for ChE 8450, Multiscale
-Modelling, at Clemson University, a Lennard-Jones simulator written in
-Python ([Lennard-Jones](https://github.com/sbkashif/Lennard-Jones)). For now
-they stay with Lennard-Jones; I will add more complicated energy functions as I work them out by hand.
 
 Below is a real run: 512 atoms start on a grid and settle into a liquid.
 Python is the engine's easy interface; the five lines of Python on the left
@@ -55,37 +52,43 @@ concept to go to the page that explains it.
 
 ::::{container} concept-stack
 - [`sim.run()`](pybind11/02_binding_the_engine.md#following-simrun)\
-  Python calls into C++ through the compiled module `_molsim`.
-  {bdg-link-warning}`pybind11 <pybind11/02_binding_the_engine.html>`
+  Python calls into C++ through the compiled module
+  [`_molsim`](pybind11/02_binding_the_engine.md#the-bridge-molsim_bindingscpp).
+  {bdg-link-warning}`Binding the engine <pybind11/02_binding_the_engine.html>`
   - [`MolecularDynamics::runSimulation()`](engine/reading_the_engine.md#the-loop-moleculardynamics)\
-    One pass of the loop per time step.
-    {bdg-link-primary}`C++ <cpp/04_classes.html>`
+    One pass of the simulation loop per time step.
+    {bdg-link-primary}`Classes <cpp/04_classes.html>`
     - [`integrateVelocityVerlet()`](engine/reading_the_engine.md#the-loop-moleculardynamics)\
       Moves every atom by its velocity and force.
-      {bdg-link-info}`Molecular simulation <molsim/architecture.html#the-loop>`
+      {bdg-link-info}`The molecular simulation loop <molsim/architecture.html#the-loop>`
       - [`ForceCalculator::calculateForces()`](engine/reading_the_engine.md#the-force-step-forcecalculator)\
         Adds up the forces of every
-        energy function. {bdg-link-primary}`C++ <cpp/05_the_plug.html>`
+        energy function. {bdg-link-primary}`Inheritance and virtual functions <cpp/05_the_plug.html>`
         - [`LJPotential::calculateForces()`](engine/reading_the_engine.md#the-socket-potential)\
           The energy function, here
           Lennard-Jones.
-          {bdg-link-info}`Molecular simulation <molsim/architecture.html#the-energy-function>`
+          {bdg-link-info}`The energy function <molsim/architecture.html#the-energy-function>`
           - [`ljComputeGather(view, backend, numThreads)`](engine/reading_the_engine.md#the-pair-loop)\
             The loop over every
             pair of atoms, serial or on several threads.
-            {bdg-link-danger}`Parallel programming: CPU cores <parallel/index.html>`
+            {bdg-link-danger}`Threads and races <parallel/02_threads_and_races.html>`
 ::::
 
 ## What is here
 
-The walkthrough has six modules, each built on the same simulation, and one page
-between them that reads the engine itself:
+Each badge in the stack above names the lesson that explains its call, and
+each lesson belongs to one of the modules below, listed in reading order.
+All of them are built on the same simulation, and one page, Reading the
+engine, sits between them and reads the engine's own code:
 
 - **Molecular simulation.** How atoms in a box move: an energy function,
   forces, and a time step. The energy function is the part you choose; these
   pages use Lennard-Jones (LJ).
-- **C++.** The language of the engine, from a first program to the classes
-  the engine is made of.
+- **C++.** The language of the engine: a first program
+  that computes the energy of two atoms; functions; vectors and loops for
+  many atoms; classes; inheritance and virtual functions, which let the
+  energy function be swapped like a plug; and splitting the code into
+  several files, compiled and linked with CMake.
 - **pybind11.** How Python code calls the C++ engine.
 - **Reading the engine** (one page). The real classes, in the order a run
   uses them.

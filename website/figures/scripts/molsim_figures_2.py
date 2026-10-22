@@ -1,4 +1,4 @@
-"""Figures for "Running a simulation" and "Reading the engine".
+"""Figures for "Running the minimal simulation algorithm" and "Reading the engine".
 One function per figure; helpers come from molsim_figures.py.
 
     python molsim_figures_2.py          # writes every figure into ../
