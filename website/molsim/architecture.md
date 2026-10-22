@@ -27,8 +27,8 @@ times produces a **trajectory**: a film of the atoms in motion, like the one
 on the [home page](../index.md).
 
 This page describes the parts of that loop and how they connect. It uses no
-code. The C++ module that follows teaches the language needed to read the
-real engine, and the page after it shows how the parts become code.
+code. The next page runs the loop with MolSimWorkbench from Python; the C++
+module after it walks through the language the engine is written in.
 
 ## What the simulation holds
 
@@ -111,7 +111,7 @@ things: the total potential energy $U$, and the force on every atom,
 $\mathbf{F}_i = -\partial U / \partial \mathbf{r}_i$ as defined at the top of
 the page.
 
-The energy function used throughout this course is the **Lennard-Jones (LJ)
+The energy function used throughout these pages is the **Lennard-Jones (LJ)
 potential**. It gives the energy of one pair of atoms at distance $r$:
 
 $$
@@ -264,3 +264,9 @@ itself would give about $-0.005\varepsilon$.)
 Only the plug. The force step still asks for energy and forces, and the
 integrator and thermostat still work on positions, velocities and forces.
 :::
+
+## Next
+
+The loop is now a figure and a table of classes, but nothing has moved yet.
+[Running a simulation](running.md) runs it: three configuration files, one Python
+call, and a check that the atoms on the home page really end as a liquid.

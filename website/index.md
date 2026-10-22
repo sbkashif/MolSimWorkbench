@@ -1,20 +1,44 @@
 # MolSimWorkbench
 
-*Prepared as part of the [US-RSE Mentorship Program](https://us-rse.org/wg/mentorship-program),
-with mentorship from [Chris Neely](https://github.com/cjneely10).*
+*Prepared as part of the [US-RSE Mentorship Program](https://us-rse.org/wg/mentorship-program), with mentorship from [Chris Neely](https://github.com/cjneely10).*
 
-MolSimWorkbench teaches C++, serial and parallel, through one running
-example: a molecular dynamics simulation of Lennard-Jones atoms, which
-follows atoms as they move by Newton's laws. The engine is a C++ library with a
-Python interface: Python scripts set up and start a run, and the C++ code
-does the computing.
+Programming tutorials are hard to follow without using them to build an application, and
+simulation theory is hard to grasp without writing the code. This website is developed to learn the two together, on one running example: a molecular dynamics
+simulation of Lennard-Jones atoms.
 
-Below is a real run. A five-line Python script reads a settings file and
-runs the engine; the film is the result: 512 atoms start on a grid and settle
-into a liquid at equilibrium.
+::::{grid} 1 1 2 2
+:gutter: 3
+
+:::{grid-item-card} Basic simulation algorithm, ready for C++
+:link: molsim/architecture
+:link-type: doc
+
+What the simulation holds, the loop each time step runs, and the
+Lennard-Jones energy function, laid out step by step so each one can
+become C++ later.
+:::
+
+:::{grid-item-card} Learn C++ programming, through a molecular simulation app
+:link: cpp/01_first_program
+:link-type: doc
+
+C++ from a first program to loops on many cores, each idea arriving where
+the simulation needs it.
+:::
+::::
+
+These pages grew out of my 2018 course project for ChE 8450, Multiscale
+Modelling, at Clemson University, a Lennard-Jones simulator written in
+Python ([Lennard-Jones](https://github.com/sbkashif/Lennard-Jones)). For now
+they stay with Lennard-Jones; I will add more complicated energy functions as I work them out by hand.
+
+Below is a real run: 512 atoms start on a grid and settle into a liquid.
+Python is the engine's easy interface; the five lines of Python on the left
+are all it takes to start the run, and these pages open up everything they
+set in motion.
 
 ```{image} figures/cover.webp
-:alt: A five-line Python script and an excerpt of its YAML settings file; beside them, the trajectory it produced, in which 512 Lennard-Jones atoms start on a grid and settle into an equilibrium liquid.
+:alt: A five-line Python script and an excerpt of its YAML settings file, which names the Lennard-Jones potential file; beside them, the trajectory it produced, in which 512 Lennard-Jones atoms start on a grid and settle into an equilibrium liquid.
 :align: center
 :target: _images/cover.webp
 ```
@@ -25,18 +49,12 @@ The last line of the script hands control to the C++ engine, which runs
 **the loop** of every molecular dynamics simulation: one turn per time step,
 thousands of turns per run.
 
-```{figure} figures/home_loop.svg
-:width: 100%
-
-One turn of the loop. Each step names the engine function that does it.
-```
-
-Each call below is made by the one above it. Click a call to see its code in
-[Reading the engine](engine/reading_the_engine.md); click a concept to go to
-the page that teaches it.
+Each call below is made by the one above it, and the pages follow them in
+the same order, from the top down. Click a call to see its code; click a
+concept to go to the page that explains it.
 
 ::::{container} concept-stack
-- [`sim.run()`](engine/reading_the_engine.md#putting-a-run-together)\
+- [`sim.run()`](pybind11/02_binding_the_engine.md#following-simrun)\
   Python calls into C++ through the compiled module `_molsim`.
   {bdg-link-warning}`pybind11 <pybind11/02_binding_the_engine.html>`
   - [`MolecularDynamics::runSimulation()`](engine/reading_the_engine.md#the-loop-moleculardynamics)\
@@ -55,31 +73,26 @@ the page that teaches it.
           - [`ljComputeGather(view, backend, numThreads)`](engine/reading_the_engine.md#the-pair-loop)\
             The loop over every
             pair of atoms, serial or on several threads.
-            {bdg-link-danger}`Parallel programming <parallel/index.html>`
+            {bdg-link-danger}`Parallel programming: CPU cores <parallel/index.html>`
 ::::
 
-Alongside the engine, tests such as `TEST(LJKernels, NetForceIsZero)` check
-that every change still gives the right forces.
+## What is here
 
-:::{admonition} Only here for molecular simulation?
-:class: tip
-The **Molecular simulation** module uses only the Python interface, which
-runs the C++ engine for you. You can follow it without any of the C++
-modules.
-:::
-
-## The course
-
-The course has five modules, each built on the same simulation:
+The walkthrough has six modules, each built on the same simulation, and one page
+between them that reads the engine itself:
 
 - **Molecular simulation.** How atoms in a box move: an energy function,
-  forces, and a time step. The energy function is the part you choose; the
-  course uses Lennard-Jones (LJ).
+  forces, and a time step. The energy function is the part you choose; these
+  pages use Lennard-Jones (LJ).
 - **C++.** The language of the engine, from a first program to the classes
   the engine is made of.
 - **pybind11.** How Python code calls the C++ engine.
-- **Parallel programming.** Making the force loop, the slowest part, run on
-  several cores.
+- **Reading the engine** (one page). The real classes, in the order a run
+  uses them.
+- **Parallel programming: CPU cores.** Making the force loop, the slowest
+  part, run on several cores.
+- **GPU programming** (being written). Running the same loop on a graphics
+  card, on thousands of threads.
 - **Testing** (coming later). Checking that every change still gives the right
   forces.
 
@@ -107,14 +120,6 @@ cpp/06_several_files
 ```
 
 ```{toctree}
-:caption: The engine in code
-:maxdepth: 1
-:hidden:
-
-engine/reading_the_engine
-```
-
-```{toctree}
 :caption: pybind11
 :maxdepth: 1
 :hidden:
@@ -125,7 +130,15 @@ pybind11/02_binding_the_engine
 ```
 
 ```{toctree}
-:caption: Parallel programming
+:caption: The engine in code
+:maxdepth: 1
+:hidden:
+
+engine/reading_the_engine
+```
+
+```{toctree}
+:caption: Parallel programming: CPU cores
 :maxdepth: 1
 :hidden:
 
@@ -133,4 +146,12 @@ parallel/index
 parallel/01_measure_first
 parallel/02_threads_and_races
 parallel/03_openmp_and_speedup
+```
+
+```{toctree}
+:caption: GPU programming
+:maxdepth: 1
+:hidden:
+
+gpu/index
 ```

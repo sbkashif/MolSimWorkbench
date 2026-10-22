@@ -1,0 +1,26 @@
+/* Detour boxes: a side question answered off the main line, then the page
+   returns to it. Written in Markdown as
+     :::{admonition} Detour: <question>
+     :class: detour
+   Sienna, so it does not read as a module colour or as a tip. */
+html {
+  --detour: #a0522d;
+  --detour-bg: rgba(160, 82, 45, 0.1);
+}
+html[data-theme="dark"] {
+  --detour: #e0a37a;
+  --detour-bg: rgba(224, 163, 122, 0.15);
+}
+.admonition.detour,
+div.admonition.detour {
+  border-color: var(--detour);
+}
+.admonition.detour > .admonition-title,
+div.admonition.detour > .admonition-title {
+  background-color: var(--detour-bg);
+}
+.admonition.detour > .admonition-title::after,
+div.admonition.detour > .admonition-title::after {
+  color: var(--detour);
+  content: "\f277"; /* Font Awesome: signs-post */
+}

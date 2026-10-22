@@ -1,9 +1,11 @@
 # Measure first
 
-Making a program use several cores takes work, and it only pays off for the
-part of the program that takes the time. This chapter measures one time step
-of the simulation, piece by piece, at several system sizes, and then
-introduces the two things the next chapters build on: cores and threads.
+The plan of this module is to split the pair loop across cores. First, a
+check that the pair loop really is where the time goes: making a program use
+several cores takes work, and it only pays off for the part of the program
+that takes the time. This chapter measures one time step of the simulation,
+piece by piece, at several system sizes, and then introduces the two things
+the next chapters build on: cores and threads.
 
 ## Timing one step
 

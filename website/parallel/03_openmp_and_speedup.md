@@ -343,3 +343,14 @@ Each thread adds into its own private copy of `acc`, and the copies are added
 together at the end. It replaces the `partial[t]` slots and the final sum over
 them.
 :::
+
+## Next
+
+`OpenMPPrivate` is the fastest kernel on this processor, 4.5 times faster
+than serial on 10 cores. Its trick does not grow with the number of threads:
+every thread needs its own copy of the force array. That is 1 MB for 10
+threads, but on a graphics card the force loop runs one thread per atom,
+and 4096 copies of
+4096 forces would take about 400 MB. With that many threads, the gather loop,
+where every force has one writer and nothing is copied, is the right shape
+again. The [GPU module](../gpu/index.md) runs it there.

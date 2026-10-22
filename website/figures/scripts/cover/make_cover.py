@@ -48,15 +48,17 @@ SCRIPT = [
     [("        trajectory_output=", PLAIN), ('"traj.xyz"', STR), (")", PLAIN)],
     [("sim.", PLAIN), ("run", FN), ("()", PLAIN)],
 ]
-# An excerpt of data/lj_box.yaml: the keys that set the state point.
+# An excerpt of data/lj_box.yaml: the keys that set the state point, and the
+# file that chooses the energy function (LJ).
 CONFIG = [
     [("simulation:", KEY)],
-    [("  temperature: ", KEY), ("1.0", NUM), ("     # held by the thermostat", DIM)],
+    [("  temperature: ", KEY), ("1.0", NUM), ("   # held by the thermostat", DIM)],
     [("  total_steps: ", KEY), ("4000", NUM)],
     [("  lj_box:", KEY)],
     [("    num_particles: ", KEY), ("512", NUM)],
     [("    density: ", KEY), ("0.8", NUM)],
-    [("    initialization: ", KEY), ('"cubic_lattice"', STR)],
+    [("potential_config_files:", KEY)],
+    [("  - ", PLAIN), ('"potentials/lj_bulk.yaml"', STR), ("  # Lennard-Jones", DIM)],
 ]
 
 def code_card(ax, x, y, w, title, lines, row_h=36):
@@ -91,8 +93,8 @@ def overlay():
 
     # Top: the script, the settings it reads, and the run they produced.
     bottom = code_card(ax, 30, 30, 640, "run.py", SCRIPT)
-    code_card(ax, 30, bottom + 24, 640, "data/lj_box.yaml (excerpt)", CONFIG,
-              row_h=34)
+    code_card(ax, 30, bottom + 20, 640, "data/lj_box.yaml (excerpt)", CONFIG,
+              row_h=30)
     ax.add_patch(FancyArrowPatch((672, 300), (712, 300), arrowstyle="-|>",
                                  mutation_scale=22, color="#9aa0a6", lw=2.5))
     cx = SIM_XY[0] + SIM / 2

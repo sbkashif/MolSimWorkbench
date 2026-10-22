@@ -7,9 +7,10 @@ classes callable from Python.
 
 The first chapter builds the smallest possible bridge, for the `lj_energy`
 function from the C++ module, and calls it from Python. The second reads the
-engine's real bridge and follows `sim.run()` from Python into C++. The
-first chapter needs the C++ module up to [Functions](../cpp/02_functions.md);
-the second also uses classes, which the [C++ module](../cpp/index.md) covers.
+engine's real bridge and follows `sim.run()` from Python into C++. Both
+build on the [C++ module](../cpp/index.md): the first on
+[Functions](../cpp/02_functions.md) and on compiling, the second on
+[Classes](../cpp/04_classes.md) and [the plug](../cpp/05_the_plug.md).
 
 As in the C++ module, every example is a file you can build and run, and
 every output on the pages comes from running it. Each chapter ends with a few
@@ -19,3 +20,8 @@ Chapters:
 
 1. [A first binding](01_a_first_binding.md)
 2. [Binding the engine](02_binding_the_engine.md)
+
+## Next
+
+Start with [A first binding](01_a_first_binding.md). It needs Python 3 and
+the same C++ compiler as the C++ module.

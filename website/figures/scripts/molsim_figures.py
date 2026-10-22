@@ -180,8 +180,8 @@ def fig_sigma_epsilon_runs():
     save(fig, "sigma_epsilon_runs.svg")
 
 
-def fig_home_loop():
-    """Home page: one pass of runSimulation() as a circle of four steps,
+def fig_engine_loop():
+    """Reading the engine: one pass of runSimulation() as a circle of four steps,
     each labelled with the engine function that does it."""
     import numpy as np
     W, H = 960, 560
@@ -220,11 +220,11 @@ def fig_home_loop():
             fontsize=13, family=MONO, color=INK, weight="bold")
     ax.text(cx, cy + 34, "= one time step", ha="center", va="center",
             fontsize=12.5, color=MUTED)
-    save(fig, "home_loop.svg")
+    save(fig, "engine_loop.svg")
 
 
 if __name__ == "__main__":
-    fig_home_loop()
+    fig_engine_loop()
     fig_md_loop()
     fig_periodic_box()
     # fig_sigma_epsilon_runs() is kept for a later page on running

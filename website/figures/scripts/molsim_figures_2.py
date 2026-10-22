@@ -32,7 +32,7 @@ def fig_run_layers():
         ["time step, steps, temperature,", "number of atoms, density"])
     box(ax, 180, 250, 330, 90, "potentials/lj_bulk.yaml",
         ["energy function: LJ, ε, σ, cutoff"], ec=PLUG)
-    box(ax, 560, 250, 300, 90, "geometry/water.yaml",
+    box(ax, 560, 250, 300, 90, "geometry/lj_pair.yaml",
         ["atom positions, box size"], ls="--")
     ax.text(560, 312, "only without lj_particle_box", ha="center", va="center",
             fontsize=11, color=MUTED, style="italic")

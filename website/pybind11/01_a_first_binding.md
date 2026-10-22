@@ -1,9 +1,12 @@
 # A first binding
 
-[Functions](../cpp/02_functions.md) wrote the LJ energy as a C++ function,
-`lj_energy(r, epsilon, sigma)`. This chapter makes that same function
-callable from Python, with four extra lines of C++, and follows one call
-across the bridge.
+Every program in the [C++ module](../cpp/index.md) ran on its own, started
+from the terminal through its `main`. The home page's script instead
+imports the engine into Python and calls it. This chapter builds the
+smallest such bridge: it takes the C++ function
+`lj_energy(r, epsilon, sigma)` from [Functions](../cpp/02_functions.md),
+makes it callable from Python with four extra lines of C++, and follows one
+call across.
 
 ## What Python can import
 
@@ -217,6 +220,8 @@ the C++ function is called.
 
 ## Next
 
-The engine's bridge does the same thing on a larger scale: whole classes
-instead of one function, and C++ objects that Python and C++ use at the same
-time.
+`ljmodule` makes one function callable. The engine's bridge does the same
+thing on a larger scale: whole classes instead of one function, and C++
+objects that Python and C++ use at the same time.
+[Binding the engine](02_binding_the_engine.md) reads it, and follows the
+home page's `sim.run()` across it.

@@ -224,6 +224,11 @@ the same source file.
 
 This is the last chapter of the C++ module. The language you have now
 (functions, vectors, classes, the plug, headers and linking) is the language
-the engine is written in. The next page,
-[Reading the engine](../engine/reading_the_engine.md), walks through the
-real classes in the order a simulation runs them.
+the engine is written in.
+
+Every program in this module was linked into an executable with its own
+`main`, started from the terminal. The home page starts the engine
+differently: a Python script imports it and calls it. The
+[pybind11 module](../pybind11/index.md) builds that bridge, first for the
+`lj_energy` function of [Functions](02_functions.md), then for the engine's
+classes.

@@ -71,19 +71,26 @@ spacing, so that the start is not perfectly symmetric.
 `potentials/lj_bulk.yaml`, LJ with ε = σ = 1 and a cutoff of 2.5.
 
 **The geometry file** lists atoms one by one, for runs that do not use
-`lj_particle_box`. `data/simulation_config.yaml` names one with
-`geometry_file: "geometry/water.yaml"`, which starts:
+`lj_particle_box`. `data/lj_pair_simulation.yaml` leaves out `system_mode`
+and names one with `geometry_file: "geometry/lj_pair.yaml"`:
 
 ```yaml
 molecule:
-  name: "Water"
+  name: "LJ pair"
   atoms:
-    - { type: "O", position: [0.0, 0.0, 0.0] }
-    - { type: "H", position: [0.0, 0.76, 0.58] }
-    - { type: "H", position: [0.0, -0.76, 0.58] }
+    - { type: "LJ", position: [0.0, 0.0, 0.0] }
+    - { type: "LJ", position: [1.5, 0.0, 0.0] }
+
+box:
+  type: "cubic"
+  dimensions: [10.0, 10.0, 10.0]
 ```
 
-This course uses `lj_particle_box` throughout.
+Two atoms of type `LJ`, the type that `potentials/lj_bulk.yaml` gives
+ε = σ = 1, 1.5σ apart in a box 10σ wide. Their energy is
+$U(1.5) = -0.320$, the value at r = 1.5 on the interactive plot in
+[The energy function](architecture.md#the-energy-function). Every other run
+on these pages uses `lj_particle_box`.
 
 ## Starting a run
 
@@ -296,3 +303,12 @@ Until then the run is still forgetting its starting grid: the potential
 energy is still drifting ({numref}`run-energy-figure`). Averages over that
 part would describe the grid, not the liquid.
 :::
+
+## Next
+
+Everything on this page went through one call, `sim.run()`, and everything
+that call did happened inside the engine, in C++. To see how the loop of
+the architecture page works inside the engine, the next step is the
+[C++ module](../cpp/index.md), because the engine is C++ code. It starts from a ten-line program that computes one LJ energy, the
+formula on the architecture page, and adds a few lines per chapter until it
+reaches the classes the engine is built from.

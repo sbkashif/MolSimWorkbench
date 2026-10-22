@@ -7,10 +7,10 @@ C++ objects. This chapter reads the engine's real bridge,
 `src/bindings/molsim_bindings.cpp`, and follows the home page's `sim.run()`
 from Python down into C++.
 
-It uses **classes**: a class bundles data with the functions that work on
-it, and an **object** is one value of a class, as `geometry` is one value of
-the class `Geometry`. The [C++ module](../cpp/index.md) covers how to write
-them; here it is enough to use them.
+It uses the classes of the [C++ module](../cpp/index.md): an object such as
+`geometry` is one value of the class `Geometry`
+([Classes](../cpp/04_classes.md)), and the potentials are plugs in the
+`Potential` socket ([The plug](../cpp/05_the_plug.md)).
 
 ## The layers
 
@@ -102,9 +102,9 @@ next section.
 ## Who owns the potential
 
 `ForceCalculator` keeps its energy functions in a list of
-`std::shared_ptr<Potential>`. A `std::shared_ptr` is a C++ pointer that
-counts its owners: the object it points to is deleted only when the last
-`shared_ptr` to it is gone. The binding declares the same kind of owner for
+`std::shared_ptr<Potential>`. Recall from [The plug](../cpp/05_the_plug.md)
+that a `std::shared_ptr` counts its owners: the object it points to is
+deleted only when the last `shared_ptr` to it is gone. The binding declares the same kind of owner for
 the potentials:
 
 ```{literalinclude} ../../src/bindings/molsim_bindings.cpp
@@ -266,3 +266,10 @@ to `build/`.
 Three: `initialize`, `runSimulation` and `getCurrentEnergy`. All 4000 steps
 run inside the one `runSimulation` call, in C++.
 :::
+
+## Next
+
+Python's part ends at one call, `runSimulation`, and every step of the run
+happens inside it, in C++. [Reading the engine](../engine/reading_the_engine.md)
+opens that call: the objects `from_yaml` built, one class at a time, in the
+order a run uses them.

@@ -1,9 +1,11 @@
 # A first program
 
-This chapter writes, compiles and runs one small C++ program: it computes
-the Lennard-Jones energy of two atoms 1.5σ apart. On the way it introduces
-the three things every C++ program has: a source file, a compiler, and a
-`main` function.
+[Running a simulation](../molsim/running.md) drove the engine from Python,
+but every number it printed was computed by C++ code behind `sim.run()`.
+This chapter writes the first piece of such code: one small C++ program
+that computes the Lennard-Jones energy of two atoms 1.5σ apart. On the way
+it introduces the three things every C++ program has: a source file, a
+compiler, and a `main` function.
 
 ## From a text file to a running program
 

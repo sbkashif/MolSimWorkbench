@@ -1,10 +1,13 @@
 # Reading the engine
 
-[A minimal molecular simulation algorithm](../molsim/architecture.md) described
-the loop of a simulation in four parts; the [C++ module](../cpp/index.md)
-taught the language. This page puts the two together: it walks the real
-engine in the order a run uses it, one class at a time, and names the C++
-idea each excerpt relies on, with a link to the chapter that teaches it.
+[Binding the engine](../pybind11/02_binding_the_engine.md) followed
+`sim.run()` as far as the bridge: Python builds the engine's objects, then
+makes one call, `runSimulation`, and the whole run happens in C++. This page
+continues on the C++ side. It walks the real engine in the order a run uses
+it, one class at a time, matching each class to its part of the loop in
+[A minimal molecular simulation algorithm](../molsim/architecture.md), and
+names the C++ idea each excerpt relies on, with a link to the chapter that
+explains it.
 
 The excerpts are copied from the source files when this site is built, so
 they always match the code.
@@ -28,22 +31,17 @@ socket (dashed).
 
 ## Putting a run together
 
-The Python method `System.from_yaml` builds a whole run in a few lines,
-which makes it the clearest map of how the pieces connect:
-
-```{literalinclude} ../../molsimworkbench.py
-:language: python
-:pyobject: System.from_yaml
-```
-
-Read it from the top: the parser reads the simulation file; in
+The Python method `System.from_yaml`, read in
+[Binding the engine](../pybind11/02_binding_the_engine.md#following-simrun),
+is the clearest map of how the pieces connect. In order: the parser reads
+the simulation file; in
 `lj_particle_box` mode `LJParticleBoxBuilder.createCubicLattice` builds the
 `Geometry`; each potential file becomes a `Potential`, added to a
 `ForceCalculator`; and a `MolecularDynamics` object receives the geometry,
 the force calculator, the parameters and the trajectory file. The command
 line program `run_simulation` does the same steps in C++, in the `main`
-function of `src/tools/run_simulation.cpp`. How these C++ classes became
-callable from Python is the subject of the pybind11 module.
+function of `src/tools/run_simulation.cpp`. The sections below take these
+objects one at a time, starting with the atoms.
 
 ## The system: Geometry
 
@@ -162,7 +160,7 @@ pointer that several objects can share, and that deletes the object when
 the last one lets go; here it lets the list hold LJ and DFT potentials side
 by side, each reached through the `Potential` socket
 ([The plug](../cpp/05_the_plug.md)). With one potential in the list, as in
-every run of this course, the sum has one term.
+every run on these pages, the sum has one term.
 
 ## The loop: MolecularDynamics
 
@@ -204,6 +202,22 @@ recomputed at the new positions; the second loop adds the other half. In
 between, `applyPeriodicBoundaryConditions` moves any atom that left the box
 back in, by one box length, so positions stay between 0 and $L$.
 
+{numref}`engine-loop-figure` draws one pass of `runSimulation` this way.
+Compared with the loop of the architecture page ({numref}`md-loop-figure`),
+the Integrator box has opened up: it is one function,
+`integrateVelocityVerlet`, whose two loops sit on either side of the force
+step, because the velocities can only be finished with the forces at the
+new positions.
+
+```{figure} ../figures/engine_loop.svg
+:name: engine-loop-figure
+:width: 100%
+
+One pass of `runSimulation`, one time step. Each box names the engine
+function that does that part; both halves of the velocity update happen
+inside `integrateVelocityVerlet`, with `calculateForces` called between them.
+```
+
 **The thermostat** rescales every velocity by one factor, so that the
 temperature is exactly the target:
 
@@ -241,7 +255,7 @@ the `LJPotential` and the `shared_ptr` that will hold it in the list.
 ## What the engine leaves out
 
 The engine is small on purpose. These limits are known and stay as they are
-in this course:
+on these pages:
 
 - **Every pair is checked** on every step, so the work grows as $N^2$; there
   is no neighbour list yet that would skip far pairs cheaply.
@@ -270,14 +284,21 @@ for every pair; the energy and force formulas also need only $r^2$.
 :::
 
 :::{dropdown} 3. How many times does one step visit each pair of atoms?
-Four times, with the default serial loop. The force call in
-`integrateVelocityVerlet` runs the pair loop,
-which visits pair $(i, j)$ once from atom $i$ and once from atom $j$. Then
-`runSimulation` asks for the potential energy, and `LJPotential` answers by
-running the same full loop again and keeping only the energy.
+Twice, with the default serial loop. The force call in
+`integrateVelocityVerlet` runs the pair loop once, and that loop visits pair
+$(i, j)$ once from atom $i$ and once from atom $j$. The potential energy that
+`runSimulation` reports comes out of the same pass, through
+`calculateForcesAndEnergy`, so it costs no second loop.
 :::
 
 :::{dropdown} 4. A run's YAML says tail_correction: true. Is the tail correction applied?
 No. The parser does not read that key, so the run uses the default, no tail
 correction.
 :::
+
+## Next
+
+The pair loop visits every pair of atoms, so its cost grows as $N^2$, and so
+far it runs on one core. The
+[parallel programming module](../parallel/index.md) first measures how much
+of a step that loop takes, then splits it across the cores of the processor.
