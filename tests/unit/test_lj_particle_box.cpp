@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cmath>
 #include <memory>
 #include <filesystem>
 #include "../../src/builder/geometry.h"
