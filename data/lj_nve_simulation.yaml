@@ -1,0 +1,39 @@
+# Lennard-Jones box with two phases: the temperature is held during equilibration,
+# then production runs without a thermostat (NVE) and reports its energy drift.
+
+simulation:
+  type: "dynamics"  # Options: "dynamics" or "minimization"
+  system_mode: "lj_particle_box"  # Use LJ particle box initialization
+  timestep: 0.001  # in picoseconds (reduced units)
+  temperature: 1.0  # Initial temperature in reduced units (epsilon/kB)
+  equilibration_steps: 1000  # Equilibration phase (temperature held by rescaling)
+  production_steps: 5000  # Production phase (NVE, no thermostat)
+  energy_drift_tolerance: 0.01  # Relative energy drift threshold for NVE
+  random_seed: 42  # Seed for reproducible initialization
+
+  # LJ particle box specific parameters
+  lj_box:
+    num_particles: 125  # Number of particles
+    density: 0.8  # Density in reduced units (particles / volume)
+    temperature: 1.0  # Initial temperature matches above
+    initialization: "cubic_lattice"  # Initialization method
+    random_seed: 42  # Can also be specified here
+
+  # Minimization is typically skipped for LJ bulk (NVE)
+  minimization:
+    algorithm: "steepest_descent"
+    max_iterations: 100
+    energy_tolerance: 1e-6
+    force_tolerance: 1e-4
+
+  # Output settings
+  output:
+    frequency: 50  # Output every N steps
+    trajectory: true
+    energy: true
+
+# References to potential configuration
+potential_config_files:
+  - "potentials/lj_bulk.yaml"
+
+# Note: geometry_file is NOT required for lj_particle_box mode

@@ -186,8 +186,7 @@ under `lj_box` fixes the small nudges off the grid. With `random_seed: 0` under
 :::{admonition} How long a run is
 :class: note
 This file runs 1000 steps of 0.001, one unit of time. That is the engine's
-default length, because the file sets no `total_steps`. The file's
-`equilibration_steps` and `production_steps` are not used yet. To run longer,
+default length, because the file sets no `total_steps`. To run longer,
 add `total_steps` under `simulation`, as the 512-atom run below does
 (`total_steps: 4000`, with `num_particles: 512`).
 :::

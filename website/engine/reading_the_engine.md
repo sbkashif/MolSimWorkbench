@@ -267,8 +267,11 @@ on these pages:
 - **The thermostat is the simplest kind:** an exact rescaling after every
   step, which holds the temperature fixed but does not let it fluctuate as
   it would in a real system at that temperature.
-- **The run length** is `total_steps`; `equilibration_steps` and
-  `production_steps` in the files are read but not used yet.
+- **The run length** is `total_steps`, unless the file sets
+  `equilibration_steps` or `production_steps`. Those two then replace it:
+  the temperature is held during equilibration, and production runs with no
+  thermostat (NVE) and prints its energy drift. `data/lj_nve_simulation.yaml`
+  is such a file.
 
 ## Check yourself
 

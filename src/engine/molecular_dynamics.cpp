@@ -1,6 +1,7 @@
 #include "molecular_dynamics.h"
 #include "force_calculator.h"
 #include "../utils/trajectory_writer.h"
+#include <algorithm>
 #include <vector>
 #include <iostream>
 #include <cmath>
@@ -255,14 +256,30 @@ void MolecularDynamics::runSimulation() {
     }
     
     // Main simulation loop
-    int totalSteps = static_cast<int>(params.totalTime / params.timeStep);
+    // With phase control, equilibration holds the temperature and production
+    // runs without a thermostat (NVE). Without it, totalTime sets the length and
+    // the temperature is held for the whole run.
+    const bool usePhases = params.equilibrationSteps > 0 || params.productionSteps > 0;
+    const int equilibrationSteps = static_cast<int>(params.equilibrationSteps);
+    int totalSteps = usePhases
+        ? equilibrationSteps + static_cast<int>(params.productionSteps)
+        : static_cast<int>(params.totalTime / params.timeStep);
+    
+    // Energy drift in production, measured against its first step
+    bool hasReferenceEnergy = false;
+    double referenceEnergy = 0.0;
+    double maxEnergyDeviation = 0.0;
     
     for (currentStep = 0; currentStep < totalSteps; ++currentStep) {
+        const bool inProduction = usePhases && currentStep >= equilibrationSteps;
+        
         // Integrate equations of motion using velocity Verlet
         integrateVelocityVerlet();
         
-        // Apply temperature control
-        applyTemperatureControl();
+        // Apply temperature control, except in NVE production
+        if (!inProduction) {
+            applyTemperatureControl();
+        }
         
         // Potential energy at the new positions, computed alongside the forces
         // inside integrateVelocityVerlet (the thermostat only rescales velocities)
@@ -276,6 +293,15 @@ void MolecularDynamics::runSimulation() {
         
         // Total energy = potential + kinetic
         currentEnergy = potentialEnergy + kineticEnergy;
+        
+        if (inProduction) {
+            if (!hasReferenceEnergy) {
+                referenceEnergy = currentEnergy;
+                hasReferenceEnergy = true;
+            }
+            maxEnergyDeviation = std::max(maxEnergyDeviation,
+                                          std::abs(currentEnergy - referenceEnergy));
+        }
         
         // Output if needed
         if (currentStep % 10 == 0) {
@@ -299,6 +325,14 @@ void MolecularDynamics::runSimulation() {
                                   
             trajectoryWriter->writeFrameWithVelocities(geometry, velocities, time, comment);
         }
+    }
+    
+    if (hasReferenceEnergy && referenceEnergy != 0.0) {
+        const double relativeDrift = maxEnergyDeviation / std::abs(referenceEnergy);
+        std::cout << "Production energy drift: " << relativeDrift
+                  << " (tolerance " << params.energyDriftTolerance << "): "
+                  << (relativeDrift <= params.energyDriftTolerance ? "PASS" : "FAIL")
+                  << std::endl;
     }
     
     // Write final frame to trajectory
