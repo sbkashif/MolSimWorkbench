@@ -29,6 +29,18 @@ def _load_bindings():
 
 _molsim = _load_bindings()
 
+# In a web browser the engine cannot start a separate Python process to read
+# YAML, so it reads through the Python it is already running in.
+if sys.platform == "emscripten":
+    import json
+    import yaml
+
+    def _load_yaml(path):
+        with open(path) as file:
+            return json.dumps(yaml.safe_load(file))
+
+    _molsim.setYAMLLoader(_load_yaml)
+
 
 class System:
     """Configured simulation system ready to run."""
@@ -37,7 +49,7 @@ class System:
         self._dynamics = dynamics
 
     @classmethod
-    def from_yaml(cls, config_path, trajectory_output="water_trajectory.xyz"):
+    def from_yaml(cls, config_path, trajectory_output="water_trajectory.xyz", trajectory_every=1):
         parser = _molsim.YAMLParser()
         config = parser.parseSimulationConfig(str(config_path))
 
@@ -61,7 +73,7 @@ class System:
         dynamics.setGeometry(geometry)
         dynamics.setForceCalculator(force_calculator)
         dynamics.setSimulationParameters(config.simulationParams)
-        dynamics.setTrajectoryOutput(str(trajectory_output), _molsim.TrajectoryFormat.XYZ, 1)
+        dynamics.setTrajectoryOutput(str(trajectory_output), _molsim.TrajectoryFormat.XYZ, trajectory_every)
 
         return cls(dynamics)
 

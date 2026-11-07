@@ -2,7 +2,7 @@
 
 [Classes](04_classes.md) ended with one energy function, `LJPotential`,
 packaged as a class. The engine needs more than one kind:
-[A minimal molecular simulation algorithm](../molsim/architecture.md#the-energy-function-is-a-plug)
+[A simple molecular dynamics loop](../molsim/architecture.md#the-energy-function-is-a-plug)
 described the energy function as a plug, where the force step asks for an
 energy and forces, and any energy function that answers fits the same
 place. This chapter writes that in C++. A class `Potential` is the socket;

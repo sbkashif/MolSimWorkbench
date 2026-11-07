@@ -5,9 +5,12 @@ One function per figure; helpers come from molsim_figures.py.
 
 Data (in data/): run_energy.csv and run_msd.csv come from the 512-atom run
 shown on the home page (the cover recipe, cover/cover.yaml); the four
-eps*_sig*.xyz files are the last frames of the runs in eps_sigma_run.yaml.
+eps*_sig*.xyz files are the last frames of the runs in eps_sigma_run.yaml;
+run_collapse.csv comes from mean_energy in molsim/examples/sweep.py at 512 atoms
+and 6000 steps.
 """
 import csv
+import math
 import os
 
 import molsim_figures as mf
@@ -22,6 +25,124 @@ def read_csv(name):
     with open(os.path.join(DATA, name)) as f:
         rows = list(csv.reader(f))[1:]
     return [[float(v) for v in r] for r in rows]
+
+
+def fig_loop_tall():
+    """The loop of fig_md_loop, tall and narrow, for the home page's column.
+    Beside each step is a small picture of what it does."""
+    from matplotlib.patches import Circle, Rectangle
+    W, H = 480, 730
+    fig, ax = canvas(W, H)
+    cx, bw = 180, 256
+    ys = {"System": 85, "Force step": 270, "Integrator": 455, "Thermostat": 640}
+    lines = {
+        "System": ["positions and velocities", "of every atom, in a box"],
+        "Force step": ["force on every atom", "from the energy function"],
+        "Integrator": ["move every atom by", "one time step"],
+        "Thermostat": ["rescale velocities to", "the target temperature"],
+    }
+    for name, y in ys.items():
+        box(ax, cx, y, bw, 116, name, lines[name])
+    steps = [("System", "Force step", "positions"),
+             ("Force step", "Integrator", "forces"),
+             ("Integrator", "Thermostat", "new positions")]
+    for a, b, label in steps:
+        mf.arrow(ax, (cx, ys[a] + 60), (cx, ys[b] - 60), label=label,
+                 label_xy=(cx + 62, (ys[a] + ys[b]) / 2))
+    left = cx - bw / 2
+    ax.plot([left, 22, 22], [ys["Thermostat"], ys["Thermostat"], ys["System"]],
+            color=EDGE, lw=2)
+    mf.arrow(ax, (22, ys["System"]), (left - 2, ys["System"]))
+    ax.text(12, (ys["System"] + ys["Thermostat"]) / 2, "next step", rotation=90,
+            ha="center", va="center", fontsize=12, color=MUTED, style="italic")
+
+    px, pw = 394, 150
+
+    def atom(x, y, r=13, **style):
+        ax.add_patch(Circle((x, y), r, **{"fc": PLUG, "ec": "white", "lw": 1.2,
+                                          **style}))
+
+    # System: atoms in a box.
+    side, sy = 112, ys["System"]
+    ax.add_patch(Rectangle((px - side / 2, sy - side / 2), side, side, fc="white",
+                           ec=EDGE, lw=1.8))
+    for dx, dy in [(-34, -34), (-4, -38), (30, -30), (-38, -4), (-8, -8), (22, 0),
+                   (-30, 28), (2, 24), (34, 34)]:
+        atom(px + dx, sy + dy)
+
+    # Force step: the energy of two atoms against their distance. Faint curves
+    # behind the LJ one show that other energy functions fit the same place.
+    py = ys["Force step"]
+    ax.plot([cx + bw / 2, px - 66], [py, py], color=PLUG, lw=4)
+    x0, x1, y0, y1 = px - 62, px + 62, py - 52, py + 34
+    ax.plot([x0, x0, x1], [y0, y1 - 14, y1 - 14], color=EDGE, lw=1.8)
+    def curve(energy, start, **style):
+        rs = [start + 0.01 * i for i in range(int((2.5 - start) * 100))]
+        pts = [(r, energy(r)) for r in rs if energy(r) < 1.7]
+        ax.plot([x0 + (r - 0.9) / 1.7 * (x1 - x0) for r, _ in pts],
+                [y1 - 50 - u * 26 for _, u in pts], color=PLUG, **style)
+
+    def morse(depth, width, rest):
+        return lambda r: depth * ((1 - math.exp(-width * (r - rest))) ** 2 - 1)
+
+    faint = {"lw": 1.6, "ls": (0, (3, 2)), "alpha": 0.55}
+    curve(morse(0.55, 2.6, 1.4), 0.95, **faint)
+    curve(morse(1.25, 4.5, 1.2), 0.95, **faint)
+    curve(lambda r: 4 * (r ** -12 - r ** -6), 0.97, lw=3, solid_capstyle="round")
+    ax.text(px, py + 46, "energy function", ha="center", va="center", fontsize=12,
+            color=PLUG, weight="bold")
+    ax.text(px, py + 66, "LJ here, or your own", ha="center", va="center",
+            fontsize=10.5, color=MUTED, style="italic")
+
+    # Integrator: an atom one time step later.
+    iy = ys["Integrator"]
+    atom(px - 50, iy + 22, r=17, fc="white", ec=PLUG, lw=1.8, ls="--")
+    atom(px + 48, iy - 22, r=17)
+    mf.arrow(ax, (px - 30, iy + 13), (px + 28, iy - 13))
+    ax.text(px - 50, iy + 56, "t", ha="center", va="center", fontsize=12,
+            color=MUTED, style="italic")
+    ax.text(px + 48, iy + 12, "t + Δt", ha="center", va="center", fontsize=12,
+            color=MUTED, style="italic")
+
+    # Thermostat: a thermometer, held at the target.
+    ty, hot = ys["Thermostat"], "#d9822b"
+    ax.add_patch(FancyBboxPatch((px - 11, ty - 58), 22, 92,
+                                boxstyle="round,pad=0,rounding_size=11",
+                                fc="white", ec=EDGE, lw=1.8))
+    ax.add_patch(Circle((px, ty + 40), 19, fc=hot, ec=EDGE, lw=1.8))
+    ax.add_patch(Rectangle((px - 5, ty - 20), 10, 50, fc=hot, ec="none"))
+    ax.plot([px + 15, px + 32], [ty - 20, ty - 20], color=INK, lw=2)
+    ax.text(px + 38, ty - 20, "target", ha="left", va="center", fontsize=11.5,
+            color=MUTED, style="italic")
+    save(fig, "loop_tall.svg")
+
+
+def fig_run_collapse():
+    """Two pairs of sweeps, each pair falling on one curve."""
+    rows = {}
+    with open(os.path.join(DATA, "run_collapse.csv")) as f:
+        for r in list(csv.DictReader(f)):
+            rows.setdefault(r["setting"], []).append((float(r["x"]), float(r["y"])))
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.5), sharey=True)
+    panels = [("T", "changing T", "eps", "changing ε", r"$k_B T / \varepsilon$"),
+              ("rho", "changing density", "sig", "changing σ", r"$\rho \sigma^3$")]
+    for ax, (a, la, b, lb, xlabel) in zip(axes, panels):
+        x, y = zip(*sorted(rows[a]))
+        ax.plot(x, y, "o-", ms=7, lw=2, color=CPP, label=la)
+        x, y = zip(*sorted(rows[b]))
+        ax.plot(x, y, "s", ms=13, mew=2, mfc="none", color="#c2571a", label=lb)
+        ax.set_xlabel(xlabel, color=INK)
+        ax.legend(frameon=False, labelcolor=INK)
+        ax.grid(color="#e6e8eb", lw=0.8)
+        ax.set_axisbelow(True)
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+        ax.spines["left"].set_color(EDGE)
+        ax.spines["bottom"].set_color(EDGE)
+        ax.tick_params(colors=MUTED)
+    axes[0].set_ylabel("potential energy per atom / ε", color=INK)
+    fig.tight_layout()
+    save(fig, "run_collapse.svg")
 
 
 def fig_run_layers():
@@ -131,4 +252,6 @@ if __name__ == "__main__":
     fig_run_energy()
     fig_run_msd()
     fig_run_sigma_epsilon()
+    fig_run_collapse()
+    fig_loop_tall()
     fig_engine_classes()

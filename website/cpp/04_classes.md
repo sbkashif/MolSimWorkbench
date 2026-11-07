@@ -337,7 +337,7 @@ roles:
 
 The engine's `LJPotential` also starts with `class LJPotential : public
 Potential`. That `: public Potential` is the plug from
-[A minimal molecular simulation algorithm](../molsim/architecture.md#the-energy-function-is-a-plug),
+[A simple molecular dynamics loop](../molsim/architecture.md#the-energy-function-is-a-plug),
 and the subject of the next chapter.
 
 ## Check yourself

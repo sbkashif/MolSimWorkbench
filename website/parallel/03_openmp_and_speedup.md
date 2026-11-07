@@ -353,4 +353,4 @@ threads, but on a graphics card the force loop runs one thread per atom,
 and 4096 copies of
 4096 forces would take about 400 MB. With that many threads, the gather loop,
 where every force has one writer and nothing is copied, is the right shape
-again. The [GPU module](../gpu/index.md) runs it there.
+again. The [GPU module](../gpu/index.md), still in progress, will run it there.

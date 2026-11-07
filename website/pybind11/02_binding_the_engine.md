@@ -197,11 +197,11 @@ lattice builder, the `ForceCalculator` and its potentials, and the
 ```
 
 `runSimulation` is a single call from Python, and the whole loop of
-[A minimal molecular simulation algorithm](../molsim/architecture.md) runs inside
+[A simple molecular dynamics loop](../molsim/architecture.md) runs inside
 it, in C++: 4000 steps of forces, Velocity-Verlet and thermostat, with no
 Python in between. This is why the Python layer costs almost nothing here:
 it crosses the bridge a handful of times to set things up, then once to run.
-The cover's "Behind sim.run()" call stack is this path.
+The home page's "Behind sim.run()" call stack is this path.
 
 The home-page script, run in a folder holding its configuration files:
 

@@ -76,9 +76,55 @@
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
 }
 .concept-stack .sd-badge:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+/* The same badge inside a sentence, outside the call stack. */
+.concept-link .sd-badge {
+  font-size: 0.8em; font-weight: 600; color: #fff !important;
+  padding: 0.35em 0.8em; border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  text-decoration: none !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+}
+.concept-link .sd-badge::after { content: " \2192"; }
+.concept-link .sd-bg-info    { background-color: #1a9e9a !important; }
+.concept-link .sd-bg-primary { background-color: #2f6db5 !important; }
+.concept-link .sd-badge:hover {
+  filter: brightness(1.1); transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+}
 @media (max-width: 640px) {            /* phones: badge under the text */
   .concept-stack li { padding-right: 0; }
   .concept-stack li > ul { margin-right: 0; }
   .concept-stack .sd-badge { position: static; display: inline-block; margin-top: 0.2em; }
   .concept-stack::before { display: none; }
 }
+
+/* Home page: the loop as physics beside the call stack as code. */
+.home-half > p:first-child { text-align: center; margin-bottom: 0.5em; }
+.home-half .concept-stack { padding-top: 0; }
+.home-half .concept-stack::before { display: none; }
+.home-half .concept-stack li { padding-right: 0; }
+.home-half .concept-stack li > ul { margin-right: 0; padding-left: 0.9em; }
+.home-half .concept-stack .sd-badge {
+  position: static; display: inline-block; margin-top: 0.2em; font-size: 0.72em;
+}
+.home-half .concept-stack li p code { font-size: 0.85em; word-break: break-word; }
+/* The rows that repeat on every time step. */
+.home-half .concept-stack > ul > li > ul {
+  position: relative;
+  margin-top: 1.1em;
+  padding: 1.7em 0.7em 0.5em;
+  background: rgba(26, 158, 154, 0.08);
+  border: 1.5px solid #1a9e9a;
+  border-radius: 8px;
+}
+.home-half .concept-stack > ul > li > ul::before {
+  content: "The loop: every time step";
+  position: absolute;
+  top: 0.4em;
+  left: 0.7em;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: #148481;
+}
+.home-half .concept-stack > ul > li > ul > li::before { display: none; }
+html[data-theme="dark"] .home-half .concept-stack > ul > li > ul::before { color: #3fc9c4; }

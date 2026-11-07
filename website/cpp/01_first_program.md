@@ -1,6 +1,6 @@
 # A first program
 
-[Running the minimal simulation algorithm](../molsim/running.md) drove the engine from Python,
+[A simple molecular dynamics loop](../molsim/architecture.md) drove the engine from Python,
 but every number it printed was computed by C++ code behind `sim.run()`.
 This chapter writes the first piece of such code: one small C++ program
 that computes the Lennard-Jones energy of two atoms 1.5σ apart. On the way

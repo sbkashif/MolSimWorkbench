@@ -10,7 +10,7 @@ the next chapters build on: cores and threads.
 ## Timing one step
 
 The program `step_split.cpp` builds a box of LJ atoms with the engine's own
-builder, at density 0.8 as on the home page, and times four things for each
+builder, at density 0.8, a liquid, and times four things for each
 size:
 
 - **A whole step:** the engine's own loop, `MolecularDynamics::runSimulation`,

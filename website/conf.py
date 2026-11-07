@@ -45,8 +45,8 @@ html_theme_options = {
 # ```{lj-explorer}``` and the script in _static/ draws into the placeholder,
 # so the Markdown sources hold no HTML.
 html_static_path = ["_static"]
-html_js_files = ["lj_explorer.js", "sidebar_toggle_fix.js"]
-html_css_files = ["lj_explorer.css", "detour.css"]
+html_js_files = ["lj_explorer.js", "engine_run.js", "sidebar_toggle_fix.js"]
+html_css_files = ["lj_explorer.css", "engine_run.css", "detour.css"]
 
 from docutils import nodes as _nodes
 from docutils.parsers.rst import Directive as _Directive
@@ -59,5 +59,58 @@ class LJExplorer(_Directive):
         return [_nodes.raw("", '<div class="lj-explorer"></div>', format="html")]
 
 
+class EngineRun(_Directive):
+    """Placeholder for the in-browser engine run (_static/engine_run.js)."""
+
+    def run(self):
+        return [_nodes.raw("", '<div class="engine-run"></div>', format="html")]
+
+
+class EnginePlay(_Directive):
+    """Placeholder for the home page's sliders (_static/engine_run.js)."""
+
+    def run(self):
+        return [_nodes.raw("", '<div class="engine-play"></div>', format="html")]
+
+
+class EngineStates(_Directive):
+    """Placeholder for the argon state buttons (_static/engine_run.js)."""
+
+    def run(self):
+        return [_nodes.raw("", '<div class="engine-play engine-states"></div>', format="html")]
+
+
+class EnginePython(_Directive):
+    """Placeholder for editable Python that runs in the browser (engine_run.js)."""
+
+    def run(self):
+        return [_nodes.raw("", '<div class="engine-run engine-python"></div>', format="html")]
+
+
+def copy_engine_inputs(app, exception):
+    """Give the in-browser run the repository's own files, never a stale copy.
+
+    The compiled engine, _static/engine/_molsim.wasm, comes from
+    scripts/wasm/build_pyodide.sh.
+    """
+    if exception is not None or app.builder.format != "html":
+        return
+    import shutil
+    from pathlib import Path
+
+    root = Path(app.srcdir).parent
+    target = Path(app.outdir) / "_static" / "engine"
+    target.mkdir(parents=True, exist_ok=True)
+    for name in ("data/lj_bulk_simulation.yaml", "data/potentials/lj_bulk.yaml",
+                 "data/lj_play_simulation.yaml",
+                 "molsimworkbench.py", "website/molsim/examples/sweep.py"):
+        shutil.copy(root / name, target)
+
+
 def setup(app):
     app.add_directive("lj-explorer", LJExplorer)
+    app.add_directive("engine-run", EngineRun)
+    app.add_directive("engine-python", EnginePython)
+    app.add_directive("engine-play", EnginePlay)
+    app.add_directive("engine-states", EngineStates)
+    app.connect("build-finished", copy_engine_inputs)

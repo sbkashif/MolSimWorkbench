@@ -5,7 +5,7 @@
 makes one call, `runSimulation`, and the whole run happens in C++. This page
 continues on the C++ side. It walks the real engine in the order a run uses
 it, one class at a time, matching each class to its part of the loop in
-[A minimal molecular simulation algorithm](../molsim/architecture.md), and
+[A simple molecular dynamics loop](../molsim/architecture.md), and
 names the C++ idea each excerpt relies on, with a link to the chapter that
 explains it.
 

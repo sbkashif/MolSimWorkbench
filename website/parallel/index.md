@@ -24,8 +24,8 @@ The module reads the engine's own force code, so it builds on
 [the pair loop](../engine/reading_the_engine.md#the-pair-loop), and on the
 C++ module's chapters on [memory](../cpp/01_first_program.md),
 [functions](../cpp/02_functions.md) and [classes](../cpp/04_classes.md).
-The [GPU module](../gpu/index.md) that follows runs the same loop on a
-graphics card instead of the processor's cores.
+The [GPU module](../gpu/index.md) that follows, still in progress, will run
+the same loop on a graphics card instead of the processor's cores.
 
 ## Next
 

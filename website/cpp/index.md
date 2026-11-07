@@ -1,6 +1,6 @@
 # About the C++ module
 
-[Running the minimal simulation algorithm](../molsim/running.md) did everything from Python, yet
+[A simple molecular dynamics loop](../molsim/architecture.md) did everything from Python, yet
 the work inside `sim.run()` is done by an engine written in C++.
 
 ::::{admonition} Detour: why the engine is not Python
@@ -9,7 +9,7 @@ the work inside `sim.run()` is done by an engine written in C++.
 I built this project to learn C++, because plain Python was getting
 abysmally slow for the applications I was building. A molecular simulation
 shows why in one loop: every step of a run visits every pair of atoms, and
-this is how slow that gets in Python. The same pass over all pairs of the home page's 512
+this is how slow that gets in Python. The same pass over all pairs of 512
 atoms, written once in plain Python and once in C++
 (`examples/why_cpp/pairs.py` and `pairs.cpp`), gives the same energy and very
 different times:
@@ -25,7 +25,7 @@ The C++ pass is about 30 times faster (Python 3.13, and g++ 8.5 with `-O3`,
 which asks the compiler to
 [optimise for speed](https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html),
 both on one [core](../parallel/01_measure_first.md#cores-and-threads) of an
-AMD EPYC 7763). The home page's run makes 4000 passes: about four minutes of
+AMD EPYC 7763). A run of 4000 steps makes 4000 passes: about four minutes of
 this loop in Python, about seven seconds in C++. A C++
 [compiler](01_first_program.md#from-a-text-file-to-a-running-program) turns
 the loop into the
@@ -46,7 +46,7 @@ it. This module covers enough of the language to read the engine, one
 chapter at a time, with one running example: a small program that computes
 the Lennard-Jones energy of two atoms. Each chapter adds a few lines to it.
 Chapter 5 arrives at the shape of the real engine's energy-function plug
-from [A minimal molecular simulation algorithm](../molsim/architecture.md),
+from [A simple molecular dynamics loop](../molsim/architecture.md),
 and chapter 6 splits the program into files, the way the engine is
 organised.
 
