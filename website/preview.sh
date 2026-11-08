@@ -38,4 +38,13 @@ trap 'kill "${watcher}" 2>/dev/null' EXIT
 
 echo "Serving ${url}  (Ctrl-C to stop)"
 [ -n "${NO_OPEN:-}" ] || (sleep 1 && open "${url}") &
-python3 -m http.server "${port}" --bind 127.0.0.1 --directory _build/html
+# Serve with "no-store" so the browser never shows an old figure after a rebuild
+python3 - "${port}" <<'PY'
+import functools, http.server, sys
+class NoCache(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+handler = functools.partial(NoCache, directory="_build/html")
+http.server.ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), handler).serve_forever()
+PY

@@ -243,70 +243,253 @@ def fig_nn_basics():
                                 ec=PLUG if k else INK, lw=1.8, zorder=3))
             ax.text(x, y, nm, ha="center", va="center", fontsize=12.5,
                     color=INK, zorder=4)
-    for x, top in [(170, "list in"), (380, "after step 1"),
-                   (590, "after step 2")]:
+    for x, top in [(170, "in"), (380, "after the first step"),
+                   (590, "after the second step")]:
         ax.text(x, 22, top, ha="center", fontsize=13, color=INK)
-    for x, sub in [(170, "$n = 3$"), (380, "$m = 4$"), (590, "1 number")]:
+    for x, sub in [(170, "3 numbers, $x$"), (380, "$m = 4$ numbers, $y$"),
+                   (590, "1 number, out")]:
         ax.text(x, 44, sub, ha="center", fontsize=12.5, color=MUTED)
-    for x, line1, line2 in [(275, "step 1", "4 × 3 = 12 weights"),
-                            (485, "step 2", "1 × 4 = 4 weights")]:
+    for x, line1, line2 in [(275, "weights $W$", "4 × 3 = 12"),
+                            (485, "weights $V$", "1 × 4 = 4")]:
         ax.text(x, 355, line1, ha="center", fontsize=12.5, color=INK)
         ax.text(x, 377, line2, ha="center", fontsize=12.5, color=MUTED)
     save(fig, "agent_nn_basics.svg")
 
 
-def fig_line_vs_bends():
-    """Made-up points fitted three ways: no phi (tilt and shift only), one phi
-    (one bend), seven phi (seven bends, marked)."""
-    x = np.linspace(-1.5, 1.5, 25)
-    y = x**4 - 1.6 * x**2 + 0.25 * x
-    grid = np.linspace(-1.5, 1.5, 300)
-    knots = np.linspace(-1.2, 1.2, 7)
+def fig_phi():
+    """How phi turns a straight line into one bend: the line W x + b, the same
+    line through phi, and what changing b and W does to the bend."""
+    def phi(u):  # SiLU, the smooth phi MACE uses
+        return u / (1 + np.exp(-u))
 
-    def hinge(t, k):  # a smooth phi: flat for t < k, rising for t > k
-        return (t - k) / (1 + np.exp(-6 * (t - k)))
+    x = np.linspace(-2, 2, 400)
+    W, b = 2.0, 0.0
+    x0 = -b / W
+    line = W * x + b
+    fig, axes = plt.subplots(1, 3, figsize=(10.2, 3.1), dpi=100, sharey=True)
 
-    def basis(t, ks):
-        return np.column_stack([np.ones_like(t), t] + [hinge(t, k) for k in ks])
+    ax = axes[0]
+    ax.plot(x, line, color=EDGE, lw=2.2)
+    ax.set_title(r"(a) before $\phi$: $Wx + b$", fontsize=12, color=INK)
 
-    def fit(ks):
-        coef = np.linalg.lstsq(basis(x, ks), y, rcond=None)[0]
-        return basis(grid, ks) @ coef, coef
+    ax = axes[1]
+    ax.plot(x, line, color=EDGE, lw=1.4, ls="--", label="before $\\phi$")
+    ax.plot(x, phi(line), color=PLUG, lw=2.4, label="after $\\phi$")
+    for xa in (-1.7, -1.3, -0.9):
+        ax.annotate("", (xa, phi(W * xa + b)), (xa, W * xa + b),
+                    arrowprops=dict(arrowstyle="->", color=PLUG, lw=1.1))
+    ax.set_title(r"(b) after $\phi$: one bend", fontsize=12, color=INK)
+    ax.legend(loc="upper left", fontsize=9.5, frameon=False, labelcolor=MUTED)
 
-    line, _ = fit([])
-    # one bend: the knot that fits best
-    one_k = min(np.linspace(-1.2, 1.2, 25),
-                key=lambda k: np.sum((basis(x, [k]) @ fit([k])[1] - y) ** 2))
-    one, _ = fit([one_k])
-    many, many_coef = fit(knots)
-
-    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.1), dpi=100, sharey=True)
-    titles = [r"(a) no $\phi$: tilt and shift", r"(b) one $\phi$: one bend",
-              r"(c) seven $\phi$: seven bends"]
-    # panel a: a few other weights, faint, to show what changing them does
-    for slope, shift in [(0.9, 0.0), (-0.6, 0.0), (0.25, 0.6), (0.25, -0.6)]:
-        axes[0].plot(grid, np.polyval(np.polyfit(x, y, 1), grid) + (slope - 0.25) * grid
-                     + shift, color=EDGE, lw=1.2, ls="--", zorder=1)
-    for ax, curve, title in zip(axes, [line, one, many], titles):
-        ax.plot(grid, curve, color=PLUG, lw=2, zorder=2)
-        ax.scatter(x, y, s=14, color=INK, zorder=3)
-        ax.set_title(title, fontsize=12, color=INK)
+    ax = axes[2]
+    ax.plot(x, phi(line), color=PLUG, lw=2.2, label="$W = 2,\\ b = 0$")
+    ax.plot(x, phi(W * x + b - 1.5), color=PLUG, lw=2, ls="--",
+            label="$b$ changed to $-1.5$")
+    ax.plot(x, phi(-W * x + b), color=PLUG, lw=2, ls=":",
+            label="$W$ flipped to $-2$")
+    ax.set_title(r"(c) changing $b$ and $W$", fontsize=12, color=INK)
+    ax.legend(loc="lower right", fontsize=9.5, frameon=False, labelcolor=MUTED)
+    for ax_, xs in [(axes[0], [x0]), (axes[1], [x0]),
+                    (axes[2], [x0, (1.5 - b) / W])]:
+        for xb in xs:
+            ax_.plot([xb], [0], marker="v", ms=8, color=LLM, zorder=4)
+    for ax in axes:
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.set_xlabel("input $x$", color=MUTED)
+        ax.axhline(0, color=EDGE, lw=0.8, zorder=0)
+        ax.set_xlabel("$x$", color=MUTED)
+        ax.set_ylim(-4.0, 4.6)
         for sp in ("top", "right"):
             ax.spines[sp].set_visible(False)
         for sp in ("left", "bottom"):
             ax.spines[sp].set_color(EDGE)
-    # mark where each phi puts its bend
-    for ax, ks, curve in [(axes[1], [one_k], one), (axes[2], knots, many)]:
+    fig.tight_layout()
+    save(fig, "agent_phi.svg")
+
+
+def fig_lj_family_vs_pes():
+    """LJ can only rescale and shift one curve; the trained MLIP gives a surface
+    of its own shape. Panels b and c are real outputs of the page-1 model, from
+    agent_pes_slice.py: a rigid slice, and a relaxed twist scan."""
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+    fig = plt.figure(figsize=(13.2, 3.9), dpi=100)
+    ax = fig.add_subplot(1, 3, 1)
+    r = np.linspace(0.85, 3.0, 400)
+
+    def lj(r, eps, sig):
+        return 4 * eps * ((sig / r) ** 12 - (sig / r) ** 6)
+
+    for eps, sig, ls, label in [(1, 1, "-", r"$\varepsilon = 1,\ \sigma = 1$"),
+                                (2, 1, "--", r"$\varepsilon = 2$: deeper"),
+                                (1, 1.3, ":", r"$\sigma = 1.3$: further out")]:
+        ax.plot(r, lj(r, eps, sig), color=PLUG, lw=2, ls=ls, label=label)
+    ax.axhline(0, color=EDGE, lw=0.8)
+    ax.set_ylim(-2.4, 1.5)
+    ax.set_xlabel("distance between two atoms, $r$", color=MUTED)
+    ax.set_ylabel("energy", color=MUTED)
+    ax.set_title("(a) LJ: one curve shape, rescaled", fontsize=12, color=INK)
+    ax.legend(loc="upper right", fontsize=9.5, frameon=False, labelcolor=MUTED)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    d = np.loadtxt(os.path.join(DATA, "agent_pes_slice.csv"), delimiter=",", skiprows=1)
+    L = np.unique(d[:, 0])
+    T = np.unique(d[:, 1])
+    E = d[:, 2].reshape(len(L), len(T))
+    TT, LL = np.meshgrid(T, L)
+    ax3 = fig.add_subplot(1, 3, 2, projection="3d")
+    ax3.plot_surface(TT, LL, E, cmap="GnBu_r", linewidth=0, antialiased=True)
+    ax3.set_xlabel("H–O–C–C twist (°)", color=MUTED, labelpad=4)
+    ax3.set_ylabel("C–O length (Å)", color=MUTED, labelpad=6)
+    ax3.set_zlabel("energy (eV)", color=MUTED, labelpad=4)
+    ax3.set_xticks([0, 120, 240, 360])
+    ax3.view_init(elev=28, azim=-60)
+    ax3.set_title("(b) model output, other atoms held", fontsize=12, color=INK)
+
+    rx = np.loadtxt(os.path.join(DATA, "agent_twist_relaxed.csv"), delimiter=",",
+                    skiprows=1)
+    tw = rx[:, 1] % 360
+    order = np.argsort(tw)
+    tw, en = np.append(tw[order], 360.0), np.append(rx[order, 3], rx[order, 3][0])
+    ax = fig.add_subplot(1, 3, 3)
+    ax.plot(tw, 1000 * en, color=PLUG, lw=2.2, marker="o", ms=3)
+    for t0, name in [(60, "gauche"), (180, "trans"), (300, "gauche")]:
+        e0 = 1000 * en[np.argmin(np.abs(tw - t0))]
+        ax.plot([t0], [e0], marker="v", ms=9, color=LLM, ls="none")
+        ax.text(t0, e0 - 5, name, ha="center", va="top", fontsize=10, color=LLM)
+    ax.set_xlim(0, 360)
+    ax.set_ylim(-14, 60)
+    ax.set_xticks([0, 60, 120, 180, 240, 300, 360])
+    ax.set_xlabel("H–O–C–C twist (°)", color=MUTED)
+    ax.set_ylabel("energy (meV)", color=MUTED)
+    ax.set_title("(c) model output, other atoms relaxed", fontsize=12, color=INK)
+    for a_ in fig.axes:
+        if a_ is ax3:
+            continue
+        for sp in ("top", "right"):
+            a_.spines[sp].set_visible(False)
+        for sp in ("left", "bottom"):
+            a_.spines[sp].set_color(EDGE)
+    fig.tight_layout()
+    fig.subplots_adjust(bottom=0.2)
+    fig.text(0.66, 0.02, "b and c: the model's energy along two directions chosen "
+             "to draw it, not parameters of the model", ha="center", va="bottom",
+             fontsize=9.5, color=MUTED, style="italic")
+    save(fig, "agent_lj_family_vs_pes.svg")
+
+
+def fig_train_wrong():
+    """How training can go wrong, from real training runs on made-up points
+    (agent_overfit.py): too simple, about right, too flexible, and the
+    training and validation error of the flexible one over the epochs."""
+    pts = np.loadtxt(os.path.join(DATA, "agent_overfit_points.csv"), delimiter=",",
+                     skiprows=1)
+    cv = np.loadtxt(os.path.join(DATA, "agent_overfit_curves.csv"), delimiter=",",
+                    skiprows=1)
+    h = np.loadtxt(os.path.join(DATA, "agent_overfit_history.csv"), delimiter=",",
+                   skiprows=1)
+    tr, va = pts[pts[:, 2] == 0], pts[pts[:, 2] == 1]
+    fig, axes = plt.subplots(1, 4, figsize=(13.0, 3.2), dpi=100)
+    titles = ["(a) too simple", "(b) about right", "(c) too flexible"]
+    for k, (ax, title) in enumerate(zip(axes[:3], titles)):
+        ax.plot(cv[:, 0], cv[:, k + 1], color=PLUG, lw=2, label="model")
+        ax.scatter(tr[:, 0], tr[:, 1], s=18, color=INK, zorder=3,
+                   label="training points")
+        ax.scatter(va[:, 0], va[:, 1], s=26, facecolors="white", edgecolors=LLM,
+                   linewidths=1.6, zorder=3, label="validation points")
+        ax.set_ylim(pts[:, 1].min() - 0.6, pts[:, 1].max() + 0.6)
+        ax.set_title(title, fontsize=12, color=INK)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlabel("in, $x$", color=MUTED)
+    axes[0].set_ylabel("out", color=MUTED)
+    axes[0].legend(loc="upper center", fontsize=8.5, frameon=False, labelcolor=MUTED)
+    ax = axes[3]
+    ax.plot(h[1:, 0], h[1:, 1], color=INK, lw=1.8, label="training points")
+    ax.plot(h[1:, 0], h[1:, 2], color=LLM, lw=1.8, label="validation points")
+    i = np.argmin(h[:, 2])
+    ax.axvline(h[i, 0], color=EDGE, lw=1, ls="--")
+    ax.text(h[i, 0] * 1.3, 0.25, "validation error\nturns up here",
+            fontsize=9, color=MUTED)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_ylim(1e-3, 0.6)
+    ax.text(400, 9e-3, "training", fontsize=9.5, color=INK, ha="center", va="top")
+    ax.text(4e3, 8e-2, "validation", fontsize=9.5, color=LLM, ha="center")
+    ax.set_xlabel("epoch", color=MUTED)
+    ax.set_ylabel("error", color=MUTED)
+    ax.set_title("(d) the error of (c) as it trains", fontsize=12, color=INK)
+    for a_ in axes:
+        for sp in ("top", "right"):
+            a_.spines[sp].set_visible(False)
+        for sp in ("left", "bottom"):
+            a_.spines[sp].set_color(EDGE)
+    fig.tight_layout()
+    save(fig, "agent_train_wrong.svg")
+
+
+def fig_line_vs_bends():
+    """Made-up points fitted by the 1 -> m -> 1 network of the basics:
+    no phi (a straight line), m = 1 (one bend), m = 4 (four bends).
+    Each y_k = phi(W_k x + b_k); out = sum_k V_k y_k + c."""
+    import itertools
+    x = np.linspace(-1.5, 1.5, 25)
+    y = x**4 - 1.6 * x**2 + 0.25 * x
+    grid = np.linspace(-1.5, 1.5, 300)
+
+    def phi(t):  # smooth: near zero for t < 0, near t for t > 0
+        return t / (1 + np.exp(-t))
+
+    def basis(t, units):  # units: (W, b) pairs
+        return np.column_stack([np.ones_like(t)] + [phi(w * t + b) for w, b in units])
+
+    def best(m):
+        # try bends at a grid of places, facing either way; keep the best fit
+        places = np.linspace(-1.3, 1.3, 14)
+        best_err, best_units = np.inf, None
+        for ks in itertools.combinations(places, m):
+            for signs in itertools.product((1, -1), repeat=m):
+                units = [(6 * s_, -6 * s_ * k) for s_, k in zip(signs, ks)]
+                A = basis(x, units)
+                coef = np.linalg.lstsq(A, y, rcond=None)[0]
+                err = np.sum((A @ coef - y) ** 2)
+                if err < best_err:
+                    best_err, best_units, best_coef = err, units, coef
+        return (basis(grid, best_units) @ best_coef, [-b / w for w, b in best_units],
+                [best_coef[i + 1] * phi(w * grid + b) for i, (w, b) in enumerate(best_units)])
+
+    line = np.polyval(np.polyfit(x, y, 1), grid)
+    one, one_k, _ = best(1)
+    four, four_k, _ = best(4)
+
+    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.1), dpi=100, sharey=True)
+    titles = [r"(a) no $\phi$: a straight line", r"(b) $m = 1$: one bend",
+              r"(c) $m = 4$: four bends"]
+    for i, (slope, shift) in enumerate([(0.9, 0.0), (-0.6, 0.0), (0.25, 0.6),
+                                        (0.25, -0.6)]):
+        axes[0].plot(grid, np.polyval(np.polyfit(x, y, 1), grid) + (slope - 0.25) * grid
+                     + shift, color=EDGE, lw=1.2, ls="--", zorder=1,
+                     label="other $V$, $W$, $b$" if i == 0 else None)
+    for ax, curve, title in zip(axes, [line, one, four], titles):
+        ax.plot(grid, curve, color=PLUG, lw=2, zorder=2, label="out")
+        ax.scatter(x, y, s=14, color=INK, zorder=3)
+        ax.set_title(title, fontsize=12, color=INK)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlabel("in, $x$", color=MUTED)
+        for sp in ("top", "right"):
+            ax.spines[sp].set_visible(False)
+        for sp in ("left", "bottom"):
+            ax.spines[sp].set_color(EDGE)
+    for ax, ks, curve in [(axes[1], one_k, one), (axes[2], four_k, four)]:
         for k in ks:
-            yk = np.interp(k, grid, curve)
-            ax.plot([k], [yk], marker="v", ms=8, color=LLM, zorder=4,
-                    transform=ax.transData)
-    axes[2].text(0.97, 0.03, "▼ where each $\\phi$ bends", ha="right",
-                 transform=axes[2].transAxes, fontsize=9.5, color=LLM)
-    axes[0].set_ylabel("output $y$", color=MUTED)
+            ax.plot([k], [np.interp(k, grid, curve)], marker="v", ms=8, ls="none",
+                    color=LLM, zorder=4, label="a bend" if k == ks[0] else None)
+    for ax in axes:
+        ax.set_ylim(y.min() - 0.3, y.max() + 1.1)
+        ax.legend(loc="upper center", fontsize=9, frameon=False, labelcolor=MUTED,
+                  ncol=1)
+    axes[0].set_ylabel("out", color=MUTED)
     fig.tight_layout()
     save(fig, "agent_line_vs_bends.svg")
 
@@ -583,7 +766,10 @@ def fig_pipeline():
 if __name__ == "__main__":
     fig_lj_vs_mlip()
     fig_nn_basics()
+    fig_phi()
+    fig_lj_family_vs_pes()
     fig_line_vs_bends()
+    fig_train_wrong()
     fig_ethanol_frame()
     fig_mace_steps()
     fig_mlip_atom()
