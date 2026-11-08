@@ -608,28 +608,47 @@ a check fails, someone has to decide what to change: more data, a larger model,
 longer training. Then the model is trained again, and checked again. Training
 an MLIP is a loop.
 
-### What the test run showed
+### One pass round the loop, by hand
 
-The loop has run once from end to end, by hand, on MD17 ethanol, with a small
-model: 500 frames (450 to train on and 50 to validate), 40 epochs, about 2
-minutes on a CPU. The MD check ran in OpenMM ([Eastman et al. 2024](https://doi.org/10.1021/acs.jpcb.3c06662)), for reasons given
-on the next page. The agent's run on the next page uses rMD17 instead, a corrected version
-of MD17 ([Christensen and von Lilienfeld 2020](https://doi.org/10.1088/2632-2153/abba6f)) that comes with official
-splits and a warning, in its [data release](https://doi.org/10.6084/m9.figshare.12672038), not to train on more than
-1000 frames, because frames from one simulation are correlated.
+Everything on this page came from one pass round that loop, made by hand. Each
+step, and what came out of it:
 
-| Check | Result |
-| --- | --- |
-| Force error, test frames | 48.2 meV/Å (5.7% of the average DFT force component) |
-| Force error, training frames | 46.5 meV/Å |
-| Energy error, test frames | 37.9 meV/atom |
-| OpenMM MD | 2000 steps of 0.5 fs, started at 500 K |
-| Closest pair, final frame | 0.98 Å |
+| Step | What was done | What came out |
+| --- | --- | --- |
+| 1. Data | 450 MD17 frames to train on, 50 to validate, 200 to test | |
+| 2. Train | MACE, 40 epochs, about 2 minutes on a CPU | validation force error fell from 293 to 48 meV/Å |
+| 3. Check the errors | the finished model on the 200 test frames | force error 48.2 meV/Å (5.7% of the average DFT force component), against 46.5 on the training frames; energy error 37.9 meV/atom |
+| 4. Check in MD | 2000 steps of 0.5 fs in OpenMM ([Eastman et al. 2024](https://doi.org/10.1021/acs.jpcb.3c06662)), started at 500 K | closest two atoms in the last frame: the O–H bond, at 0.98 Å |
+| 5. Decide | read steps 3 and 4 against a target: is the force error low enough, and does MD hold? | if yes, stop; if not, change one thing (more frames, a wider model, longer training) and go back to step 2. Not done here: no target had been set |
 
-This shows that the loop works. It does not yet show a good model. No accuracy
-target has been set, the energy error is nearly all the constant shift
-described above and its cause is not known, and the test frames come from the
-same simulation as the training frames, so these errors may be optimistic.
+Some of this is good. The forces are close to DFT, and the error on the test
+frames is about the same as on the training frames, so there is no sign of the
+model learning its training frames rather than ethanol. In MD the closest two
+atoms at the end were the oxygen and its hydrogen, at about their bond length
+(0.971 Å measured, [NIST CCCBDB](https://cccbdb.nist.gov/expgeom2x.asp?casno=64175&charge=0)), so nothing had crashed together.
+
+Some of this is not. The energy error is nearly all the constant shift, and its
+cause is not known. No target was set, so nothing says whether 48.2 meV/Å is
+good enough. And the test frames come from the same simulation as the training
+frames, so these errors may be optimistic.
+
+So the loop has run once, and stopped at step 5. Step 5 is what makes it a
+loop: it needs a target to judge against, a choice of what to change, and then
+steps 2 to 4 again, as many times as it takes. By hand, that means a person
+reading the numbers each time, deciding, and starting the next training.
+
+The next page hands that reading and deciding to an agent, and gives it what
+this pass lacked: a target, 20 meV/Å for the force error, and limits for the MD
+check. Its first run shows step 5 at work. The first model, trained on 200
+frames, missed the target with a validation force error of 35.5 meV/Å. The
+agent read that, added 200 frames, made the model wider and trained it longer,
+and the second model came in at 19.6 meV/Å on frames it had not trained on.
+
+The next page also switches to rMD17, a corrected version of MD17
+([Christensen and von Lilienfeld 2020](https://doi.org/10.1088/2632-2153/abba6f))
+that comes with official splits and a warning, in its
+[data release](https://doi.org/10.6084/m9.figshare.12672038), not to train on
+more than 1000 frames, because frames from one simulation are correlated.
 
 ## Check yourself
 

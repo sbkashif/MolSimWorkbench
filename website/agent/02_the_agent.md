@@ -9,9 +9,9 @@ This page is being built. The run described here is the first one, made on
 [Use case: training an MLIP](01_training_an_mlip.md) ended with training as a
 loop: fit the parameters, check the errors on frames it was not trained on,
 run the model in MD,
-decide what to change, and go round again. On that page a person did the
-deciding. This page hands the deciding to a language model, and shows the
-first run.
+decide what to change, and go round again. On that page the loop ran once, by
+hand, and stopped where a person would have to decide. This page hands the
+deciding to a language model, and shows the first run.
 
 ## The loop, and the step to automate
 
@@ -25,8 +25,8 @@ someone to read the numbers and judge, and it is the step an agent takes over.
 :name: agent-pipeline-figure
 
 The training loop. Every box but one runs a program. "LLM decides" is the
-choice that a person made on the last page and a language model makes on this
-one.
+choice that the last page left to a person, and that a language model makes on
+this one.
 ```
 
 ## What an agent is
