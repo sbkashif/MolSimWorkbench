@@ -24,8 +24,9 @@ someone to read the numbers and judge, and it is the step an agent takes over.
 ```{figure} ../figures/agent_pipeline.svg
 :name: agent-pipeline-figure
 
-The training loop. The teal boxes are programs. The purple box is the choice
-that a person made on the last page and a language model makes on this one.
+The training loop. Every box but one runs a program. "LLM decides" is the
+choice that a person made on the last page and a language model makes on this
+one.
 ```
 
 ## What an agent is
@@ -70,8 +71,8 @@ result each time.
 ## The tools and the limits
 
 The agent gets four tools, one for each program box in
-{numref}`agent-pipeline-figure`, and a fifth to end the run. Each returns
-measured numbers, never estimates.
+{numref}`agent-pipeline-figure`, and a fifth, `stop`, to end the run. The
+four that do work return measured numbers, never estimates.
 
 | Tool | What it does | What it returns |
 | --- | --- | --- |
@@ -79,6 +80,7 @@ measured numbers, never estimates.
 | `evaluate` | Runs the model on 500 selection frames, never trained on | force error, energy error, the energy shift |
 | `run_md` | Runs 1 ps of MD in OpenMM from 500 K | energy range, closest pair, whether the bonds held |
 | `add_data` | Uses more frames from the training pool next time | the new number of frames |
+| `stop` | Ends the run | nothing; the LLM gives its reason |
 | `stop` | Ends the run | the reason, written by the LLM |
 
 The LLM picks the settings for `train`: how many epochs, and how wide the model
@@ -139,8 +141,8 @@ on the right what the tool measured. The harness refused nothing.
 ```{figure} ../figures/agent_run_timeline.svg
 :name: run-timeline-figure
 
-The first run, from its log. Purple is the LLM's choice, teal is a measured
-result. The minutes include 3 minutes of the LLM thinking, spread over its six
+The first run, from its log. On the left, what the LLM chose; on the right,
+what the tool measured. The minutes include 3 minutes of the LLM thinking, spread over its six
 replies.
 ```
 
@@ -179,19 +181,15 @@ difference.
 
 ## What this section does not show
 
-- It uses a small molecule, not a catalyst.
+- It uses one small molecule in vacuum, not a periodic material such as a
+  catalyst surface. Those would need new DFT data and different tools.
 - It simulates collecting new data by drawing on labels that already exist. It
   runs no new quantum chemistry.
-- One search found no public Fe-N-C dataset. Periodic catalyst systems would
-  likely need new DFT labels and different tools.
 - The page shows a recorded run, because MACE training and OpenMM cannot run
-  in a browser, and there is no budget for hosting them. Readers can clone the code and run it
-  themselves.
+  in a browser. The code is in the repository, and the next page shows how to
+  run it.
 
 ## Why I built this
-
-This section began as a demonstration case for a job application, for a
-position that combines agentic AI with computational chemistry.
 
 My background is molecular simulation. I am newer to agentic AI and to MLIPs,
 and my papers do not show work in either. This section is a public record of

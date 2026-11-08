@@ -73,30 +73,44 @@ opens that function.
 Unlike LJ, the function is not written down from a physical idea of how atoms
 attract and repel. It is a **neural network**: a general-purpose function whose
 shape is set entirely by the values of its parameters. For the same atoms, one
-set of values gives one energy, and another set gives a different one. Here we
-take the values as given, and first see what a neural network is.
+set of values gives one energy, and another set gives a different one.
 
 ### Neural network basics
 
 A neural network is a function: a list of numbers goes in, and another list
-comes out. Its parameters decide what comes out. Let us look at the
-function first, which does one calculation, concurrently for all the numbers
-coming in. Call one such calculation a **step**. A step
-takes a list of $n$ numbers, $x_1, \dots, x_n$, and makes a new list of $m$
-numbers, $y_1, \dots, y_m$. The two lengths need not match. Each new number
-$y_k$ is a weighted sum of all $n$ numbers in the old list, passed through a
-simple function $\phi$:
+comes out. Its parameters decide what comes out. Let us look at the function
+first. It is built from one calculation, called a **step**, repeated in a
+chain. A step takes a list of $n$ numbers, $x_1, \dots, x_n$, and makes a new
+list of $m$ numbers, $y_1, \dots, y_m$. The two lengths need not match. Each
+new number $y_k$ is a weighted sum of all $n$ numbers in the old list, passed
+through a simple function $\phi$:
 
 $$
 y_k = \phi\Big(\sum_{j=1}^{n} W_{kj}\, x_j\Big)
 $$
 
 The numbers $W_{kj}$ are the **weights**. Each new number $y_k$ has its own row
-of $n$ weights, $W_{k1}, \dots, W_{kn}$, so the sum is a dot product of that
-row with the list, and the step has $m \times n$ weights in all. The new list
-becomes the input of the next step, so the steps form a chain.
-{numref}`nn-basics-figure` draws a small chain of two steps and counts
-their weights.
+of $n$ weights, one for each number in the old list. The first index says which
+new number the weight belongs to, the second which old number it multiplies.
+Written out for the first step of {numref}`nn-basics-figure`, with 3 numbers in
+and 4 out:
+
+$$
+\begin{aligned}
+y_1 &= \phi(W_{11}x_1 + W_{12}x_2 + W_{13}x_3)\\
+y_2 &= \phi(W_{21}x_1 + W_{22}x_2 + W_{23}x_3)\\
+y_3 &= \phi(W_{31}x_1 + W_{32}x_2 + W_{33}x_3)\\
+y_4 &= \phi(W_{41}x_1 + W_{42}x_2 + W_{43}x_3)
+\end{aligned}
+$$
+
+Each $y$ has 3 weights, and there are 4 of them, so the step has
+$4 \times 3 = 12$ weights; in general, $m \times n$. No $y$ appears on the
+right-hand side: none of the new numbers depends on another, and each is made
+from the old list alone. The next step has to wait for the whole new list,
+because each of its sums uses all of it. So the steps run one after another,
+as a chain. {numref}`nn-basics-figure` draws a small chain of two steps and
+counts their weights.
 
 ```{figure} ../figures/agent_nn_basics.svg
 :name: nn-basics-figure
@@ -106,34 +120,34 @@ A small neural network. Each circle is one number in a list, and each line is
 one weight: 12 + 4 = 16 in all.
 ```
 
-The function $\phi$ matters. Think of fitting a line through points on a 2D plot.
-Here the list in is one number, $x$, and the list out is one number, $y$.
+The function $\phi$ matters. To see why, take the smallest case: fitting a
+line through points on a 2D plot, with one number in, $x$, and one number out,
+$y$ ({numref}`line-vs-bends-figure`).
 
-Without $\phi$, follow the equation above with one number in. Each sum then
-has a single term, so the first step makes $y_k = W_k x$: every new number is
-$x$ times its own weight. The next step adds these up, each with a weight $V_k$
-of its own:
+Start without $\phi$. The first step makes its new list. With one number in, each sum has a single term, so
+$y_k = W_k x$: every new number is $x$ times its own weight. The second step
+does the same calculation on that list, adding its numbers up with weights
+$V_k$ of its own:
 
 $$
 y = V_1 W_1 x + V_2 W_2 x + \dots = (V_1 W_1 + V_2 W_2 + \dots)\, x
 $$
 
-The bracket is just one number. However many numbers each list holds, and
-however many steps the chain has, the result is one number times $x$: a
-straight line, and the weights only set its tilt. (Real networks also add a
-constant to each sum; that moves the line up or down, and is left out of the
-equation above.) Fitting picks the tilt and shift that bring the line as close
-as it can to all the points at once. On points that curve, the best it can do
-is cut through the middle, above some points and below others (panel a of
-{numref}`line-vs-bends-figure`).
+The bracket is just one number. Repeating the step does not change that:
+however many steps the chain has, and however long each list, the result is one
+number times $x$, a straight line. The weights only set its tilt. (Real
+networks also add a constant to each sum; that moves the line up or down, and
+is left out of the equation above.) The best such line cuts through the middle
+of points that curve, above some and below others (panel a).
 
-$\phi$ changes that. The one an MLIP uses is close to flat for negative numbers
-and rises almost along a straight line for positive ones, with a rounded corner
-in between. Put the weighted sum through it, and the line gets one bend, at a
-place the weights choose (panel b). A step with more numbers in its new list has
-more $\phi$, and their bends add up, so the line can twist down and up again to
-follow the points. Panel c uses seven, one step from $x$ to seven numbers and
-another back to $y$, and each ▼ marks where one $\phi$ bends.
+Now put $\phi$ back. In each step, every weighted sum passes through $\phi$
+before it goes on. The $\phi$ an MLIP uses is close to flat for negative
+numbers and rises almost along a straight line for positive ones, with a
+rounded corner in between. So each number in the step's new list carries one
+bend, at a place its weights choose (panel b: one number, one bend). The next
+step adds these bent pieces up, and their bends add up with them, so the line
+can twist down and up to follow the points. Panel c has seven numbers in the
+middle list: seven $\phi$, seven bends, each marked ▼.
 
 A simpler $\phi$, one that sets negative numbers to zero, makes sharp corners
 instead of rounded ones. An MLIP uses the smooth one, because the forces are
@@ -148,10 +162,16 @@ straight line (solid); other weights and constants only tilt or shift it
 to follow the points.
 ```
 
-The weights set the shape of the fit: a different set of weights gives a
-different curve. In an MLIP, the weights make up almost all of the parameters
-$\theta$ from the last section. Unlike $\varepsilon$ and $\sigma$, no single weight means
-anything by itself.
+The weights set the shape of the fit: they decide where the bends land, so a
+different set of weights gives a different curve. Weights that put the bends
+where the points need them are found by adjusting all of them a little, again
+and again, until the line matches the points. That is **training**. It comes
+once the MLIP itself has been built up, in
+[How an MLIP is trained](#how-an-mlip-is-trained).
+
+In an MLIP, the weights make up almost all of the parameters $\theta$ from the
+last section. Unlike $\varepsilon$ and $\sigma$, no single weight means anything
+by itself.
 
 ### Ethanol, the molecule to fit
 
@@ -199,29 +219,29 @@ Part of the answer is the one in {numref}`lj-mlip-figure`: an MLIP works one
 atom at a time. Each atom's neighbours, $\mathcal{N}_i$, give that atom's share
 $E_i$, and the shares add up to $U$, so any number of atoms works. But
 $\mathcal{N}_i$ is still not a fixed list of numbers, and the other two
-problems remain. So an MLIP wraps chains in steps that fix all three. The
-MLIP used here is called **MACE**. {numref}`mace-steps-figure` shows its steps for one atom, with
-the real number of weights in each step of the model trained for this page.
+problems remain. So an MLIP wraps chains in stages that fix all three. The
+MLIP used here is called **MACE**. {numref}`mace-steps-figure` shows its stages for one atom,
+with the real number of weights in each stage of the model trained for this page.
 
 ```{figure} ../figures/agent_mace_steps.svg
 :name: mace-steps-figure
 
-The steps of the trained MACE model for atom $i$. Steps 2 and 3 together make
-one round. The steps marked φ(Wx) contain a chain like the one in
+The stages of the trained MACE model for atom $i$. Stages 2 and 3 together
+make one round. The stages marked φ(Wx) contain a chain like the one in
 {numref}`nn-basics-figure`.
 ```
 
-**1. Describe.** Each neighbour is described relative to atom $i$, so where the
+**Stage 1: Describe.** Each neighbour is described relative to atom $i$, so where the
 molecule sits no longer matters. Its distance becomes 8 numbers, each a smooth
 wave, damped so it fades to zero at the cutoff of 4 Å, so a neighbour drifting out of
 range changes the energy smoothly. Its direction becomes 16 numbers, in four
 groups of 1, 3, 5 and 7, that turn with the molecule in a fixed, known way. Both
-come from fixed formulas, so neither needs weights. The weights in this step
+come from fixed formulas, so neither needs weights. The weights in this stage
 belong to the atomic number: it becomes a list of 32 numbers, one list each for
 H, C and O, so 3 × 32 = 96 weights, learned so the model can tell carbon from
 hydrogen.
 
-**2. Gather.** Here the chain from the basics appears. A chain of four steps,
+**Stage 2: Gather.** Here the chain from the basics appears. A chain of four steps,
 8 → 64 → 64 → 64 → 128 numbers, takes a neighbour's 8 distance numbers and
 returns 128 numbers. It has 8×64 + 64×64 + 64×64 + 64×128 = 16,896 weights.
 The 128 numbers it returns are 32 × 4: one for each of the neighbour's 32
@@ -230,16 +250,16 @@ each of those counts at this distance. The weighted results
 are then added up over all neighbours. A sum does not care how many terms it
 has or in what order they come, which solves the second problem.
 
-The rest of this step's weights are plain weighted sums that mix the 32
+The rest of this stage's weights are plain weighted sums that mix the 32
 numbers, as in the basics but without $\phi$. One 32 × 32 mix comes before
 gathering (1,024 weights), and one after it for each of the four groups
 (4 × 1,024 = 4,096). A last mix, with a separate 32 × 32 for each group and
 each atomic number, lets the atom's own atomic number count
 (4 × 3 × 1,024 = 12,288). With the chain, that makes 34,304.
 
-**3. Combine.** A sum over neighbours only adds up what each neighbour gives on
+**Stage 3: Combine.** A sum over neighbours only adds up what each neighbour gives on
 its own. The energy also depends on how neighbours sit relative to each other,
-for example the H–C–H angle. So this step multiplies the gathered numbers, up
+for example the H–C–H angle. So this stage multiplies the gathered numbers, up
 to three at a time. A product of two sums holds terms with two neighbours at
 once, and through their direction numbers, the angle between them. These
 products are a second source of bending, besides $\phi$. Because the direction
@@ -249,15 +269,15 @@ solves the third problem. There are 28 such products, each with its own weight
 for each of the 32 numbers and each atomic number (28 × 32 × 3 = 2,688), and a
 final 32 × 32 mix (1,024), so 3,712 weights.
 
-**Round 2.** Steps 2 and 3 run again on the 32 numbers from round 1. Each
+**Round 2.** Stages 2 and 3 run again on the 32 numbers from round 1. Each
 neighbour has already gathered from its own neighbours, so information now
-reaches farther than one cutoff. Round 2 has a chain and a combine step of its
+reaches farther than one cutoff. Round 2 has a chain and a combine stage of its
 own, with the same counts as round 1. Only its last atomic-number mix differs. It acts on the 32 numbers the atom
 kept from round 1, not on all four groups, so it is smaller
 (3 × 1,024 = 3,072), and its result is added to the round's output, so what
 round 1 found carries through.
 
-**4. Read out.** Each round leaves 32 numbers per atom. Together these 64
+**Stage 4: Read out.** Each round leaves 32 numbers per atom. Together these 64
 numbers, written $\mathbf{h}_i$, describe the surroundings of atom $i$. Round
 1's numbers go through one weighted sum, round 2's through a small chain with
 $\phi$, and the two results add up to the atom's share, $E_i$, apart from a
@@ -282,7 +302,7 @@ right.
 In this frame no two atoms are more than 3.63 Å apart, so the same is true of
 every atom.
 
-**64 numbers.** Steps 1 to 3 and round 2 turn $\mathcal{N}_i$ into
+**64 numbers.** Stages 1 to 3 and round 2 turn $\mathcal{N}_i$ into
 $\mathbf{h}_i$, which starts 0.235, 0.087, −0.185. No single one of these has a
 physical meaning.
 

@@ -60,7 +60,7 @@ def fig_mlip_atom():
     ax.text(cx, 357, f"neighbours within {d['r_max_A']:.0f} Å", ha="center",
             fontsize=12.5, color=MUTED)
 
-    box(ax, 410, 185, 130, 92, "Steps 1–3", ["and round 2"], ec=PLUG)
+    box(ax, 410, 185, 130, 92, "Stages 1–3", ["and round 2"], ec=PLUG)
     arrow(ax, (275, 185), (343, 185))
 
     h = np.array(d["h_atom0"])
@@ -383,29 +383,29 @@ def fig_ethanol_frame():
 
 
 def fig_mace_steps():
-    """The steps of the trained MACE model, with its real weight counts."""
+    """The stages of the trained MACE model, with its real weight counts."""
     W, H = 1060, 860
     fig, ax = canvas(W, H)
     bx, bw, bh = 175, 280, 84
     nx = 345
     steps = [
-        (100, "1  Describe", ["each neighbour as numbers"], "96",
+        (100, "Stage 1: Describe", ["each neighbour as numbers"], "96",
          ["distance → 8 numbers, direction → 16 numbers:",
           "    fixed formulas, no weights",
           "atomic number → a list of 32: 3 lists (H, C, O) × 32 = 96"], False),
-        (240, "2  Gather", ["sum over neighbours"], "34,304",
+        (240, "Stage 2: Gather", ["sum over neighbours"], "34,304",
          ["chain 8 → 64 → 64 → 64 → 128, distance in, weights out:",
           "    8×64 + 64×64 + 64×64 + 64×128 = 16,896",
           "mixing the 32 numbers: 1,024 + 4,096 + 12,288 = 17,408"], True),
-        (380, "3  Combine", ["multiply, up to 3 at a time"], "3,712",
+        (380, "Stage 3: Combine", ["multiply, up to 3 at a time"], "3,712",
          ["28 kinds of product, each weighted separately",
           "    for the 32 numbers and 3 atomic numbers: 28×32×3 = 2,688",
           "one more mix of the 32 numbers: 32×32 = 1,024"], False),
-        (530, "Round 2", ["steps 2 and 3 again"], "28,800",
+        (530, "Round 2", ["stages 2 and 3 again"], "28,800",
          ["gather: the same chain, 16,896",
           "    plus mixing, 1,024 + 4,096 + 3,072 = 8,192",
           "combine: 3,712 as before"], True),
-        (680, "4  Read out", ["64 numbers → $E_i$"], "560",
+        (680, "Stage 4: Read out", ["64 numbers → $E_i$"], "560",
          ["round 1's 32 numbers → 1: 32 weights",
           "round 2's 32 numbers → 16 → 1, with φ:",
           "    32×16 + 16×1 = 528"], True),
@@ -416,7 +416,7 @@ def fig_mace_steps():
     for k, (y, title, lines, n, notes, chain) in enumerate(steps):
         box(ax, bx, y, bw, bh, title, lines, ec=PLUG)
         if chain:
-            ax.text(bx + bw / 2 - 10, y - bh / 2 + 14, "φ(Wx)", ha="right",
+            ax.text(bx + bw / 2 - 8, y + bh / 2 - 12, "φ(Wx)", ha="right",
                     va="center", fontsize=11.5, color=LLM, weight="bold")
         for i, line in enumerate(notes):
             ax.text(nx, y - 24 + 24 * i, line, ha="left", va="center",
@@ -437,7 +437,7 @@ def fig_mace_steps():
     ax.plot([nx, 1040], [762, 762], color=EDGE, lw=1)
     ax.text(1040, 792, "96 + 34,304 + 3,712 + 28,800 + 560 = 67,472",
             ha="right", va="center", fontsize=13, weight="bold", color=INK)
-    ax.text(nx, 830, "φ(Wx): the step contains a chain of the basic step",
+    ax.text(nx, 830, "φ(Wx): this stage contains a chain of basic steps",
             ha="left", va="center", fontsize=12, color=LLM)
     save(fig, "agent_mace_steps.svg")
 
