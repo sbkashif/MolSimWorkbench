@@ -15,14 +15,14 @@ goes through the code, one file at a time, in the order the data flows: the
 settings, the training frames, the four tools, and the harness that joins them
 to the LLM.
 
-The whole agent is four short Python files, about 450 lines in all:
+The whole agent is four short Python files, about 500 lines in all:
 
 | File | What it holds |
 | --- | --- |
 | `agent/config.py` | the goal's thresholds and every limit the harness enforces |
-| `agent/data.py` | turns rMD17 ethanol into the files MACE reads |
-| `agent/tools.py` | `train`, `evaluate`, `run_md`, `add_data`, and the list of tools the LLM sees |
-| `agent/harness.py` | the loop: send the history, check the call, run the tool, log it |
+| `agent/data.py` | turns rMD17 ethanol into the files MACE reads: training, selection and final test frames |
+| `agent/tools.py` | `train`, `evaluate`, `run_md`, `add_data`, `final_test`, and the list of tools the LLM sees |
+| `agent/harness.py` | the loop: send the history, check the call, run the tool, log it, and score the final test at the end |
 
 None of it is machine learning code. MACE, OpenMM and the LLM are all
 existing programs. The agent is the glue that lets an LLM drive them, and the
@@ -42,13 +42,15 @@ as a good model. These numbers go into the message the LLM reads before it
 starts. The second group is the **limits**: what the agent is allowed to
 spend. The LLM is told these too, but it does not have to respect them, because
 the harness checks every call against them before running it. The goal is a
-request. The limits are enforced.
+request. The limits are enforced. The rest says where the data and programs
+are, and how the test frames are split.
 
-Two of the limits come from the data rather than from the budget. The pool of
+One of the limits comes from the data rather than from the budget. The pool of
 training frames stops at 1000 because the rMD17 readme says not to train on
 more: the frames come from one simulation, so neighbouring frames are nearly
-the same, and a larger set mostly repeats itself. rMD17's official test set
-has 1000 frames, and the model never trains on any of them. They are cut in
+the same, and a larger set mostly repeats itself.
+
+rMD17's official test set has 1000 frames, and the model never trains on any of them. They are cut in
 two. The first 500 are the **selection frames**: `evaluate` uses them, and the
 LLM decides on their errors. Because the LLM chooses by them, they are no
 longer an untouched test. The next 500 are the **final test frames**: the
