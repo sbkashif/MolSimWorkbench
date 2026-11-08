@@ -1,6 +1,6 @@
 # About the GPU module
 
-:::{admonition} In progress
+:::{admonition} Draft
 :class: warning
 This module is still being written. This page describes the plan; the
 chapters below do not exist yet, and no GPU timings are published here. The
@@ -37,6 +37,8 @@ Planned chapters:
 
 ## Next
 
-The first chapter, Thousands of threads, is being written. Until then,
-[OpenMP and speedup](../parallel/03_openmp_and_speedup.md) is the last
-finished page.
+The first chapter, Thousands of threads, is being written. The next finished
+section leaves speed behind and looks at a different energy function: one
+learned from quantum chemistry data, and how training it can be handed to a
+language model. It starts with
+[Use case: training an MLIP](../agent/01_training_an_mlip.md).

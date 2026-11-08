@@ -1,5 +1,11 @@
 # Measure first
 
+:::{admonition} Draft
+:class: warning
+This module is being revised. The measurements are real runs on one laptop,
+but the text may still change.
+:::
+
 The plan of this module is to split the pair loop across cores. First, a
 check that the pair loop really is where the time goes: making a program use
 several cores takes work, and it only pays off for the part of the program
@@ -78,8 +84,9 @@ the force step it already ran:
 `ljComputeGather` is the pair loop. It writes the forces into the
 potential's own arrays (`sfx`, `sfy`, `sfz`) and returns the energy; the
 `for` loop copies the forces out in the form the rest of the engine uses.
-`tailCorrectionEnergy` adds a fixed correction for the pairs beyond the
-cutoff, with no loop over pairs. The trajectory does not change: a run before
+`tailCorrectionEnergy` would add a fixed correction for the pairs beyond the
+cutoff, with no loop over pairs; it is switched off by default and returns
+zero. The trajectory does not change: a run before
 and after the fix prints the same energies at every step.
 
 ### The step now

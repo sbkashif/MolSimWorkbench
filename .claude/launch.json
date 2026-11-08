@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "website",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["NO_OPEN=1", "website/preview.sh"],
+      "port": 8000
+    }
+  ]
+}

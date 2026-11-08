@@ -222,5 +222,6 @@ the same kind of line that `#include <cmath>` provides for `pow`.
 
 ## Next
 
-`main` still lists every distance by hand. The next chapter stores many
-values in one variable, so that a few lines can work through all of them.
+`main` still lists every distance by hand. The next chapter,
+[Vectors and loops](03_vectors_and_loops.md), stores many values in one
+variable, so that a few lines can work through all of them.

@@ -1,5 +1,11 @@
 # OpenMP and speedup
 
+:::{admonition} Draft
+:class: warning
+This module is being revised. The measurements are real runs on one laptop,
+but the text may still change.
+:::
+
 [Threads and races](02_threads_and_races.md) split the gather loop across
 threads by hand: compute a block per thread, start the threads, wait for
 them. OpenMP does the same with one line placed above the loop. This chapter
@@ -264,8 +270,12 @@ $ ./step_split openmp
 
 At N = 4096 one step of the simulation now takes 2.3 ms. The same step took
 18.4 ms with the engine's default serial kernel, and 37.5 ms before the
-energy came out of the force pass: 16 times faster in all, about half of it
-from not running the loop twice and the rest from the threads.
+energy came out of the force pass: 16 times faster in all. That factor has
+three parts, and only one of them is the threads. Not running the loop twice
+gives 2× (37.5 to 18.4 ms). Switching from the gather loop to the scatter loop,
+which computes each pair once, gives about 1.8× (18.4 to about 10.1 ms, the
+`serial-triangular` time). The threads give the remaining 4.5× of the table
+above.
 
 Parallel kernels are opt-in; the engine runs the serial gather kernel unless
 asked otherwise. In C++ the request is `setBackend`:

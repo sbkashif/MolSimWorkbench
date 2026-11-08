@@ -198,31 +198,43 @@ lattice builder, the `ForceCalculator` and its potentials, and the
 
 `runSimulation` is a single call from Python, and the whole loop of
 [A simple molecular dynamics loop](../molsim/architecture.md) runs inside
-it, in C++: 4000 steps of forces, Velocity-Verlet and thermostat, with no
+it, in C++: 2500 steps of forces, Velocity-Verlet and thermostat, with no
 Python in between. This is why the Python layer costs almost nothing here:
 it crosses the bridge a handful of times to set things up, then once to run.
 The home page's "Behind sim.run()" call stack is this path.
 
-The home-page script, run in a folder holding its configuration files:
+The home-page script, with three lines added to show what it built, run from
+the top folder of the repository, where `data/` is:
 
 ```{literalinclude} examples/ch02/run_system.py
 :language: python
-:lines: 6-
+:lines: 7-
 :caption: run_system.py
 ```
 
 ```console
-$ python3 run_system.py
-...
+$ python3 website/pybind11/examples/ch02/run_system.py
 bindings loaded from: _molsim.cpython-312-darwin.so
+...
+Trajectory output set to traj.xyz (XYZ format), writing every 1 steps.
 type of sim._dynamics: <class '_molsim.MolecularDynamics'>
-final energy: -1867.4
+...
+Step 2490, Potential Energy: -265.692, Kinetic Energy: 187.5, Total Energy: -78.1925, Temperature: 1
+final energy: -79.82
 ```
 
-(The `...` stands for the progress lines that the C++ engine prints while it
-runs.) The command-line program `run_simulation`, given the same
-configuration, prints `Final energy: -1867.4` and writes a trajectory that is
-identical byte for byte: the Python layer adds no physics of its own.
+(Each `...` stands for lines that the C++ engine prints while it reads the
+files and runs.) The command-line program `run_simulation`, given the same
+configuration, prints `Final energy: -79.817` and writes a trajectory that is
+identical byte for byte (`cmp` finds no difference): the Python layer adds no
+physics of its own.
+
+```console
+$ build/run_simulation data/lj_play_simulation.yaml cli.xyz
+...
+Final energy: -79.817
+$ cmp traj.xyz cli.xyz
+```
 
 ### When the layers disagree
 
@@ -240,7 +252,7 @@ periodic box, and their trajectories differed from the command line's. The
 fix is the line above, and the check that caught it is the one in the
 previous section: run both on the same configuration and compare the
 results. Whenever Python and C++ build the same thing separately, they need
-a test that compares them; the testing module returns to this.
+a test that compares them.
 
 ## Check yourself
 
@@ -262,8 +274,8 @@ and that `molsimworkbench.py` is the one at the top of the repository, next
 to `build/`.
 :::
 
-:::{dropdown} 4. sim.run() simulates 4000 steps. How many times does that call cross from Python into C++?
-Three: `initialize`, `runSimulation` and `getCurrentEnergy`. All 4000 steps
+:::{dropdown} 4. sim.run() simulates 2500 steps. How many times does that call cross from Python into C++?
+Three: `initialize`, `runSimulation` and `getCurrentEnergy`. All 2500 steps
 run inside the one `runSimulation` call, in C++.
 :::
 

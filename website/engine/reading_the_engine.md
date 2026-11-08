@@ -46,7 +46,7 @@ objects one at a time, starting with the atoms.
 ## The system: Geometry
 
 `Geometry` holds the state of the
-[architecture page](../molsim/architecture.md#what-the-simulation-holds)
+[simulation](../molsim/architecture.md#what-the-simulation-holds)
 except the velocities: the type and position of every atom, and the box.
 
 ```{literalinclude} ../../src/builder/geometry.h
@@ -78,9 +78,12 @@ one per direction:
 :dedent: 4
 ```
 
-Each atom sits at the centre of its grid cell, shifted so that the box is
-centred on the origin, plus a small random nudge (`smallDisp`, up to 5% of
-the spacing).
+Each atom sits at the centre of its grid cell, plus a small random nudge
+(`smallDisp`, up to 5% of the spacing). The `- boxLength / 2.0` shifts the
+grid so that it is centred on the origin: its coordinates run from $-L/2$ to
+$L/2$, while the box the engine wraps atoms into runs from 0 to $L$. The first
+time step resolves this (see [the integrator](#the-loop-moleculardynamics)
+below).
 
 ## The socket: Potential
 
@@ -127,7 +130,8 @@ The work of `LJPotential` is the loop over pairs of atoms, in
 :dedent: 12
 ```
 
-Line by line, this is the energy function of the architecture page:
+Line by line, this is the
+[energy function](../molsim/architecture.md#the-energy-function) of the loop:
 
 - `dx`, `dy`, `dz` are the separation of the pair. The three "minimum image"
   lines replace each by the separation to the nearest copy in the
@@ -174,12 +178,13 @@ velocity at the target temperature and computes the first forces:
 ```
 
 `runSimulation` then repeats one step per pass. The heart of the loop is
-two calls, the integrator and the thermostat:
+three calls: the thermostat before the step, the integrator, and the
+thermostat after it:
 
 ```{literalinclude} ../../src/engine/molecular_dynamics.cpp
 :language: cpp
 :start-at: for (currentStep = 0; currentStep < totalSteps; ++currentStep) {
-:end-before: // Potential energy at the new positions
+:end-before: // Kinetic energy after the thermostat
 :dedent: 4
 ```
 
@@ -187,27 +192,51 @@ The rest of the pass adds the kinetic energy to the potential energy, which
 the force step inside the integrator has already computed, prints a line
 every 10 steps, and writes a frame of the trajectory.
 
-**The integrator** is the Velocity-Verlet step of the architecture page,
+The integrator and the thermostat are plugs, like the potential. The loop
+holds an `Integrator` and a `Thermostat`, and calls them without knowing
+which kind it holds:
+
+```{literalinclude} ../../src/engine/integrators/integrator.h
+:language: cpp
+:start-at: class Integrator {
+:end-before: // Builds an integrator from its YAML name
+```
+
+Each plug gets an `MDState`: a view of the positions, velocities and forces
+it may change. The YAML key `integrator:` picks `velocity_verlet` (the
+default) or `leapfrog`; `thermostat:` picks `velocity_rescale` (the default),
+`berendsen`, `langevin` or `none`. Every run on these pages uses the defaults.
+
+**The integrator** is the
+[Velocity-Verlet step](../molsim/architecture.md#the-loop) of the loop,
 with every mass equal to 1:
 
-```{literalinclude} ../../src/engine/molecular_dynamics.cpp
+```{literalinclude} ../../src/engine/integrators/velocity_verlet_integrator.cpp
 :language: cpp
-:start-at: void MolecularDynamics::integrateVelocityVerlet() {
-:end-before: // Apply periodic boundary conditions to keep all atoms
+:start-at: void VelocityVerletIntegrator::step(MDState& state, double dt) {
 ```
 
 The first loop moves each position by $v\,\Delta t + \tfrac12 F\,\Delta t^2$
 and adds half a step of force to each velocity; then the forces are
 recomputed at the new positions; the second loop adds the other half. In
-between, `applyPeriodicBoundaryConditions` moves any atom that left the box
-back in, by one box length, so positions stay between 0 and $L$.
+between, `wrapPositions` moves any atom with a coordinate below
+0 or at least $L$ back in, by one box length. On the first step that wraps
+every negative coordinate of the centred grid into the box (−2.12 becomes
+3.26 for $L = 5.39$), so from then on positions stay between 0 and $L$; only
+the `Initial configuration` frame of the trajectory shows the centred grid.
+
+The other integrator, leapfrog, is written as kick, drift, kick. In exact
+arithmetic it gives the same trajectory as velocity Verlet, so its numbers
+match to rounding; it is there to show a second plug, not a different
+result.
 
 {numref}`engine-loop-figure` draws one pass of `runSimulation` this way.
-Compared with the loop of the architecture page ({numref}`md-loop-figure`),
+Compared with the loop of
+[A simple molecular dynamics loop](../molsim/architecture.md#the-loop) ({numref}`md-loop-figure`),
 the Integrator box has opened up: it is one function,
-`integrateVelocityVerlet`, whose two loops sit on either side of the force
-step, because the velocities can only be finished with the forces at the
-new positions.
+`VelocityVerletIntegrator::step`, whose two loops sit on either side of the
+force step, because the velocities can only be finished with the forces at
+the new positions.
 
 ```{figure} ../figures/engine_loop.svg
 :name: engine-loop-figure
@@ -215,19 +244,20 @@ new positions.
 
 One pass of `runSimulation`, one time step. Each box names the engine
 function that does that part; both halves of the velocity update happen
-inside `integrateVelocityVerlet`, with `calculateForces` called between them.
+inside the integrator's `step`, with the forces computed between them.
 ```
 
-**The thermostat** rescales every velocity by one factor, so that the
-temperature is exactly the target:
+**The thermostat** by default rescales every velocity by one factor, so that
+the temperature is exactly the target. With a time constant `tau` it becomes
+Berendsen and moves only part of the way:
 
-```{literalinclude} ../../src/engine/molecular_dynamics.cpp
+```{literalinclude} ../../src/engine/thermostats/velocity_rescale_thermostat.cpp
 :language: cpp
-:start-at: void MolecularDynamics::applyTemperatureControl() {
-:end-before: bool MolecularDynamics::exportToPDB
+:start-at: void VelocityRescaleThermostat::afterStep(
 ```
 
-The temperature here is computed as on the architecture page,
+The temperature here is computed as in
+{ref}`the thermal energy <thermal-energy>` section,
 $T = 2K / (3N)$ with $k_B = 1$.
 
 ## Reading the configuration: YAMLParser
@@ -288,7 +318,7 @@ for every pair; the energy and force formulas also need only $r^2$.
 
 :::{dropdown} 3. How many times does one step visit each pair of atoms?
 Twice, with the default serial loop. The force call in
-`integrateVelocityVerlet` runs the pair loop once, and that loop visits pair
+the integrator's `step` runs the pair loop once, and that loop visits pair
 $(i, j)$ once from atom $i$ and once from atom $j$. The potential energy that
 `runSimulation` reports comes out of the same pass, through
 `calculateForcesAndEnergy`, so it costs no second loop.

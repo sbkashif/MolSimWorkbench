@@ -367,6 +367,6 @@ in `main`. The result would be the same, only slower for many atoms.
 
 ## Next
 
-`LJPotential` is one energy function. The architecture page described the
+`LJPotential` is one energy function. [A simple molecular dynamics loop](../molsim/architecture.md#the-energy-function-is-a-plug) described the
 energy function as a plug: LJ, DFT or any other, in the same place. The next
-chapter writes the socket, a class `Potential` that every plug fits.
+chapter, [The plug](05_the_plug.md), writes the socket, a class `Potential` that every plug fits.
