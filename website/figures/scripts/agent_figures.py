@@ -1,0 +1,597 @@
+"""Figures for the agent section. One function per figure.
+
+    python agent_figures.py          # writes every figure into ../
+
+Data comes from agent_extract.py, which reads the real training run.
+"""
+import csv
+import json
+import os
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.patches import Circle, Rectangle
+
+from molsim_figures import (EDGE, INK, MUTED, PLUG, arrow, box, canvas, save)
+
+DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+LLM = "#6a5acd"
+COLORS = {"C": "#555555", "O": "#c0392b", "H": "#d5d8dc"}
+
+
+def rows(name):
+    with open(os.path.join(DATA, name)) as f:
+        return [[float(v) for v in r] for r in list(csv.reader(f))[1:]]
+
+
+def frame():
+    with open(os.path.join(DATA, "agent_one_frame.json")) as f:
+        return json.load(f)
+
+
+def fig_mlip_atom():
+    """One atom's neighbours in, 64 numbers, one energy share, total energy."""
+    d = frame()
+    W, H = 1000, 400
+    fig, ax = canvas(W, H)
+
+    p = np.array(d["positions_A"])
+    p = p - p[0]
+    _, _, v = np.linalg.svd(p - p.mean(0))
+    xy = p @ v[:2].T                       # flattest view of the molecule
+    s = 29
+    cx, cy = 150, 185
+    pts = [(cx + s * x, cy + s * y) for x, y in xy]
+    ax.add_patch(Circle((cx, cy), s * d["r_max_A"], fc="none", ec=PLUG, lw=1.6, ls="--"))
+    dist = np.linalg.norm(p[:, None] - p[None], axis=-1)
+    for i in range(9):
+        for j in range(i):
+            heavy = d["symbols"][i] != "H" or d["symbols"][j] != "H"
+            if dist[i, j] < 1.7 and heavy:
+                ax.plot(*zip(pts[i], pts[j]), color=EDGE, lw=2, zorder=1)
+    for i, (sym, q) in enumerate(zip(d["symbols"], pts)):
+        ax.add_patch(Circle(q, 15 if sym != "H" else 10, fc=COLORS[sym],
+                            ec=PLUG if i == 0 else INK,
+                            lw=3 if i == 0 else 0.8, zorder=3))
+    ax.text(cx, 335, "atom i (a carbon) and its", ha="center", fontsize=12.5,
+            color=MUTED)
+    ax.text(cx, 357, f"neighbours within {d['r_max_A']:.0f} Å", ha="center",
+            fontsize=12.5, color=MUTED)
+
+    box(ax, 410, 185, 130, 92, "Steps 1–3", ["and round 2"], ec=PLUG)
+    arrow(ax, (275, 185), (343, 185))
+
+    h = np.array(d["h_atom0"])
+    x0, y0, c = 520, 120, 16
+    lim = np.abs(h).max()
+    cmap = plt.get_cmap("BrBG")
+    for k, val in enumerate(h):
+        ax.add_patch(Rectangle((x0 + (k % 8) * c, y0 + (k // 8) * c), c, c,
+                               fc=cmap(0.5 + 0.5 * val / lim), ec="white",
+                               lw=0.6))
+    ax.text(x0 + 64, y0 - 18, "$\\mathbf{h}_i$: 64 numbers", ha="center",
+            fontsize=13, color=INK)
+    arrow(ax, (477, 185), (514, 185))
+
+    box(ax, 760, 185, 130, 92, "$E_i$", [f"{d['E_atoms_eV'][0]:.3f} eV"])
+    arrow(ax, (658, 185), (693, 185))
+    ax.text(676, 152, "read", ha="center", fontsize=10.5, color=MUTED)
+    ax.text(676, 168, "out", ha="center", fontsize=10.5, color=MUTED)
+    box(ax, 920, 185, 120, 92, "$U$", [f"{d['U_eV']:.2f} eV"], ec=PLUG)
+    arrow(ax, (827, 185), (858, 185))
+    ax.text(842, 268, "add up all 9 atoms", ha="center", fontsize=12.5,
+            color=MUTED)
+    save(fig, "agent_mlip_atom.svg")
+
+
+def fig_fit_loop():
+    """One training step: predict, compare with DFT, adjust the parameters."""
+    W, H = 1000, 300
+    fig, ax = canvas(W, H)
+    box(ax, 140, 90, 220, 96, "Batch", ["10 ethanol frames"])
+    box(ax, 500, 90, 240, 96, "Predict", ["energy and forces", "using θ"],
+        ec=PLUG)
+    box(ax, 860, 90, 220, 96, "Compare", ["with DFT: the loss $L$"])
+    box(ax, 500, 240, 240, 84, "Adjust θ", ["to lower $L$"], ec=PLUG)
+    arrow(ax, (252, 90), (378, 90))
+    arrow(ax, (622, 90), (748, 90))
+    arrow(ax, (860, 140), (624, 240), rad=-0.12)
+    arrow(ax, (500, 196), (500, 140))
+    ax.text(140, 240, "1800 rounds in the test run", ha="center",
+            fontsize=12.5, color=MUTED)
+    save(fig, "agent_fit_loop.svg")
+
+
+def fig_val_curve():
+    """Validation force error against epoch, from the training log."""
+    r = np.array(rows("agent_val_errors.csv"))
+    fig, ax = plt.subplots(figsize=(6.4, 3.2), dpi=100)
+    ax.plot(r[:, 0], r[:, 2], color=PLUG, lw=2, marker="o", ms=6)
+    ax.annotate(f"{r[0, 2]:.0f}", (r[0, 0], r[0, 2]), xytext=(8, 0),
+                textcoords="offset points", color=INK, fontsize=11)
+    ax.annotate(f"{r[-1, 2]:.0f}", (r[-1, 0], r[-1, 2]), xytext=(0, 9),
+                textcoords="offset points", color=INK, fontsize=11,
+                ha="center")
+    ax.set_xlabel("Epoch", color=MUTED)
+    ax.set_ylabel("Force error (meV/Å)", color=MUTED)
+    ax.set_ylim(0, 320)
+    ax.grid(axis="y", color="#e8eaed", lw=0.8)
+    ax.set_axisbelow(True)
+    for s in ("top", "right"):
+        ax.spines[s].set_visible(False)
+    for s in ("left", "bottom"):
+        ax.spines[s].set_color(EDGE)
+    ax.tick_params(colors=MUTED)
+    fig.tight_layout()
+    save(fig, "agent_val_curve.svg")
+
+
+def fig_force_parity():
+    """Predicted against DFT force components on the 200 test frames."""
+    r = np.array(rows("agent_force_parity.csv"))
+    fig, ax = plt.subplots(figsize=(4.2, 4.2), dpi=100)
+    lim = np.abs(r).max() * 1.05
+    ax.plot([-lim, lim], [-lim, lim], color=EDGE, lw=1, zorder=1)
+    ax.scatter(r[:, 0], r[:, 1], s=5, color=PLUG, alpha=0.35, lw=0,
+               rasterized=True, zorder=2)
+    ax.set_xlim(-lim, lim)
+    ax.set_ylim(-lim, lim)
+    ax.set_aspect("equal")
+    ax.set_xlabel("DFT force (eV/Å)", color=MUTED)
+    ax.set_ylabel("MLIP force (eV/Å)", color=MUTED)
+    for s in ("top", "right"):
+        ax.spines[s].set_visible(False)
+    for s in ("left", "bottom"):
+        ax.spines[s].set_color(EDGE)
+    ax.tick_params(colors=MUTED)
+    fig.tight_layout()
+    save(fig, "agent_force_parity.svg")
+
+
+def fig_energy_offset():
+    """Predicted against DFT energy: a parallel line below the perfect one."""
+    r = np.array(rows("agent_energy_parity.csv"))
+    r = r - r[:, 0].mean()
+    fig, ax = plt.subplots(figsize=(4.2, 4.2), dpi=100)
+    lo, hi = r.min() - 0.08, r.max() + 0.08
+    ax.plot([lo, hi], [lo, hi], color=EDGE, lw=1, zorder=1)
+    ax.scatter(r[:, 0], r[:, 1], s=14, color=PLUG, alpha=0.6, lw=0, zorder=2)
+    ax.set_xlim(lo, hi)
+    ax.set_ylim(lo, hi)
+    ax.set_aspect("equal")
+    ax.set_xlabel("DFT energy (eV, from the mean)", color=MUTED)
+    ax.set_ylabel("MLIP energy (eV, from the same zero)", color=MUTED)
+    for s in ("top", "right"):
+        ax.spines[s].set_visible(False)
+    for s in ("left", "bottom"):
+        ax.spines[s].set_color(EDGE)
+    ax.tick_params(colors=MUTED)
+    fig.tight_layout()
+    save(fig, "agent_energy_offset.svg")
+
+
+def fig_lj_vs_mlip():
+    """The energy calculation in LJ and in an MLIP, stage by stage."""
+    W, H = 1000, 470
+    fig, ax = canvas(W, H)
+    lj, ml = 90, 310
+
+    def atom(x, y, sym, r=13, ec=INK, lw=0.8):
+        ax.add_patch(Circle((x, y), r, fc=COLORS[sym], ec=ec, lw=lw, zorder=3))
+
+    def stage(x, y, w, h, title, lines, ec=EDGE):
+        box(ax, x, y, w, h, title, lines, ec=ec)
+
+    ax.text(40, 28, "LJ", fontsize=15, weight="bold", color=INK)
+    ax.text(40, 205, "MLIP", fontsize=15, weight="bold", color=PLUG)
+
+    # LJ: one pair in, a formula, a sum over pairs
+    ax.plot([75, 175], [lj - 10, lj - 10], color=EDGE, lw=2, zorder=1)
+    atom(75, lj - 10, "C")
+    atom(175, lj - 10, "C")
+    ax.text(125, lj - 22, "$r_{ij}$", ha="center", fontsize=14, color=INK)
+    ax.text(125, lj + 34, "one pair $i,j$", ha="center", fontsize=12.5,
+            color=MUTED)
+    stage(490, lj, 440, 90, "Fixed formula",
+          [r"$u_{ij} = 4\varepsilon\,[(\sigma/r_{ij})^{12}"
+           r" - (\sigma/r_{ij})^{6}]$"])
+    stage(865, lj, 190, 90, "All pairs", [r"$U = \Sigma_{i<j}\;u_{ij}$"])
+    arrow(ax, (222, lj), (266, lj))
+    arrow(ax, (712, lj), (767, lj))
+    ax.text(490, lj + 68, r"parameters: $\varepsilon$ and $\sigma$, 2 numbers",
+            ha="center", fontsize=12.5, color=MUTED)
+
+    # MLIP: an atom's surroundings in, two fitted stages, a sum over atoms
+    cx, cy = 125, ml - 10
+    ax.add_patch(Circle((cx, cy), 78, fc="none", ec=PLUG, lw=1.6, ls="--"))
+    for ang, dist, sym in [(20, 52, "C"), (150, 56, "O"), (255, 50, "H"),
+                           (95, 46, "H")]:
+        x = cx + dist * np.cos(np.radians(ang))
+        y = cy - dist * np.sin(np.radians(ang))
+        ax.plot([cx, x], [cy, y], color=EDGE, lw=1.6, zorder=1)
+        atom(x, y, sym, 12 if sym != "H" else 9)
+    atom(cx, cy, "C", 14, ec=PLUG, lw=2.6)
+    ax.text(12, ml + 96, "atom $i$ and its neighbours:", ha="left",
+            fontsize=12.5, color=MUTED)
+    ax.text(12, ml + 118, r"positions, atomic numbers: $\mathcal{N}_i$",
+            ha="left", fontsize=12.5, color=MUTED)
+    stage(490, ml, 440, 90, "MLIP model (a neural network)",
+          [r"$E_i = \mathrm{MLIP}_\theta(\mathcal{N}_i)$"], ec=PLUG)
+    stage(865, ml, 190, 90, "All atoms", [r"$U = \Sigma_i\;E_i$"])
+    arrow(ax, (222, ml), (266, ml))
+    arrow(ax, (712, ml), (767, ml))
+    ax.text(490, ml + 68, r"parameters: $\theta$, 67,472 numbers", ha="center", fontsize=12.5, color=MUTED)
+    save(fig, "agent_lj_vs_mlip.svg")
+
+
+def fig_nn_basics():
+    """A small neural network: 3 numbers, 4, then 1, with the weight counts."""
+    W, H = 760, 400
+    fig, ax = canvas(W, H)
+    cols = [(170, [118, 193, 268]), (380, [80, 155, 230, 305]), (590, [193])]
+    names = [[r"$x_1$", r"$x_2$", r"$x_3$"],
+             [r"$y_1$", r"$y_2$", r"$y_3$", r"$y_4$"], ["out"]]
+    for (x0, ys0), (x1, ys1) in zip(cols, cols[1:]):
+        for a in ys0:
+            for b in ys1:
+                ax.plot([x0, x1], [a, b], color=EDGE, lw=1.1, zorder=1)
+    for k, (x, ys) in enumerate(cols):
+        for y, nm in zip(ys, names[k]):
+            ax.add_patch(Circle((x, y), 21, fc="white",
+                                ec=PLUG if k else INK, lw=1.8, zorder=3))
+            ax.text(x, y, nm, ha="center", va="center", fontsize=12.5,
+                    color=INK, zorder=4)
+    for x, top in [(170, "list in"), (380, "after step 1"),
+                   (590, "after step 2")]:
+        ax.text(x, 22, top, ha="center", fontsize=13, color=INK)
+    for x, sub in [(170, "$n = 3$"), (380, "$m = 4$"), (590, "1 number")]:
+        ax.text(x, 44, sub, ha="center", fontsize=12.5, color=MUTED)
+    for x, line1, line2 in [(275, "step 1", "4 × 3 = 12 weights"),
+                            (485, "step 2", "1 × 4 = 4 weights")]:
+        ax.text(x, 355, line1, ha="center", fontsize=12.5, color=INK)
+        ax.text(x, 377, line2, ha="center", fontsize=12.5, color=MUTED)
+    save(fig, "agent_nn_basics.svg")
+
+
+def fig_line_vs_bends():
+    """Made-up points fitted three ways: no phi (tilt and shift only), one phi
+    (one bend), seven phi (seven bends, marked)."""
+    x = np.linspace(-1.5, 1.5, 25)
+    y = x**4 - 1.6 * x**2 + 0.25 * x
+    grid = np.linspace(-1.5, 1.5, 300)
+    knots = np.linspace(-1.2, 1.2, 7)
+
+    def hinge(t, k):  # a smooth phi: flat for t < k, rising for t > k
+        return (t - k) / (1 + np.exp(-6 * (t - k)))
+
+    def basis(t, ks):
+        return np.column_stack([np.ones_like(t), t] + [hinge(t, k) for k in ks])
+
+    def fit(ks):
+        coef = np.linalg.lstsq(basis(x, ks), y, rcond=None)[0]
+        return basis(grid, ks) @ coef, coef
+
+    line, _ = fit([])
+    # one bend: the knot that fits best
+    one_k = min(np.linspace(-1.2, 1.2, 25),
+                key=lambda k: np.sum((basis(x, [k]) @ fit([k])[1] - y) ** 2))
+    one, _ = fit([one_k])
+    many, many_coef = fit(knots)
+
+    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.1), dpi=100, sharey=True)
+    titles = [r"(a) no $\phi$: tilt and shift", r"(b) one $\phi$: one bend",
+              r"(c) seven $\phi$: seven bends"]
+    # panel a: a few other weights, faint, to show what changing them does
+    for slope, shift in [(0.9, 0.0), (-0.6, 0.0), (0.25, 0.6), (0.25, -0.6)]:
+        axes[0].plot(grid, np.polyval(np.polyfit(x, y, 1), grid) + (slope - 0.25) * grid
+                     + shift, color=EDGE, lw=1.2, ls="--", zorder=1)
+    for ax, curve, title in zip(axes, [line, one, many], titles):
+        ax.plot(grid, curve, color=PLUG, lw=2, zorder=2)
+        ax.scatter(x, y, s=14, color=INK, zorder=3)
+        ax.set_title(title, fontsize=12, color=INK)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlabel("input $x$", color=MUTED)
+        for sp in ("top", "right"):
+            ax.spines[sp].set_visible(False)
+        for sp in ("left", "bottom"):
+            ax.spines[sp].set_color(EDGE)
+    # mark where each phi puts its bend
+    for ax, ks, curve in [(axes[1], [one_k], one), (axes[2], knots, many)]:
+        for k in ks:
+            yk = np.interp(k, grid, curve)
+            ax.plot([k], [yk], marker="v", ms=8, color=LLM, zorder=4,
+                    transform=ax.transData)
+    axes[2].text(0.97, 0.03, "▼ where each $\\phi$ bends", ha="right",
+                 transform=axes[2].transAxes, fontsize=9.5, color=LLM)
+    axes[0].set_ylabel("output $y$", color=MUTED)
+    fig.tight_layout()
+    save(fig, "agent_line_vs_bends.svg")
+
+
+def fig_ethanol_frame():
+    """One ethanol frame: 9 atoms, 27 numbers, one DFT energy; 21 matter."""
+    d = frame()
+    W, H = 1000, 470
+    fig, ax = canvas(W, H)
+    sym = d["symbols"]
+    p = np.array(d["positions_A"])
+    q = p - p.mean(0)
+    rng = np.random.default_rng(0)
+    best = None
+    for _ in range(4000):                  # the view that spreads atoms most
+        m, _ = np.linalg.qr(rng.normal(size=(3, 3)))
+        t = q @ m[:, :2]
+        dd = np.linalg.norm(t[:, None] - t[None], axis=-1) + np.eye(9) * 9
+        if best is None or dd.min() > best[0]:
+            best = (dd.min(), t)
+    xy = best[1]
+    s, cx, cy = 58, 165, 205
+    pts = [(cx + s * x, cy + s * y) for x, y in xy]
+    dist = np.linalg.norm(p[:, None] - p[None], axis=-1)
+    heavy = [k for k in range(9) if sym[k] != "H"]
+    for i in range(9):
+        for j in range(i):
+            if sym[i] != "H" and sym[j] != "H" and dist[i, j] < 1.7:
+                ax.plot(*zip(pts[i], pts[j]), color=EDGE, lw=2.5, zorder=1)
+        if sym[i] == "H":
+            j = min(heavy, key=lambda k: dist[i, k])
+            ax.plot(*zip(pts[i], pts[j]), color=EDGE, lw=2.5, zorder=1)
+    for k, (sy, (x, y)) in enumerate(zip(sym, pts)):
+        r = 20 if sy != "H" else 14
+        ax.add_patch(Circle((x, y), r, fc=COLORS[sy], ec=INK, lw=0.8,
+                            zorder=3))
+        ax.text(x, y, str(k + 1), ha="center", va="center", fontsize=11,
+                color="white" if sy != "H" else INK, zorder=4)
+    ax.text(cx, 30, "ethanol: 9 atoms", ha="center", fontsize=13.5,
+            color=INK, weight="bold")
+
+    tx, ty, rh = 420, 70, 25
+    ax.text(tx + 115, 30, "one frame: 9 × 3 = 27 numbers", ha="center",
+            fontsize=13.5, color=INK, weight="bold")
+    for c, lab in zip([tx, tx + 80, tx + 160, tx + 240], ["atom", "x", "y", "z"]):
+        ax.text(c, ty, lab, ha="center", va="center", fontsize=12.5,
+                color=MUTED, style="italic" if lab != "atom" else "normal")
+    ax.plot([tx - 30, tx + 270], [ty + 13, ty + 13], color=EDGE, lw=1)
+    for k in range(9):
+        y = ty + rh * (k + 1)
+        ax.text(tx, y, f"{k + 1} {sym[k]}", ha="center", va="center",
+                fontsize=12, color=INK)
+        for c, val in zip([tx + 80, tx + 160, tx + 240], p[k]):
+            ax.text(c, y, f"{val:.2f}".replace("-", "−"), ha="center",
+                    va="center", fontsize=12, color=INK)
+    ax.text(tx + 115, ty + rh * 10 + 4, "coordinates in Å", ha="center",
+            fontsize=11.5, color=MUTED)
+
+    arrow(ax, (718, 190), (782, 190))
+    ax.text(750, 172, "DFT", ha="center", fontsize=12, color=MUTED)
+    box(ax, 885, 190, 190, 92, "Energy", ["−4214.753 eV"], ec=PLUG)
+    ax.text(885, 262, "one point on the", ha="center", fontsize=12,
+            color=MUTED)
+    ax.text(885, 282, "energy surface", ha="center", fontsize=12,
+            color=MUTED)
+
+    ax.plot([40, 960], [370, 370], color=EDGE, lw=1)
+    ax.text(40, 400, "Moving the whole molecule (3 directions) or turning it "
+            "(3 axes) changes all 27 numbers, but not the energy.",
+            ha="left", va="center", fontsize=12.5, color=MUTED)
+    ax.text(40, 430, "So the energy depends on 27 − 6 = 21 numbers.",
+            ha="left", va="center", fontsize=13, color=INK, weight="bold")
+    save(fig, "agent_ethanol_frame.svg")
+
+
+def fig_mace_steps():
+    """The steps of the trained MACE model, with its real weight counts."""
+    W, H = 1060, 860
+    fig, ax = canvas(W, H)
+    bx, bw, bh = 175, 280, 84
+    nx = 345
+    steps = [
+        (100, "1  Describe", ["each neighbour as numbers"], "96",
+         ["distance → 8 numbers, direction → 16 numbers:",
+          "    fixed formulas, no weights",
+          "atomic number → a list of 32: 3 lists (H, C, O) × 32 = 96"], False),
+        (240, "2  Gather", ["sum over neighbours"], "34,304",
+         ["chain 8 → 64 → 64 → 64 → 128, distance in, weights out:",
+          "    8×64 + 64×64 + 64×64 + 64×128 = 16,896",
+          "mixing the 32 numbers: 1,024 + 4,096 + 12,288 = 17,408"], True),
+        (380, "3  Combine", ["multiply, up to 3 at a time"], "3,712",
+         ["28 kinds of product, each weighted separately",
+          "    for the 32 numbers and 3 atomic numbers: 28×32×3 = 2,688",
+          "one more mix of the 32 numbers: 32×32 = 1,024"], False),
+        (530, "Round 2", ["steps 2 and 3 again"], "28,800",
+         ["gather: the same chain, 16,896",
+          "    plus mixing, 1,024 + 4,096 + 3,072 = 8,192",
+          "combine: 3,712 as before"], True),
+        (680, "4  Read out", ["64 numbers → $E_i$"], "560",
+         ["round 1's 32 numbers → 1: 32 weights",
+          "round 2's 32 numbers → 16 → 1, with φ:",
+          "    32×16 + 16×1 = 528"], True),
+    ]
+    ax.text(bx, 20, r"$\mathcal{N}_i$: positions and atomic numbers",
+            ha="center", va="center", fontsize=13, color=INK)
+    arrow(ax, (bx, 34), (bx, 100 - bh / 2 - 2))
+    for k, (y, title, lines, n, notes, chain) in enumerate(steps):
+        box(ax, bx, y, bw, bh, title, lines, ec=PLUG)
+        if chain:
+            ax.text(bx + bw / 2 - 10, y - bh / 2 + 14, "φ(Wx)", ha="right",
+                    va="center", fontsize=11.5, color=LLM, weight="bold")
+        for i, line in enumerate(notes):
+            ax.text(nx, y - 24 + 24 * i, line, ha="left", va="center",
+                    fontsize=12, color=MUTED)
+        ax.text(1040, y - 11, n, ha="right", va="center", fontsize=13.5,
+                weight="bold", color=INK)
+        ax.text(1040, y + 13, "weights", ha="right", va="center",
+                fontsize=11.5, color=MUTED)
+        if k + 1 < len(steps):
+            nxt = steps[k + 1][0]
+            arrow(ax, (bx, y + bh / 2 + 2), (bx, nxt - bh / 2 - 2))
+    for y, label in [(455, "32 numbers"), (605, "32 more: 64 in all, $\\mathbf{h}_i$")]:
+        ax.text(bx + 12, y, label, ha="left", va="center", fontsize=12,
+                color=INK, style="italic")
+    arrow(ax, (bx, 680 + bh / 2 + 2), (bx, 770))
+    ax.text(bx, 792, "$E_i$, the atom's share of $U$", ha="center",
+            va="center", fontsize=13, color=INK)
+    ax.plot([nx, 1040], [762, 762], color=EDGE, lw=1)
+    ax.text(1040, 792, "96 + 34,304 + 3,712 + 28,800 + 560 = 67,472",
+            ha="right", va="center", fontsize=13, weight="bold", color=INK)
+    ax.text(nx, 830, "φ(Wx): the step contains a chain of the basic step",
+            ha="left", va="center", fontsize=12, color=LLM)
+    save(fig, "agent_mace_steps.svg")
+
+
+def fig_agent_parts():
+    """LLM, harness, tools: who talks to whom."""
+    W, H = 1000, 380
+    fig, ax = canvas(W, H)
+    y = 175
+    box(ax, 150, y, 220, 120, "LLM", ["qwen3:8b", "writes text only"],
+        ec=LLM, title_color=LLM)
+    box(ax, 500, y, 240, 120, "Harness", ["Python program", "keeps the history",
+                                          "enforces the limits"], ec=INK)
+    box(ax, 850, y, 220, 120, "Tools", ["train, evaluate,", "run_md, add_data"],
+        ec=PLUG)
+    arrow(ax, (378, y - 30), (262, y - 30))
+    ax.text(320, y - 52, "all text so far", ha="center", fontsize=11.5,
+            color=MUTED)
+    arrow(ax, (262, y + 30), (378, y + 30))
+    ax.text(320, y + 60, "a tool call", ha="center", fontsize=12, color=MUTED)
+    ax.text(320, y + 80, "or stop", ha="center", fontsize=12, color=MUTED)
+    arrow(ax, (622, y - 30), (738, y - 30))
+    ax.text(680, y - 52, "runs the tool", ha="center", fontsize=12,
+            color=MUTED)
+    arrow(ax, (738, y + 30), (622, y + 30))
+    ax.text(680, y + 60, "measured", ha="center", fontsize=12, color=MUTED)
+    ax.text(680, y + 80, "result", ha="center", fontsize=12, color=MUTED)
+    box(ax, 500, 40, 240, 50, "Goal", [], ec=EDGE)
+    arrow(ax, (500, 66), (500, 112))
+    ax.text(150, 330, "chooses", ha="center", fontsize=13, color=LLM,
+            weight="bold")
+    ax.text(500, 330, "enforces and records", ha="center", fontsize=13,
+            color=INK, weight="bold")
+    ax.text(850, 330, "does the work", ha="center", fontsize=13, color=PLUG,
+            weight="bold")
+    save(fig, "agent_parts.svg")
+
+
+def fig_agent_history():
+    """The harness resends the whole history on every pass."""
+    W, H = 1000, 340
+    fig, ax = canvas(W, H)
+    items = [("Goal", EDGE), ("Tool call: train", LLM),
+             ("Result: 35.5 meV/Å", PLUG), ("Tool call: add_data", LLM),
+             ("Result: 400 frames", PLUG)]
+    for k, x in enumerate([170, 500, 830]):
+        n = 1 + 2 * k
+        ax.text(x, 22, f"pass {k + 1} sends", ha="center", fontsize=13.5,
+                color=INK, weight="bold")
+        for i in range(n):
+            label, ec = items[i]
+            box(ax, x, 62 + 44 * i, 250, 36, "", [], ec=ec)
+            ax.text(x, 62 + 44 * i, label, ha="center", va="center",
+                    fontsize=12.5, color=INK)
+        ax.text(x, 62 + 44 * n + 6, "→ the LLM writes the next", ha="center",
+                fontsize=12, color=MUTED)
+        ax.text(x, 62 + 44 * n + 26, "tool call", ha="center", fontsize=12,
+                color=MUTED)
+    save(fig, "agent_history.svg")
+
+
+def fig_run_timeline():
+    """The first agent run, step by step, from its log."""
+    with open(os.path.join(DATA, "agent_run1_log.jsonl")) as f:
+        log = [json.loads(line) for line in f]
+    tools_ = [e for e in log if e["kind"] == "tool"]
+    end = [e for e in log if e["kind"] == "end"][0]
+
+    def said(r, name):
+        if name == "train":
+            return (f"validation force error {r['validation_force_mae_meV_per_A']:.1f} meV/Å",
+                    f"{r['training_frames']} frames, {r['minutes']} min")
+        if name == "add_data":
+            return (f"{r['training_frames_next_time']} frames next time", "")
+        if name == "evaluate":
+            return (f"test force error {r['force_mae_meV_per_A']} meV/Å",
+                    f"energy error {r['energy_mae_meV_per_atom']} meV/atom")
+        if name == "run_md":
+            return (f"energy range {r['energy_range_after_t0_eV']} eV, "
+                    f"closest pair {r['closest_pair_A']:.2f} Å",
+                    "bonds the same as at the start" if r["bonds_same_as_start"]
+                    else "bonds changed")
+
+    def chose(e):
+        a = e["args"]
+        if e["name"] == "train":
+            return f"train: {a['channels']} channels, {a['epochs']} epochs"
+        if e["name"] == "add_data":
+            return f"add_data: {a['frames']} frames"
+        return e["name"]
+
+    rows = [(e["t_min"], chose(e), *said(e["result"], e["name"])) for e in tools_]
+    rows.append((end["t_min"], "stop", "its reason: \"Model meets all criteria\"", ""))
+    W, H = 1000, 90 + 70 * len(rows)
+    fig, ax = canvas(W, H)
+    for x, lab, c in [(70, "done at, min", MUTED), (330, "the LLM chose", LLM),
+                      (720, "the tool measured", PLUG)]:
+        ax.text(x, 30, lab, ha="center", fontsize=13, color=c, weight="bold")
+    for k, (t, c, r1, r2) in enumerate(rows):
+        y = 85 + 70 * k
+        ax.text(70, y, f"{t:.1f}", ha="center", va="center", fontsize=13,
+                color=INK)
+        box(ax, 330, y, 330, 50, "", [], ec=LLM)
+        ax.text(330, y, c, ha="center", va="center", fontsize=12.5, color=INK)
+        if r1:
+            box(ax, 720, y, 400, 56, "", [], ec=PLUG if k < len(rows) - 1 else LLM)
+            ax.text(720, y - (10 if r2 else 0), r1, ha="center", va="center",
+                    fontsize=12.5, color=INK)
+            if r2:
+                ax.text(720, y + 12, r2, ha="center", va="center",
+                        fontsize=11.5, color=MUTED)
+            arrow(ax, (497, y), (518, y))
+        if k + 1 < len(rows):
+            arrow(ax, (330, y + 26), (330, y + 44))
+    save(fig, "agent_run_timeline.svg")
+
+
+def fig_pipeline():
+    """The loop the agent runs."""
+    W, H = 1000, 330
+    fig, ax = canvas(W, H)
+    top, low = 70, 260
+    box(ax, 140, top, 230, 90, "Public data", ["ethanol, DFT labels"])
+    box(ax, 500, top, 230, 90, "Train MACE", ["fit θ"], ec=PLUG)
+    box(ax, 860, top, 230, 90, "Held-out check", ["errors on unseen frames"],
+        ec=PLUG)
+    box(ax, 860, low, 230, 90, "OpenMM check", ["stable, energy conserved"],
+        ec=PLUG)
+    box(ax, 500, low, 230, 90, "LLM decides", ["next step"], ec=LLM,
+        title_color=LLM)
+    box(ax, 140, low, 230, 90, "Stop", ["saved log"])
+    arrow(ax, (257, top), (383, top))
+    arrow(ax, (617, top), (743, top))
+    arrow(ax, (860, 117), (860, 213))
+    arrow(ax, (743, low), (617, low))
+    arrow(ax, (383, low), (257, low))
+    arrow(ax, (420, 213), (170, 117))
+    ax.text(420, 150, "more data or a changed setting", ha="left",
+            fontsize=12.5, color=MUTED, style="italic")
+    save(fig, "agent_pipeline.svg")
+
+
+if __name__ == "__main__":
+    fig_lj_vs_mlip()
+    fig_nn_basics()
+    fig_line_vs_bends()
+    fig_ethanol_frame()
+    fig_mace_steps()
+    fig_mlip_atom()
+    fig_fit_loop()
+    fig_val_curve()
+    fig_force_parity()
+    fig_energy_offset()
+    fig_pipeline()
+    fig_agent_parts()
+    fig_agent_history()
+    fig_run_timeline()
