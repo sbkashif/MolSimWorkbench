@@ -11,6 +11,12 @@
 #include "../engine/molecular_dynamics.h"
 #include "../engine/potentials/lj_potential.h"
 #include "../engine/potentials/dft_potential.h"
+#include "../engine/integrators/integrator.h"
+#include "../engine/integrators/velocity_verlet_integrator.h"
+#include "../engine/integrators/leapfrog_integrator.h"
+#include "../engine/thermostats/thermostat.h"
+#include "../engine/thermostats/velocity_rescale_thermostat.h"
+#include "../engine/thermostats/langevin_thermostat.h"
 #include "../utils/yaml_parser.h"
 #include "../utils/trajectory_writer.h"
 
@@ -62,7 +68,15 @@ PYBIND11_MODULE(_molsim, module) {
         .def_readwrite("useMinimization", &SimulationParameters::useMinimization)
         .def_readwrite("minimization", &SimulationParameters::minimization)
         .def_readwrite("usePBC", &SimulationParameters::usePBC)
-        .def_readwrite("box", &SimulationParameters::box);
+        .def_readwrite("box", &SimulationParameters::box)
+        .def_readwrite("equilibrationSteps", &SimulationParameters::equilibrationSteps)
+        .def_readwrite("productionSteps", &SimulationParameters::productionSteps)
+        .def_readwrite("energyDriftTolerance", &SimulationParameters::energyDriftTolerance)
+        .def_readwrite("randomSeed", &SimulationParameters::randomSeed)
+        .def_readwrite("integrator", &SimulationParameters::integrator)
+        .def_readwrite("thermostat", &SimulationParameters::thermostat)
+        .def_readwrite("thermostatTau", &SimulationParameters::thermostatTau)
+        .def_readwrite("langevinFriction", &SimulationParameters::langevinFriction);
 
     py::class_<SimulationConfig>(module, "SimulationConfig")
         .def(py::init<>())
@@ -113,11 +127,40 @@ PYBIND11_MODULE(_molsim, module) {
         })
         .def("clearPotentials", &ForceCalculator::clearPotentials);
 
+    // Integrator plugs
+    py::class_<Integrator, std::shared_ptr<Integrator>>(module, "Integrator")
+        .def("getName", &Integrator::getName);
+    py::class_<VelocityVerletIntegrator, Integrator, std::shared_ptr<VelocityVerletIntegrator>>(
+        module, "VelocityVerletIntegrator")
+        .def(py::init<>());
+    py::class_<LeapfrogIntegrator, Integrator, std::shared_ptr<LeapfrogIntegrator>>(
+        module, "LeapfrogIntegrator")
+        .def(py::init<>());
+    module.def("makeIntegrator", &makeIntegrator, py::arg("name"));
+
+    // Thermostat plugs
+    py::class_<Thermostat, std::shared_ptr<Thermostat>>(module, "Thermostat")
+        .def("getName", &Thermostat::getName);
+    py::class_<VelocityRescaleThermostat, Thermostat, std::shared_ptr<VelocityRescaleThermostat>>(
+        module, "VelocityRescaleThermostat")
+        .def(py::init<double>(), py::arg("tau") = 0.0)
+        .def("getTau", &VelocityRescaleThermostat::getTau);
+    py::class_<LangevinThermostat, Thermostat, std::shared_ptr<LangevinThermostat>>(
+        module, "LangevinThermostat")
+        .def(py::init<double, unsigned int>(), py::arg("friction") = 1.0, py::arg("seed") = 0u)
+        .def("getFriction", &LangevinThermostat::getFriction);
+    module.def("makeThermostat", &makeThermostat,
+               py::arg("name"), py::arg("tau") = 0.0, py::arg("friction") = 1.0, py::arg("seed") = 0u);
+
     py::class_<MolecularDynamics>(module, "MolecularDynamics")
         .def(py::init<>())
         .def("setGeometry", &MolecularDynamics::setGeometry)
         .def("setForceCalculator", &MolecularDynamics::setForceCalculator)
         .def("setSimulationParameters", &MolecularDynamics::setSimulationParameters)
+        .def("setIntegrator", &MolecularDynamics::setIntegrator, py::arg("integrator"))
+        .def("setThermostat", &MolecularDynamics::setThermostat, py::arg("thermostat"))
+        .def("getIntegrator", &MolecularDynamics::getIntegrator)
+        .def("getThermostat", &MolecularDynamics::getThermostat)
         .def("setTrajectoryOutput", &MolecularDynamics::setTrajectoryOutput,
              py::arg("filename"),
              py::arg("format") = TrajectoryFormat::XYZ,

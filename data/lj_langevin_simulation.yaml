@@ -1,0 +1,46 @@
+# Lennard-Jones liquid with the other two plugs: leapfrog moves the atoms and a
+# Langevin bath holds the temperature during equilibration, then production
+# runs NVE (no thermostat) and reports its energy drift.
+#
+# Plugs and their YAML names (defaults in brackets):
+#   integrator: "velocity_verlet" ["velocity_verlet"] | "leapfrog"
+#   thermostat: "velocity_rescale" ["velocity_rescale"] | "berendsen" | "langevin" | "none"
+# A thermostat with parameters is written as a block:
+#   thermostat: { type: "berendsen", tau: 0.1 }     # relaxation time
+#   thermostat: { type: "langevin", friction: 2.0 } # gamma, 1/time
+
+simulation:
+  type: "dynamics"
+  system_mode: "lj_particle_box"
+  timestep: 0.002
+  temperature: 1.0
+  equilibration_steps: 1000
+  production_steps: 2000
+  energy_drift_tolerance: 0.01
+  random_seed: 42
+
+  integrator: "leapfrog"
+  thermostat:
+    type: "langevin"
+    friction: 2.0
+
+  lj_box:
+    num_particles: 125
+    density: 0.8
+    temperature: 1.0
+    initialization: "cubic_lattice"
+    random_seed: 42
+
+  minimization:
+    algorithm: "steepest_descent"
+    max_iterations: 100
+    energy_tolerance: 1e-6
+    force_tolerance: 1e-4
+
+  output:
+    frequency: 50
+    trajectory: true
+    energy: true
+
+potential_config_files:
+  - "potentials/lj_bulk.yaml"

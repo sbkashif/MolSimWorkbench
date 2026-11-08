@@ -49,9 +49,21 @@ class System:
         self._dynamics = dynamics
 
     @classmethod
-    def from_yaml(cls, config_path, trajectory_output="water_trajectory.xyz", trajectory_every=1):
+    def from_yaml(cls, config_path, trajectory_output="water_trajectory.xyz", trajectory_every=1,
+                  integrator=None, thermostat=None):
+        """Build a system from a YAML config.
+
+        `integrator` ("velocity_verlet", "leapfrog") and `thermostat`
+        ("velocity_rescale", "berendsen", "langevin", "none") override the
+        names in the YAML. Either may also be a plug object, such as
+        `_molsim.LangevinThermostat(friction=2.0, seed=1)`.
+        """
         parser = _molsim.YAMLParser()
         config = parser.parseSimulationConfig(str(config_path))
+        if isinstance(integrator, str):
+            config.simulationParams.integrator = integrator
+        if isinstance(thermostat, str):
+            config.simulationParams.thermostat = thermostat
 
         # Handle geometry based on system mode
         if config.systemMode == "lj_particle_box":
@@ -73,6 +85,10 @@ class System:
         dynamics.setGeometry(geometry)
         dynamics.setForceCalculator(force_calculator)
         dynamics.setSimulationParameters(config.simulationParams)
+        if integrator is not None and not isinstance(integrator, str):
+            dynamics.setIntegrator(integrator)
+        if thermostat is not None and not isinstance(thermostat, str):
+            dynamics.setThermostat(thermostat)
         dynamics.setTrajectoryOutput(str(trajectory_output), _molsim.TrajectoryFormat.XYZ, trajectory_every)
 
         return cls(dynamics)

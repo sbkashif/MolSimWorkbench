@@ -239,6 +239,34 @@ SimulationConfig YAMLParser::parseSimulationConfig(const std::string& filename) 
             params.energyDriftTolerance = jsonData["simulation"]["energy_drift_tolerance"].get<double>();
         }
         
+        // Integrator and thermostat plugs (optional). Either a bare name,
+        //   integrator: "leapfrog"
+        // or a block with parameters,
+        //   thermostat: { type: "langevin", friction: 1.0 }
+        //   thermostat: { type: "berendsen", tau: 0.1 }
+        const auto& sim = jsonData["simulation"];
+        if (sim.contains("integrator")) {
+            const auto& node = sim["integrator"];
+            params.integrator = node.is_string() ? node.get<std::string>()
+                                                 : node.at("type").get<std::string>();
+        }
+        if (sim.contains("thermostat")) {
+            const auto& node = sim["thermostat"];
+            if (node.is_null()) {
+                params.thermostat = "none";           // `thermostat: null` or `~`
+            } else if (node.is_string()) {
+                params.thermostat = node.get<std::string>();
+            } else {
+                params.thermostat = node.at("type").get<std::string>();
+                if (node.contains("tau")) {
+                    params.thermostatTau = node["tau"].get<double>();
+                }
+                if (node.contains("friction")) {
+                    params.langevinFriction = node["friction"].get<double>();
+                }
+            }
+        }
+        
         std::cout << "Simulation config parsing complete" << std::endl;
         return config;
     } catch (const std::exception& e) {

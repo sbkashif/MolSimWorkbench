@@ -190,7 +190,7 @@ std::string TrajectoryWriter::createComment(double time, const std::string& comm
     if (!comment.empty()) {
         ss << comment;
     } else {
-        ss << "Frame " << frameCount << ", Time: " << time << " ps";
+        ss << "Frame " << frameCount << ", Time: " << time;
     }
     
     return ss.str();

@@ -3,6 +3,7 @@ add_executable(MolSimTests
     test_water_lj_unit.cpp
     test_lj_particle_box.cpp
     test_lj_kernels.cpp
+    test_integrators_thermostats.cpp
     # Add more test files here as needed
 )
 

@@ -97,6 +97,13 @@ target_include_directories(BuilderLib PUBLIC
 add_library(EngineLib STATIC
     src/engine/force_calculator.cpp
     src/engine/molecular_dynamics.cpp
+    src/engine/md_state.cpp
+    src/engine/integrators/integrator.cpp
+    src/engine/integrators/velocity_verlet_integrator.cpp
+    src/engine/integrators/leapfrog_integrator.cpp
+    src/engine/thermostats/thermostat.cpp
+    src/engine/thermostats/velocity_rescale_thermostat.cpp
+    src/engine/thermostats/langevin_thermostat.cpp
     src/engine/potentials/lj_potential.cpp
     src/engine/potentials/lj_kernels.cpp
     src/engine/potentials/dft_potential.cpp

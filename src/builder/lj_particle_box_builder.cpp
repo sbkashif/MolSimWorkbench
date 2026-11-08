@@ -20,7 +20,7 @@ Geometry LJParticleBoxBuilder::createCubicLattice(
     
     std::cout << "Creating LJ particle box: N=" << config.numParticles 
               << ", rho=" << config.density 
-              << ", L=" << boxLength << " Å" << std::endl;
+              << ", L=" << boxLength << std::endl;
     
     Geometry geometry;
     geometry.setBoxDimensions(boxSize);
