@@ -51,7 +51,7 @@ Every `mini_lj` piece has a twin in the repo. Line numbers are in the current so
 | 7 | `class Potential` (pure virtual, virtual destructor) | identical | `src/engine/force_calculator.h:35-48` |
 | 7 | `HarmonicTether`, a second potential | `DFTPotential` plays that role in the repo | `src/engine/potentials/dft_potential.h:10-17` |
 | 8 | `class ForceCalculator` holding `vector<shared_ptr<Potential>>` | identical idea | `force_calculator.h:13-32` |
-| 8 | `buildForceCalculator()` with `make_shared` | `run_simulation.cpp` + `YAMLParser::parseClassicalPotential` | `src/tools/run_simulation.cpp:43-46`, `src/utils/yaml_parser.cpp:301` |
+| 8 | `buildForceCalculator()` with `make_shared` | `run_simulation.cpp` + `YAMLParser::parseClassicalPotential` | `src/tools/run_simulation.cpp:43-46`, `src/utils/yaml_parser.cpp:339` |
 | 9 | `timeMs` template in `timing.h` | `timeMs` in the benchmark | `benchmarks/bench_lj.cpp:56-68` |
 | 9 | threads, each writing `partial[t]` | the `Threads` backend | `src/engine/potentials/lj_kernels.cpp:302-333` |
 | — | `main` | two programs: the simulation, and the benchmark | `run_simulation.cpp:10-78`, `bench_lj.cpp:83-163` |
@@ -195,7 +195,7 @@ fast kernel:
 build/benchmarks/bench_lj 4096 7
 ```
 ```
-Creating LJ particle box: N=4096, rho=0.8, L=17.2355 Å
+Creating LJ particle box: N=4096, rho=0.8, L=17.2355
 Placed 4096 particles on cubic lattice
 
 N = 4096   rho = 0.80   L = 17.235   cutoff = 2.5   reps = 7
@@ -265,26 +265,22 @@ argument with somewhere else to put it (`run_simulation.cpp:17`):
 build/run_simulation data/lj_bulk_simulation.yaml /tmp/trajectory.xyz
 ```
 
-The output is 137 lines. The part that matters here:
+The output is 133 lines. The part that matters here:
 
 ```
 === LJ Particle Box Mode ===
-Creating LJ particle box: N=125, rho=0.8, L=5.38609 Å
+Creating LJ particle box: N=125, rho=0.8, L=5.38609
 Placed 125 particles on cubic lattice
 LJ box initialized: 125 particles
 ...
 Initial kinetic energy: 187.5
-
-=== Running with Phase Control ===
-Equilibration phase: 1000 steps
-Production phase: 5000 steps
-Step 0, Potential Energy: -611.774, Kinetic Energy: 187.5, Total Energy: -424.274, Temperature: 1
-Step 10, Potential Energy: -611.164, Kinetic Energy: 187.5, Total Energy: -423.664, Temperature: 1
+Step 0, Potential Energy: -611.553, Kinetic Energy: 187.5, Total Energy: -424.053, Temperature: 1
+Step 10, Potential Energy: -608.269, Kinetic Energy: 187.5, Total Energy: -420.769, Temperature: 1
 ...
-Step 990, Potential Energy: -644.957, Kinetic Energy: 187.5, Total Energy: -457.457, Temperature: 1
+Step 990, Potential Energy: -645.364, Kinetic Energy: 187.5, Total Energy: -457.864, Temperature: 1
 
 Simulation complete.
-Final energy: -457.539
+Final energy: -458.604
 Trajectory written to: …/trajectory.xyz
 ```
 
@@ -294,14 +290,14 @@ prints whatever path you gave.)
 Three things to read off it:
 
 - **Same box, same atoms.** N = 125, ρ = 0.8, L = 5.38609: the system of `mini_lj` chapters 4–8.
-- **Step 0 is −611.774, not −611.491665613.** The "Step 0" line is printed *after* the first
-  velocity-Verlet step: the loop body integrates first, then computes and prints the energy
-  (`src/engine/molecular_dynamics.cpp:254-283`: `integrateVelocityVerlet()` at 256, the print at 275–283). The atoms have already moved by one timestep. The
-  energy of the starting lattice is computed at `molecular_dynamics.cpp:231` but not printed; `bench_lj
+- **Step 0 is −611.553, not −611.491665613.** The "Step 0" line is printed *after* the first
+  velocity-Verlet step: the loop body integrates first, then prints the energy
+  (`src/engine/molecular_dynamics.cpp:308-362`: `integrator->step(...)` at 319, the print at 341–349). The atoms have already moved by one timestep. The
+  energy of the starting lattice is computed at `molecular_dynamics.cpp:265` but not printed; `bench_lj
   125` above shows it is `-611.491665613`.
-- **It ran 1000 steps, not 6000.** The phase lines are printed, but phase control is still a TODO
-  (`run_simulation.cpp:65`); the loop runs `totalTime / timeStep` steps (`molecular_dynamics.cpp:252`).
-  That is a property of the repo today, not of anything you did.
+- **It ran 1000 steps.** The file sets neither `equilibration_steps` nor `production_steps`, so the
+  loop runs `totalTime / timeStep` = 1.0 / 0.001 steps (`molecular_dynamics.cpp:295-297`).
+  `data/lj_nve_simulation.yaml` sets both, and then the run is split into the two phases.
 
 The kinetic energy stays at exactly 187.5 because the run is thermostatted. The integrator and the
 thermostat are [explainer 03](../explainer/03_integrator_and_md.md).

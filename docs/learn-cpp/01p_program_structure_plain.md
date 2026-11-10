@@ -244,7 +244,7 @@ When the pair is **not** needed:
 | 2 | a job description with no steps of its own ("whoever stands here must be able to calculateEnergy") | a class whose functions are all `= 0` | `class Potential` in `force_calculator.h` (chapter 7) |
 | 3 | a one-line sub-recipe written right on the card, marked "identical everywhere, keep any one copy" | a body inside a class is automatically `inline` | getters in `geometry.h` |
 | 4 | a recipe with a blank ("___ cake"): it must be seen in full wherever the blank gets filled in | templates live in headers | chapter 9's `timing.h` |
-| 5 | cards for sub-recipes nobody ever wrote, and nobody uses | dead headers | `src/engine/integrators/*.h`, `src/engine/minimizers/*.h` |
+| 5 | cards for sub-recipes nobody ever wrote, and nobody uses | dead headers | `src/engine/minimizers/*.h` |
 
 **Rule of thumb:** if other recipes call for your sub-recipe, give it a summary card (`.h`) and write it out
 once in full (`.cpp`). The start-here page needs no card. Short, identical-everywhere sub-recipes and recipes

@@ -125,7 +125,7 @@ is to make **the throwing-out part of a label's own clean-up step**. That label 
 | 4 | the ticket-holder's sub-recipe ends: its clean-up step throws the box out | `moved` dies at `}` | `destroy u` |
 
 In the repo, the MD driver is the only one who needs the trajectory writer, so it holds it with one ticket
-(`molecular_dynamics.h:102`, made at `molecular_dynamics.cpp:90`). When the driver is cleared away, the
+(`molecular_dynamics.h:123`, made at `molecular_dynamics.cpp:92`). When the driver is cleared away, the
 writer goes, and the writer's clean-up closes the file.
 
 ---
@@ -207,10 +207,10 @@ includes the tether's pull, because the rack adds every station's forces togethe
 |---|---|---|---|
 | 1 | `main` fetches a station rack from the storeroom | `auto forceCalculator = std::make_shared<ForceCalculator>();` | `run_simulation.cpp:43` |
 | 2 | for each potential file, the parser's sub-recipe fetches a machine and hands it back | `parser.parsePotential(potentialFile)` | `run_simulation.cpp:45` |
-| 3 | inside the parser: fetch, set up, hand back | `auto ljPotential = std::make_shared<LJPotential>();` … `return ljPotential;` | `yaml_parser.cpp:301`, `:321` |
+| 3 | inside the parser: fetch, set up, hand back | `auto ljPotential = std::make_shared<LJPotential>();` … `return ljPotential;` | `yaml_parser.cpp:339`, `:359` |
 | 4 | the rack signs for each machine | `std::vector<std::shared_ptr<Potential>> potentials;` | `force_calculator.h:31` |
-| 5 | the MD driver also signs for the rack | `this->forceCalculator = forceCalc;` | `molecular_dynamics.cpp:201` |
-| 6 | so the driver's clean-up step has nothing to throw out by hand | `// No need to delete forceCalculator as it's a shared_ptr` | `molecular_dynamics.cpp:24` |
+| 5 | the MD driver also signs for the rack | `this->forceCalculator = forceCalc;` | `molecular_dynamics.cpp:209` |
+| 6 | so the driver's clean-up step has nothing to throw out by hand | `// No need to delete forceCalculator as it's a shared_ptr` | `molecular_dynamics.cpp:26` |
 
 The parser does exactly what `dangling_potentials.cpp` got wrong, but right: the machine is in the
 storeroom with a signature on it, so the parser's counter can be wiped safely.

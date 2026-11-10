@@ -837,7 +837,15 @@ add_library(BuilderLib STATIC
 add_library(EngineLib STATIC
     src/engine/force_calculator.cpp
     src/engine/molecular_dynamics.cpp
+    src/engine/md_state.cpp
+    src/engine/integrators/integrator.cpp
+    src/engine/integrators/velocity_verlet_integrator.cpp
+    src/engine/integrators/leapfrog_integrator.cpp
+    src/engine/thermostats/thermostat.cpp
+    src/engine/thermostats/velocity_rescale_thermostat.cpp
+    src/engine/thermostats/langevin_thermostat.cpp
     src/engine/potentials/lj_potential.cpp
+    src/engine/potentials/lj_kernels.cpp
     src/engine/potentials/dft_potential.cpp
 )
 target_link_libraries(EngineLib PUBLIC BuilderLib)
@@ -857,11 +865,11 @@ Note the direction: **`BuilderLib` knows nothing about `EngineLib`.** Engine →
 **A `.cpp` not listed here does not exist as far as the program is concerned.** Two files in this repo are in that position:
 
 ```bash
-$ find src -name '*.cpp' | wc -l                                    # 13 on disk
-$ grep -o 'src/[a-z_/]*\.cpp' CMakeLists.txt | sort -u | wc -l      # 11 actually built
+$ find src -name '*.cpp' | wc -l                                    # 21 on disk
+$ grep -o 'src/[a-z_/]*\.cpp' CMakeLists.txt | sort -u | wc -l      # 19 actually built
 ```
 
-The unbuilt two are `src/engine/potentials/machine_learning_potential.cpp` and `src/utils/file_reader.cpp`. No `.o` is ever produced for them, so a call into `MachineLearningPotential` would fail at **link** time with `undefined symbol`, not at compile time. Worth knowing before you go looking for the ML potential and wonder why it never runs. (`src/engine/integrators/` and `src/engine/minimizers/` are dead for a related reason — headers with no `.cpp` at all, and nothing includes them.)
+The unbuilt two are `src/engine/potentials/machine_learning_potential.cpp` and `src/utils/file_reader.cpp`. No `.o` is ever produced for them, so a call into `MachineLearningPotential` would fail at **link** time with `undefined symbol`, not at compile time. Worth knowing before you go looking for the ML potential and wonder why it never runs. (`src/engine/minimizers/` is dead for a related reason — headers with no `.cpp` at all, and nothing includes them.)
 
 ---
 

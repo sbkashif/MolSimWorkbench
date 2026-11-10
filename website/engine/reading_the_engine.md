@@ -294,9 +294,10 @@ on these pages:
   (`setTailCorrection`), but the YAML keys `tail_correction` and
   `shift_potential` are not read by the parser.
 - **Every atom has mass 1.**
-- **The thermostat is the simplest kind:** an exact rescaling after every
-  step, which holds the temperature fixed but does not let it fluctuate as
-  it would in a real system at that temperature.
+- **The default thermostat is the simplest kind:** an exact rescaling after
+  every step, which holds the temperature fixed but does not let it
+  fluctuate as it would in a real system at that temperature. The
+  `langevin` thermostat lets it fluctuate, but no run on these pages uses it.
 - **The run length** is `total_steps`, unless the file sets
   `equilibration_steps` or `production_steps`. Those two then replace it:
   the temperature is held during equilibration, and production runs with no

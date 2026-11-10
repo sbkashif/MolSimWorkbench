@@ -556,7 +556,7 @@ file that includes it is recompiled.
 | `.h` with no `.cpp`, on purpose | `class Potential` in `src/engine/force_calculator.h` | its functions are all `= 0` ("no body here; every subclass must supply one"), so there is nothing to compile. Chapter 7 |
 | body inside a `.h`, on purpose | the getters in `src/builder/geometry.h`, e.g. `getAtoms() const { return atomTypes; }` | a body written inside a class is automatically `inline`: "identical everywhere, keep any one copy", so the linker does not complain. Chapter 5 shows `inline` beside `twice` |
 | `.h` with no `.cpp`, on purpose | templates, e.g. chapter 9's `timing.h` | a template is a recipe with a blank; the compiler must see the whole body wherever the blank is filled in. Chapter 9 |
-| `.h` with no `.cpp`, by accident | `src/engine/integrators/*.h`, `src/engine/minimizers/*.h` | promises nobody keeps. Nothing includes them, so they never cause a link error. Dead code |
+| `.h` with no `.cpp`, by accident | `src/engine/minimizers/*.h` | promises nobody keeps. Nothing includes them, so they never cause a link error. Dead code |
 
 **Rule of thumb:** if other files call your functions, give them a `.h` with the promises and a `.cpp` with
 the one copy of the bodies. A file nobody calls into (`main`) needs no `.h`. Things that are only shape,

@@ -8,7 +8,7 @@ The engine is written in C++17 and exposed to Python through a pybind11 native m
 
 - **Lennard-Jones MD**: Full NVE/NVT molecular dynamics with periodic boundary conditions, minimum-image convention, configurable cutoff, and geometric/arithmetic mixing rules
 - **LJ Bulk Box**: Automatic cubic-lattice initialization from density — no geometry file needed
-- **Velocity Verlet Integrator**: Symplectic integrator with Maxwell-Boltzmann velocity initialization and optional Berendsen thermostat
+- **Swappable integrator and thermostat**: Velocity Verlet (default) or leapfrog; velocity rescale (default), Berendsen, Langevin or none. Chosen by name in the YAML. Maxwell-Boltzmann velocity initialization
 - **Energy Minimization**: Steepest descent, conjugate gradient, and L-BFGS minimizers for pre-MD relaxation
 - **Pluggable Potentials**: `LJPotential` and `DFTPotential` share the same `Potential` interface; multiple potentials can be stacked in one `ForceCalculator` (`MachineLearningPotential` is an unbuilt stub that does not yet implement it)
 - **Molecule Builder**: Build explicit molecules (e.g. water) from YAML geometry files
@@ -134,9 +134,14 @@ MolSimWorkbench/
 │   │   │   ├── dft_potential.h/.cpp         # DFT interface
 │   │   │   └── machine_learning_potential.h/.cpp
 │   │   ├── integrators/
-│   │   │   ├── velocity_verlet_integrator.h # VV step()
-│   │   │   ├── md_integrator.h              # base class + MB init
-│   │   │   └── md_parameters.h
+│   │   │   ├── integrator.h/.cpp            # Integrator base + makeIntegrator()
+│   │   │   ├── velocity_verlet_integrator.h/.cpp  # default
+│   │   │   └── leapfrog_integrator.h/.cpp
+│   │   ├── thermostats/
+│   │   │   ├── thermostat.h/.cpp            # Thermostat base + makeThermostat()
+│   │   │   ├── velocity_rescale_thermostat.h/.cpp  # default; Berendsen with tau
+│   │   │   └── langevin_thermostat.h/.cpp
+│   │   ├── md_state.h/.cpp                  # view the integrator/thermostat work on
 │   │   ├── force_calculator.h/.cpp          # potential aggregator
 │   │   └── molecular_dynamics.h/.cpp        # top-level MD driver
 │   ├── builder/
@@ -230,6 +235,8 @@ Layer-by-layer explanations of the codebase are in [`docs/explainer/`](docs/expl
 3. [Velocity Verlet integrator and MD loop](docs/explainer/03_integrator_and_md.md)
 4. [Builders and YAML configuration](docs/explainer/04_builders_and_config.md)
 5. [Python interface via pybind11](docs/explainer/05_python_interface.md)
+
+Changes to the engine, its Python interface and its build are listed in [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 

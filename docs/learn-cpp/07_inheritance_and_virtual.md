@@ -259,7 +259,7 @@ base_view.cpp:8:8: error: no member named 'setCutoff' in 'Potential'
 That is why `main` sets up `lj` through its own concrete type first (lines 14-16), and only then puts its
 address in the `Potential*` list. The repo's YAML parser does the same: it creates an `LJPotential`,
 calls `setCutoff` and `addAtomParameters` on it, and only then returns it as a `Potential`
-(`src/utils/yaml_parser.cpp:301-321`).
+(`src/utils/yaml_parser.cpp:339-359`).
 
 ---
 
@@ -442,7 +442,7 @@ parentheses, only a member can stand, so the first `k` is the member. That is wh
 |---|---|---|
 | when the member gets its value | as it is created | created first (a `double` with garbage), then overwritten |
 | works for `const` members and reference members | yes | no — those cannot be assigned after creation |
-| works for a base class | yes: `: Potential()` (§7.12 shows a real one) | no |
+| works for a base class | yes: `: Potential()` | no |
 
 For a single `double` the difference is invisible, but the initializer list is the C++ habit, and the
 repo's constructors use it (§7.12).
@@ -564,54 +564,83 @@ the same shape as mini_lj. A vtable lookup is a fixed array index, not a search 
 
 ---
 
-## 7.12 A second hierarchy in the repo: integrators (skip if you only care about potentials)
+## 7.12 Two more hierarchies in the repo: integrators and thermostats (skip if you only care about potentials)
 
-`Potential` is the hierarchy you need for the parallel course. The repo has one more,
-`MDIntegrator`, and it shows three things `Potential` does not. `src/engine/integrators/md_integrator.h`:
+`Potential` is the hierarchy you need for the parallel course. The repo has two more with the same
+shape: `Integrator` (moves the atoms one time step) and `Thermostat` (holds the temperature).
+`MolecularDynamics` holds one of each through a `std::shared_ptr` and calls them without knowing
+which kind it holds, exactly as `ForceCalculator` does with potentials. `src/engine/integrators/integrator.h:13-23`:
 
 ```cpp
-14  class MDIntegrator {
-15  public:
-16      MDIntegrator(const MDParameters& params = MDParameters())
-17          : params(params), stepCount(0), time(0.0), energy(0.0),
-18            geometry(nullptr), forceCalculator(nullptr) {}
-...
-124      virtual void step() = 0;
-...
-127      virtual void run() {
-...
-135          for (int i = 0; i < params.maxSteps; ++i) {
-136              // Take a step
-137              step();
-...
-184  protected:
-185      MDParameters params;
-186      int stepCount;
+13  class Integrator {
+14  public:
+15      virtual ~Integrator() = default;
+16
+17      // Advance positions and velocities by one time step dt.
+18      virtual void step(MDState& state, double dt) = 0;
+19
+20      // Name used in YAML and in Python, e.g. "velocity_verlet".
+21      virtual std::string getName() const = 0;
+22  };
 ```
 
-and `src/engine/integrators/velocity_verlet_integrator.h:9-15`:
+The thermostat shows one thing `Potential` does not. `src/engine/thermostats/thermostat.h:15-29`:
 
 ```cpp
- 9  class VelocityVerletIntegrator : public MDIntegrator {
-10  public:
-11      VelocityVerletIntegrator(const MDParameters& params = MDParameters())
-12          : MDIntegrator(params) {}
-13
-14      // Implement the Velocity Verlet integration step
-15      void step() override {
+15  class Thermostat {
+16  public:
+17      virtual ~Thermostat() = default;
+18
+19      // Called just before the integrator step. Default: nothing.
+20      virtual void beforeStep(MDState& state, double dt, double targetTemperature) {
+21          (void)state; (void)dt; (void)targetTemperature;
+22      }
+23
+24      // Called just after the integrator step.
+25      virtual void afterStep(MDState& state, double dt, double targetTemperature) = 0;
+...
+29  };
+```
+
+and two derived classes, `src/engine/thermostats/velocity_rescale_thermostat.h:18-22` and
+`langevin_thermostat.h:24-30`:
+
+```cpp
+18  class VelocityRescaleThermostat : public Thermostat {
+19  public:
+20      explicit VelocityRescaleThermostat(double tau = 0.0);
+21
+22      void afterStep(MDState& state, double dt, double targetTemperature) override;
+```
+```cpp
+24  class LangevinThermostat : public Thermostat {
+25  public:
+...
+27      explicit LangevinThermostat(double friction = 1.0, unsigned int seed = 0);
+28
+29      void beforeStep(MDState& state, double dt, double targetTemperature) override;
+30      void afterStep(MDState& state, double dt, double targetTemperature) override;
 ```
 
 | Line | What it shows |
 |---|---|
-| `md_integrator.h:16-18` | an initializer list with six members, and a default argument (chapter 5 §5.8) |
-| `md_integrator.h:127` | a virtual method **with** a body: derived classes *may* replace `run`, but need not |
-| `md_integrator.h:137` | the base class's `run` calls the pure virtual `step()`. The loop is written once in the base; each derived class supplies only the step. (This shape is called the **template method pattern**; it has nothing to do with C++ templates) |
-| `md_integrator.h:184` | **`protected:`** — like `private`, but derived classes may use these members too. `VelocityVerletIntegrator::step` reads `geometry`, `forces`, `params` directly |
-| `velocity_verlet_integrator.h:12` | the derived constructor's initializer list calls the **base class constructor**, `: MDIntegrator(params)`. The base part of an object is built first |
+| `thermostat.h:20-22` | a virtual method **with** a body: derived classes *may* replace `beforeStep`, but need not. `(void)state;` tells the compiler the unused parameter is unused on purpose |
+| `velocity_rescale_thermostat.h:22` | `VelocityRescaleThermostat` overrides only `afterStep`, so it gets the base class's do-nothing `beforeStep` |
+| `langevin_thermostat.h:29-30` | `LangevinThermostat` overrides both: it acts before and after each integrator step |
+| `velocity_rescale_thermostat.h:20` | an `explicit` constructor with a default argument (chapter 5 §5.8); the `.cpp` (line 6) initializes the member with `: tau(tau)` |
+| `integrator.h:27`, `thermostat.h:37` | `makeIntegrator` and `makeThermostat` take a name from the YAML file and return a `std::shared_ptr` to the base class. `makeThermostat("none", ...)` returns `nullptr`, and the loop skips a null thermostat |
 
-These integrator classes are not used by `run_simulation` today — `MolecularDynamics` has its own
-loop, `runSimulation` and `integrateVelocityVerlet` (`src/engine/molecular_dynamics.cpp:237`, `:440`) —
-but they are a clean, small example of a base class doing real work.
+The loop is written once, in `MolecularDynamics::runSimulation`. It calls
+`integrator->step(state, params.timeStep)` (`src/engine/molecular_dynamics.cpp:319`), with the
+thermostat's `beforeStep` and `afterStep` on either side; each plug supplies only its part.
+
+Two more features of base classes are not in these plugs. Both appear in the minimizer headers under
+`src/engine/minimizers/`, which are not compiled (chapter 1 calls them dead code), but read fine as examples:
+
+| Line | What it shows |
+|---|---|
+| `energy_minimizer.h:98` | **`protected:`**: like `private`, but derived classes may use these members too |
+| `conjugate_gradient_minimizer.h:9-10` | the derived constructor's initializer list calls the **base class constructor**, `: EnergyMinimizer(params)`. The base part of an object is built first |
 
 ---
 

@@ -460,13 +460,13 @@ default is written **once**, in the declaration, not again in the definition.
 > **Unlike Python:** there are no keyword arguments. You cannot skip `factor` and set a later parameter by
 > name; to change the last of several defaults, you must spell out every argument before it.
 
-The repo does exactly that. `src/engine/molecular_dynamics.h:67` declares:
+The repo does exactly that. `src/engine/molecular_dynamics.h:84` declares:
 
 ```cpp
 void setBox(double a, double b, double c, double alpha = 90.0, double beta = 90.0, double gamma = 90.0);
 ```
 
-and `src/engine/molecular_dynamics.cpp:28` defines it without the defaults:
+and `src/engine/molecular_dynamics.cpp:30` defines it without the defaults:
 
 ```cpp
 void MolecularDynamics::setBox(double a, double b, double c, double alpha, double beta, double gamma) {
@@ -525,9 +525,9 @@ printed full signatures: the linker was looking for a mangled name, and decoded 
 
 Two places in the repo use overloading:
 
-- `MolecularDynamics::setBox` has two versions, `molecular_dynamics.h:67-68`. One takes six numbers,
+- `MolecularDynamics::setBox` has two versions, `molecular_dynamics.h:84-85`. One takes six numbers,
   the other a `SimulationBox`. The second just unpacks the box and calls the first
-  (`molecular_dynamics.cpp:44-46`).
+  (`molecular_dynamics.cpp:46-48`).
 - `DFTPotential` declares two `calculateForces`: one fills a `std::vector<std::array<double, 3>>&`
   (`dft_potential.h:16`), the other returns a flat `std::vector<double>` (`dft_potential.h:20`).
   `dft_potential.cpp:16` is the first calling the second.

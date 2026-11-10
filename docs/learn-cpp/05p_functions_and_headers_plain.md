@@ -168,7 +168,7 @@ written into, by `&`.
 | 1 | "a pinch of salt, unless you say otherwise" | default argument | `double factor = 2.5` |
 | 2 | calling for the sub-recipe without it uses the default | | `scaledCutoff(1.0)` → `2.5` |
 | 3 | calling for it with a value overrides the default | | `scaledCutoff(1.0, 3.0)` → `3` |
-| 4 | the default is written **on the summary card only**, not again in the full sub-recipe | default in the declaration | `molecular_dynamics.h:67` has `alpha = 90.0`; `.cpp:28` does not |
+| 4 | the default is written **on the summary card only**, not again in the full sub-recipe | default in the declaration | `molecular_dynamics.h:84` has `alpha = 90.0`; `.cpp:30` does not |
 | 5 | no "salt=…" by name: ingredients are handed in strictly in order | arguments match by position only | |
 
 ---

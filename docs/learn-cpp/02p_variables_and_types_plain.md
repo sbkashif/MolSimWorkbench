@@ -95,7 +95,7 @@ The habit: **always fill a jar when you put it out.** The repo does: `double tot
 | 6 | to do it on purpose, say so | `static_cast<int>(x)` | used in chapter 4 |
 
 **Our kitchen's habit:** every "half" in the repo is written `0.5`, never `1/2`. `1/2` is two whole-cup jars,
-so it is `0`, and `1/2 * dt * dt` would be zero. `src/engine/molecular_dynamics.cpp:443` writes
+so it is `0`, and `1/2 * dt * dt` would be zero. `src/engine/integrators/velocity_verlet_integrator.cpp:7` writes
 `0.5 * dt * dt`; the arithmetic mixing rule in `lj_potential.cpp:350-351` writes `0.5 * (… + …)`.
 
 ---

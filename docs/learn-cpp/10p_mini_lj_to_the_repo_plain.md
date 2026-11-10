@@ -40,7 +40,7 @@ one, then have the robot do a full run.
 | 5 | mixing, pair force (5) | `getMixedParameters`, `calculatePairForce` | `lj_potential.cpp:335-358`, `:370-386` |
 | 6 | the `Geometry` and `LJPotential` cookie cutters (6) | same names | `geometry.h:12-33`; `lj_potential.cpp:269-333` |
 | 7 | the job description `Potential` (7) | identical | `force_calculator.h:35-48` |
-| 8 | the station rack, the storeroom, the sub-recipe that builds machines (8) | `ForceCalculator`, `make_shared`, the YAML parser | `force_calculator.h:13-32`; `run_simulation.cpp:43-46`; `yaml_parser.cpp:301` |
+| 8 | the station rack, the storeroom, the sub-recipe that builds machines (8) | `ForceCalculator`, `make_shared`, the YAML parser | `force_calculator.h:13-32`; `run_simulation.cpp:43-46`; `yaml_parser.cpp:339` |
 | 9 | the stopwatch, the extra robots (9) | `timeMs`, the `Threads` backend | `bench_lj.cpp:56-68`; `lj_kernels.cpp:302-333` |
 
 ---
@@ -94,9 +94,9 @@ a different translator setting.
 | 1 | switch the robot on at the kitchen's front door (the repo root) | the YAML reader looks for a helper script relative to where you are | started elsewhere: `Python YAML parser script not found` |
 | 2 | hand it the order slip, with a second word saying where to put the trajectory | `build/run_simulation data/lj_bulk_simulation.yaml /tmp/trajectory.xyz` | second word keeps `trajectory.xyz` out of the repo |
 | 3 | same 125-atom lattice as the practice kitchen | | `N=125, rho=0.8, L=5.38609` |
-| 4 | the first line on the serving tray comes **after** one step of cooking | velocity Verlet runs before the print | `Step 0, Potential Energy: -611.774` (not −611.4917: the atoms have already moved) |
-| 5 | the order slip asks for 1000 + 5000 steps, but only 1000 are cooked | phase control is a TODO in the repo (`run_simulation.cpp:65`) | last line `Step 990` |
-| 6 | the run is finished | | `Final energy: -457.539` |
+| 4 | the first line on the serving tray comes **after** one step of cooking | velocity Verlet runs before the print | `Step 0, Potential Energy: -611.553` (not −611.4917: the atoms have already moved) |
+| 5 | the order slip names no warm-up or main course, so the plain run length is cooked: 1000 steps | no `equilibration_steps` / `production_steps`, so `totalTime / timeStep` (`molecular_dynamics.cpp:295-297`) | last line `Step 990` |
+| 6 | the run is finished | | `Final energy: -458.604` |
 
 ---
 

@@ -488,7 +488,7 @@ with every backend (the project must be built first; see `CLAUDE.md`):
 build/benchmarks/bench_lj 4096 3          # from the repo root
 ```
 ```
-Creating LJ particle box: N=4096, rho=0.8, L=17.2355 Å
+Creating LJ particle box: N=4096, rho=0.8, L=17.2355
 Placed 4096 particles on cubic lattice
 
 N = 4096   rho = 0.80   L = 17.235   cutoff = 2.5   reps = 3

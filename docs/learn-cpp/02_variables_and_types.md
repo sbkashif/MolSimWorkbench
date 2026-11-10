@@ -273,15 +273,15 @@ converted to `double` first and you get ordinary division.
 Every "half" in the repo is written as the `double` literal `0.5`:
 
 ```cpp
-// src/engine/molecular_dynamics.cpp:443
-double dtSquaredHalf = 0.5 * dt * dt;
+// src/engine/integrators/velocity_verlet_integrator.cpp:7
+const double dtSquaredHalf = 0.5 * dt * dt;
 
 // src/engine/potentials/lj_potential.cpp:350-351  (arithmetic mixing rule)
 mixedEpsilon = 0.5 * (params1.epsilon + params2.epsilon);
 mixedSigma = 0.5 * (params1.sigma + params2.sigma);
 ```
 
-If someone "tidied" line 443 to `1/2 * dt * dt`, the compiler would evaluate `1/2` first — two `int`s —
+If someone "tidied" that line to `1/2 * dt * dt`, the compiler would evaluate `1/2` first — two `int`s —
 get `0`, and every position update would silently use zero. No error, no warning. Writing `0.5`, or
 `1.0 / 2.0`, makes the number a `double` from the start.
 

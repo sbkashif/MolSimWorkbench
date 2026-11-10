@@ -318,17 +318,17 @@ This repo has no `new` or `delete` anywhere in `src/` outside comments:
 grep -rnwE 'new|delete' src
 ```
 ```
-src/utils/yaml_parser.cpp:300:            // Create a new LJ potential
-src/engine/molecular_dynamics.cpp:24:    // No need to delete forceCalculator as it's a shared_ptr
-src/engine/molecular_dynamics.cpp:85:        // Create the new path
-src/engine/molecular_dynamics.cpp:364:        // Calculate new energy and forces
-src/engine/molecular_dynamics.cpp:467:    // Calculate forces at new positions
+src/utils/yaml_parser.cpp:338:            // Create a new LJ potential
 src/engine/potentials/lj_kernels.h:57:// to any caller — only a new case inside ljComputeGather.
 src/engine/minimizers/conjugate_gradient_minimizer.h:72:    // Override to calculate new conjugate directions after energy calculation
 src/engine/minimizers/conjugate_gradient_minimizer.h:86:            // Calculate new energy and forces
-src/engine/integrators/velocity_verlet_integrator.h:42:        // Step 2: Calculate new forces at the updated positions
-src/engine/integrators/velocity_verlet_integrator.h:45:        // Step 3: Update velocities using old and new forces (full step)
 src/engine/minimizers/energy_minimizer.h:64:            // Calculate new energy and forces
+src/engine/integrators/velocity_verlet_integrator.cpp:9:    // First half: new positions from f(t), velocities half-kicked by f(t)
+src/engine/integrators/velocity_verlet_integrator.cpp:28:    // f(t+dt) at the new positions
+src/engine/molecular_dynamics.cpp:26:    // No need to delete forceCalculator as it's a shared_ptr
+src/engine/molecular_dynamics.cpp:87:        // Create the new path
+src/engine/molecular_dynamics.cpp:318:        // and potential energy at the new positions
+src/engine/molecular_dynamics.cpp:438:        // Calculate new energy and forces
 ```
 
 Every hit is a comment. Heap objects in the repo are made with `std::make_shared` or `std::make_unique`.
@@ -363,14 +363,14 @@ One construct, one destroy, and the destroy happens at the closing brace because
 the current owner, dies. `u ? … : …` works because a smart pointer tests as `true` when it holds
 something.
 
-In the repo, `MolecularDynamics` owns its trajectory writer this way (`src/engine/molecular_dynamics.h:102`
-and `src/engine/molecular_dynamics.cpp:90`):
+In the repo, `MolecularDynamics` owns its trajectory writer this way (`src/engine/molecular_dynamics.h:123`
+and `src/engine/molecular_dynamics.cpp:92`):
 
 ```cpp
-102      std::unique_ptr<TrajectoryWriter> trajectoryWriter;
+123      std::unique_ptr<TrajectoryWriter> trajectoryWriter;
 ```
 ```cpp
-90      trajectoryWriter = std::make_unique<TrajectoryWriter>(outputFilename, selectedFormat);
+92      trajectoryWriter = std::make_unique<TrajectoryWriter>(outputFilename, selectedFormat);
 ```
 
 Nobody else needs the writer, so one owner is the right answer. When the `MolecularDynamics` object
@@ -714,17 +714,17 @@ threading bug.
 
 This is `mini_lj`'s `buildForceCalculator`, spread over two places. Line 43 is `main.cpp:18`. Line 45 calls
 `parsePotential`, which returns a `std::shared_ptr<Potential>` built inside the parser
-(`src/utils/yaml_parser.cpp:293`, `:301`, `:321`):
+(`src/utils/yaml_parser.cpp:331`, `:339`, `:359`):
 
 ```cpp
-293  std::shared_ptr<Potential> YAMLParser::parseClassicalPotential(const nlohmann::json& json) {
+331  std::shared_ptr<Potential> YAMLParser::parseClassicalPotential(const nlohmann::json& json) {
      ...
-301              auto ljPotential = std::make_shared<LJPotential>();
+339              auto ljPotential = std::make_shared<LJPotential>();
      ...
-321              return ljPotential;
+359              return ljPotential;
 ```
 
-Line 301 is `main.cpp:14`, nearly character for character. Line 321 returns a `shared_ptr<LJPotential>`
+Line 339 is `main.cpp:14`, nearly character for character. Line 359 returns a `shared_ptr<LJPotential>`
 from a function declared to return `shared_ptr<Potential>`: the derived-to-base conversion from §8.7.
 The parser's local `ljPotential` dies at the function's `}`, and the object lives on in the returned
 `shared_ptr`. This is the exact situation `dangling_potentials.cpp` got wrong, done right.
@@ -737,24 +737,24 @@ The parser's local `ljPotential` dies at the function's `}`, and the object live
 31      std::vector<std::shared_ptr<Potential>> potentials;
 ```
 
-and `src/engine/molecular_dynamics.cpp:200-202`:
+and `src/engine/molecular_dynamics.cpp:208-210`:
 
 ```cpp
-200  void MolecularDynamics::setForceCalculator(std::shared_ptr<ForceCalculator> forceCalc) {
-201      this->forceCalculator = forceCalc;
-202  }
+208  void MolecularDynamics::setForceCalculator(std::shared_ptr<ForceCalculator> forceCalc) {
+209      this->forceCalculator = forceCalc;
+210  }
 ```
 
-Line 201 copies a `shared_ptr` into the member declared at `src/engine/molecular_dynamics.h:99`
+Line 209 copies a `shared_ptr` into the member declared at `src/engine/molecular_dynamics.h:116`
 (`std::shared_ptr<ForceCalculator> forceCalculator;`). After `run_simulation.cpp:51`, the
 `ForceCalculator` has two owners: `main`'s local `forceCalculator` and `dynamics`' member. Neither has to
-know whether the other is finished with it. The destructor at `src/engine/molecular_dynamics.cpp:23-25`
+know whether the other is finished with it. The destructor at `src/engine/molecular_dynamics.cpp:25-27`
 records exactly that:
 
 ```cpp
-23  MolecularDynamics::~MolecularDynamics() {
-24      // No need to delete forceCalculator as it's a shared_ptr
-25  }
+25  MolecularDynamics::~MolecularDynamics() {
+26      // No need to delete forceCalculator as it's a shared_ptr
+27  }
 ```
 
 **The whole ownership tree of a run**, at the moment `dynamics.runSimulation()` starts:
@@ -776,12 +776,12 @@ in that tree is freed by a destructor. The repo never says `delete`.
 
 ### Why pybind11 wants `shared_ptr` (deep dive later)
 
-`src/bindings/molsim_bindings.cpp:87` and `:89`:
+`src/bindings/molsim_bindings.cpp:102` and `:104`:
 
 ```cpp
-87      py::class_<Potential, std::shared_ptr<Potential>>(module, "Potential");
+102     py::class_<Potential, std::shared_ptr<Potential>>(module, "Potential");
     ...
-89      py::class_<LJPotential, Potential, std::shared_ptr<LJPotential>>(module, "LJPotential")
+104     py::class_<LJPotential, Potential, std::shared_ptr<LJPotential>>(module, "LJPotential")
 ```
 
 The second template argument tells pybind11 to hold these objects through `shared_ptr`. A Python script

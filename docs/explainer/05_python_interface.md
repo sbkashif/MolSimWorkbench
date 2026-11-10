@@ -22,6 +22,8 @@ Every major class in the C++ stack has a Python counterpart in `_molsim`:
 | `_molsim.ForceCalculator` | `ForceCalculator` | potential aggregator |
 | `_molsim.MolecularDynamics` | `MolecularDynamics` | the MD driver |
 | `_molsim.SimulationParameters` | `SimulationParameters` | config struct |
+| `_molsim.VelocityVerletIntegrator`, `_molsim.LeapfrogIntegrator` | `Integrator` plugs | pass to `md.setIntegrator(...)` |
+| `_molsim.VelocityRescaleThermostat`, `_molsim.LangevinThermostat` | `Thermostat` plugs | pass to `md.setThermostat(...)`; `None` means no thermostat |
 | `_molsim.SimulationBox` | `SimulationBox` | box dimensions |
 | `_molsim.YAMLParser` | `YAMLParser` | reads config files |
 | `_molsim.TrajectoryFormat` | `TrajectoryFormat` | enum: XYZ / DCD / XTC |
