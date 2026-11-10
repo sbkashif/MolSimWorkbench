@@ -355,7 +355,7 @@ std::pair<double, double> LJPotential::getMixedParameters(const std::string& typ
         mixedEpsilon = std::sqrt(params1.epsilon * params2.epsilon);
         mixedSigma = std::sqrt(params1.sigma * params2.sigma);
     } else if (mixingRule == "arithmetic") {
-        mixedEpsilon = 0.5 * (params1.epsilon + params2.epsilon);
+        mixedEpsilon = std::sqrt(params1.epsilon * params2.epsilon);  // Lorentz-Berthelot
         mixedSigma = 0.5 * (params1.sigma + params2.sigma);
     } else {
         mixedEpsilon = 0.0;

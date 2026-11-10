@@ -134,10 +134,12 @@ When two *different* atom types interact, you need combined $\varepsilon$ and $\
 epsilon_mix = sqrt(eps_i * eps_j);
 sigma_mix   = sqrt(sig_i * sig_j);
 
-// arithmetic:
-epsilon_mix = 0.5 * (eps_i + eps_j);
+// arithmetic (Lorentz-Berthelot):
+epsilon_mix = sqrt(eps_i * eps_j);
 sigma_mix   = 0.5 * (sig_i + sig_j);
 ```
+
+"Arithmetic" names how $\sigma$ is mixed; $\varepsilon$ stays geometric in both rules. (Before 0.7.1 the code averaged $\varepsilon$ too.)
 
 For the LJ-bulk simulation there is only one atom type (`"LJ"`) with $\varepsilon = \sigma = 1$, so mixing rules are irrelevant in practice. They matter once you add water (O + H) or heterogeneous systems.
 

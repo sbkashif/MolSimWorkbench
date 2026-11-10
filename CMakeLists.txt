@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(MolSimWorkbench VERSION 0.7.0)
+project(MolSimWorkbench VERSION 0.7.1)
 
 # Default to an optimised build. Without this, a plain `cmake -B build -S .`
 # compiles with no optimisation, and every timing in docs/learn-parallel/ is

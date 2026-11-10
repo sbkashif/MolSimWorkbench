@@ -26,7 +26,13 @@ Geometry LJParticleBoxBuilder::createCubicLattice(
     geometry.setBoxDimensions(boxSize);
     
     // Calculate lattice spacing and particles per dimension
-    int particlesPerDim = static_cast<int>(std::cbrt(config.numParticles) + 0.5);
+    // Smallest n with n^3 >= N, so every particle gets a lattice site. Rounding
+    // cbrt(N) to nearest would give too few sites for N = 130 (5^3 = 125).
+    int particlesPerDim = static_cast<int>(std::cbrt(static_cast<double>(config.numParticles)));
+    while (static_cast<std::size_t>(particlesPerDim) * particlesPerDim * particlesPerDim
+           < config.numParticles) {
+        ++particlesPerDim;
+    }
     double spacing = boxLength / particlesPerDim;
     
     // Random number generator for small displacements to break symmetry

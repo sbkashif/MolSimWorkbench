@@ -5,6 +5,17 @@ documentation edits are not listed here. Versions follow [Semantic Versioning](h
 before 1.0.0 a minor version may change the API. Dates are commit dates.
 Versions before 0.7.0 were numbered afterwards, from the history.
 
+## 0.7.1 — 2026-11-10
+
+### Fixed
+- The `"arithmetic"` LJ mixing rule is now Lorentz–Berthelot: σ is averaged
+  and ε is `sqrt(ε_i ε_j)`. It used to average ε as well. No shipped config uses
+  it; `"geometric"` (the default) is unchanged.
+- `lj_particle_box` places every requested particle. The lattice used
+  round(N^(1/3)) sites per side, so N such as 128, 256 or 400 got fewer atoms
+  (256 gave 216). It now uses the smallest n with n³ ≥ N. Perfect cubes and N
+  that already fit are placed exactly as before.
+
 ## 0.7.0 — 2026-11-08
 
 ### Added

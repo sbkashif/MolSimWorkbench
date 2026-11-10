@@ -39,7 +39,7 @@ With the default config (`N=125`, `rho=0.8`), this gives $L \approx 5.39$ in red
 
 ### Cubic lattice placement
 
-Particles per dimension: $n = N^{1/3}$ rounded to the nearest integer. Lattice spacing: $a = L / n$.
+Particles per dimension: the smallest $n$ with $n^3 \ge N$, so every particle gets a site (for $N = 130$, $n = 6$ and the last 86 sites stay empty). Lattice spacing: $a = L / n$.
 
 Each particle is placed at:
 
