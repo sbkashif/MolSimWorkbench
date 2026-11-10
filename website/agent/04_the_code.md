@@ -1,32 +1,75 @@
-# How the agent is built
+# How our agent was built
 
 :::{admonition} Draft
 :class: warning
 This page is being built. The code shown is read straight from the `agent/`
-folder of the repository. It is the code that made the first run on
-2026-11-07, except for two later changes, both described below: a second way
-to reach an LLM, and a final test that the LLM never sees.
+folder of the repository. It is the code that made both runs on
+2026-11-09.
 :::
 
-[Automating the loop with an agent](02_the_agent.md) named the parts of the
-agent (the LLM, the tools, the tool calls and the harness) and showed what the
-first run did. It treated each part as a box. This page opens the boxes and
-goes through the code, one file at a time, in the order the data flows: the
-settings, the training frames, the four tools, and the harness that joins them
-to the LLM.
+[What our agent did](03_first_run.md) followed the agent as one whole: an LLM
+that chooses, inside a script that runs and checks each step. That pattern is
+not special to training MLIPs. Every agent has it, and its pieces have standard
+names. This page first gives those names, then opens each piece and goes
+through our code, one file at a time.
 
-The whole agent is four short Python files, about 500 lines in all:
+## Understanding an agent
+
+### The four parts
+
+In the terms used for agents, the loop from level 3 of
+[The case for an agent](02_the_agent.md) has four
+parts ({numref}`agent-parts-figure`):
+
+- The **LLM**: Qwen3 8B on the laptop in one run, Claude Sonnet 5.5 through
+  Anthropic's API in the other. The script talks to it directly, not
+  through a chatbot app.
+- The **tools** are the programs in `tools`: Python functions, each with a
+  description and its inputs.
+- A **tool call** is the LLM's answer, `choice` in the loop: a tool's name and
+  its inputs.
+- The **harness** is the script that joins them: it sends the history, checks
+  each tool call against the limits, runs it, and records the result. Here it
+  is one Python file, `agent/harness.py`.
+
+```{figure} ../figures/agent_parts.svg
+:name: agent-parts-figure
+
+The parts of the agent in the Qwen3 run. The LLM chooses, the harness
+enforces and records, and the tools do the work.
+```
+
+### Agents in MD and MLIP work
+
+Agents like this are already used around MD and MLIPs, with more or less
+freedom. Some, like ours, choose among fixed tools: MDCrow
+runs MD workflows with over 40 expert-designed tools
+([Campbell et al. 2025](https://arxiv.org/abs/2502.09565)), and Lang2MLIP picks
+each step of MLIP development from the data, the model and its errors
+([Li et al. 2026](https://arxiv.org/abs/2605.14527)). Others go further and
+edit the training code itself, keeping a change only if it passes a fixed set
+of checks ([Osaro et al. 2026](https://arxiv.org/abs/2605.30889)). The agent
+here is at the simple end: it picks from five tools and writes no code.
+
+## Our code
+
+Our agent is four Python files in the `agent/` folder, about 500 lines in all.
+Each has one job:
 
 | File | What it holds |
 | --- | --- |
-| `agent/config.py` | the goal's thresholds and every limit the harness enforces |
-| `agent/data.py` | turns rMD17 ethanol into the files MACE reads: training, selection and final test frames |
-| `agent/tools.py` | `train`, `evaluate`, `run_md`, `add_data`, `final_test`, and the list of tools the LLM sees |
-| `agent/harness.py` | the loop: send the history, check the call, run the tool, log it, and score the final test at the end |
+| `config.py` | the numbers in the goal, and the limits the harness enforces |
+| `data.py` | the step that turns rMD17 ethanol into files MACE can read: the training, selection and final test frames |
+| `tools.py` | the four tools (`train`, `evaluate`, `run_md`, `add_data`); `final_test`, which only the harness calls; and `describe`, the tool list the LLM reads |
+| `harness.py` | the goal message, `check`, and the loop that joins the LLM to the tools |
 
-None of it is machine learning code. MACE, OpenMM and the LLM are all
-existing programs. The agent is the glue that lets an LLM drive them, and the
-rules that keep it inside the limits.
+None of these files trains a model, runs MD or chooses a step. MACE trains,
+OpenMM runs the MD, and the LLM chooses. The four files connect them, and hold
+the limits the LLM cannot change.
+
+The sections below take the files in the order of the table. The settings
+come first because every other file reads them; then the frames the tools
+train on; then the tools; and last the harness that calls them.
 
 ## The settings: `config.py`
 
@@ -45,17 +88,17 @@ the harness checks every call against them before running it. The goal is a
 request. The limits are enforced. The rest says where the data and programs
 are, and how the test frames are split.
 
-One of the limits comes from the data rather than from the budget. The pool of
-training frames stops at 1000 because the rMD17 readme says not to train on
-more: the frames come from one simulation, so neighbouring frames are nearly
-the same, and a larger set mostly repeats itself.
+None of these numbers was tuned. They were picked by hand for a first try, and
+the comments say which ones rest on a reason.
 
-rMD17's official test set has 1000 frames, and the model never trains on any of them. They are cut in
-two. The first 500 are the **selection frames**: `evaluate` uses them, and the
-LLM decides on their errors. Because the LLM chooses by them, they are no
-longer an untouched test. The next 500 are the **final test frames**: the
-harness scores the last model on them once, after the LLM stops, and the LLM
-never sees them.
+The frames the models are judged on come in two sets. The **selection
+frames** are 500 frames drawn at random from the 98,000 that split 01 uses for
+neither training nor testing. `evaluate` uses them, and the LLM decides on
+their errors, so they are no longer an untouched test. The **final test
+frames** are the split's official test set, all 1000. The harness scores the
+last model on them once, after the LLM stops, and the LLM never sees them. The
+rMD17 readme limits how many frames a model trains on, not how many it is
+tested on, so the two sets need not share the official 1000.
 
 ## The training frames: `data.py`
 
@@ -69,7 +112,15 @@ the two:
 :pyobject: write_frames
 ```
 
-A second function writes the final test frames. Only the harness calls it:
+The selection frames come from `_selection`, which takes every frame the split
+leaves out and draws 500 of them, the same 500 in every run:
+
+```{literalinclude} ../../agent/data.py
+:language: python
+:pyobject: _selection
+```
+
+A last function writes the final test frames. Only the harness calls it:
 
 ```{literalinclude} ../../agent/data.py
 :language: python
@@ -79,10 +130,10 @@ A second function writes the final test frames. Only the harness calls it:
 The one decision in this file is how adding data works. The 1000 training
 frames are shuffled once, in a fixed order (the random seed is 0), and a run
 with `n` frames always takes the first `n` of that order. So `add_data` can only
-ever add frames: the 400 frames of the second training in the first run were
-the 200 frames of the first training plus 200 new ones. And the same `n` always
-means the same frames, so two runs that end with 400 frames trained on the
-same data.
+ever add frames: the 400 frames of the Qwen3 run's second training were the
+200 frames of its first training plus 200 new ones. And the same `n` always
+means the same frames, so the two runs started from the same 200 frames, and
+their last models were trained on the same 800.
 
 The conversion also changes units. rMD17 gives energies in kcal/mol and forces
 in kcal/mol/Å. The MACE models here are trained in eV and eV/Å, so every value
@@ -105,7 +156,10 @@ The LLM never sees this object. It sees only what the tools return.
 ### `train`
 
 `train` runs MACE's own training program, `mace_run_train`, as a separate
-process, and waits for it to finish:
+process, and waits for it to finish. The program comes with MACE's Python
+package, `mace-torch`, which is built on PyTorch. It runs the training cycle of
+{numref}`fit-loop-figure` and saves the trained model to a file, so our code
+contains no training loop of its own:
 
 ```{literalinclude} ../../agent/tools.py
 :language: python
@@ -124,7 +178,34 @@ same from one training to the next:
 | `--E0s` | `average` | the per-element baseline energies are fitted from the average frame energy |
 | `--hidden_irreps` | `{channels}x0e` | the width; `0e` keeps only rotation-invariant features, the cheapest kind |
 | `--device`, `--default_dtype` | `cpu`, `float32` | the laptop has no CUDA GPU |
-| `--seed` | 1 | the same settings give the same model |
+| `--seed` | 1 | the same settings give the same model on the same machine |
+
+::::{dropdown} Detour: the command on the first page's figures
+:class-container: detour-dropdown
+
+Almost every number in the first page's picture of MACE is set by one setting
+of this program. Some are in our command; the rest are MACE's defaults, which
+the command leaves alone. MACE writes all of them to its log at the start of a
+training.
+
+| Setting | Value | Where it is on the first page |
+| --- | --- | --- |
+| `--hidden_irreps` (the LLM's `channels`) | `32x0e` | the 32 numbers per atom in every stage of {numref}`mace-steps-figure`, and the 32 + 32 = 64 squares of $\mathbf{h}_i$ in {numref}`mlip-atom-figure` |
+| `--r_max` | 4.0 Å | the 4 Å cutoff in Stage 1 |
+| `num_radial_basis` (default) | 8 | a distance becomes 8 numbers |
+| `max_ell` (default) | 3 | the direction numbers, in groups of 1, 3, 5 and 7 |
+| `radial_MLP` (default) | [64, 64, 64] | the chain 8 → 64 → 64 → 64 → 128 in Stage 2 |
+| `correlation` (default) | 3 | Stage 3 multiplies up to three at a time |
+| `num_interactions` (default) | 2 | Round 1 and Round 2 |
+| `--E0s` | `average` | the baselines, such as −616.0 eV for hydrogen |
+| `--valid_fraction`, `--batch_size`, `--max_num_epochs` (the LLM's `epochs`) | 0.1, 10, 10 to 150 | the validation frames, the batch and the epoch in {numref}`fit-loop-figure` |
+
+So when the LLM asks for 64 channels, every 32 in {numref}`mace-steps-figure`
+becomes 64. The weights grow from 67,472 to 172,816, about 2.6 times as many,
+because most of them sit in 32 × 32 mixes that become 64 × 64. The chain in
+Stage 2 keeps its middle 64s, which come from `radial_MLP`, but its output
+grows from 128 to 256 numbers: 64 × 4 instead of 32 × 4.
+::::
 
 When training ends, the tool reads the last validation force error that MACE
 printed in its log and returns it, with the time taken. The validation frames
@@ -135,8 +216,8 @@ selection frames are kept for `evaluate`.
 :class: note
 `{channels}x0e` builds a MACE model with only invariant features. Full MACE
 models also carry features that turn with the molecule (for example `64x0e +
-64x1o`), which are usually more accurate and slower to train. The first run
-used the cheap kind to keep each training to minutes on a CPU.
+64x1o`), which are usually more accurate and slower to train. Both runs used
+the cheap kind to keep each training to minutes on a CPU.
 :::
 
 ### `evaluate`
@@ -161,14 +242,20 @@ targets. The **energy error** is the mean absolute difference in total energy,
 divided by the 9 atoms of ethanol. The other two separate out a constant
 offset: if the model is wrong by the same amount on every frame, that shift
 moves all energies up or down together and leaves the forces, and so the
-dynamics, unchanged. The last page met this shift on the test run. In the
-first agent run the energy error was 6.9 meV/atom, and 0.6 once the shift was
-taken away, so nearly all of it was the constant shift.
+dynamics, unchanged. [The first page](01_training_an_mlip.md) met this shift
+on its test frames. The agent's first models had it too: Qwen3's first model
+had an energy error of 68.3 meV/atom, and 2.1 once the shift was taken away.
+Its last model, trained longer on more frames, has 0.4 either way.
 
 ### `run_md`
 
 `run_md` puts the model into OpenMM as its energy function and runs 1 ps of
-MD from the first selection frame:
+MD from the first selection frame. OpenMM, not this site's engine: that engine
+works in reduced units with every mass fixed at 1.0, and it cannot call a
+trained model. Adding that would be a separate project and would not test the
+training loop, so OpenMM sits beside it as a second engine. The MLIP fills the
+same slot there that LJ fills here.
+
 
 ```{literalinclude} ../../agent/tools.py
 :language: python
@@ -201,8 +288,10 @@ not, so the cause is not yet known. Reading from step 50 on leaves the jump out 
 only how the energy changes during the run.
 
 The temperature it reports at the end comes from the kinetic energy. It is
-not controlled: the first run started at 500 K and ended at 366 K, as kinetic
-energy flowed into the potential energy of the bonds.
+not controlled: both runs started at 500 K and ended near 600 K. With only 9
+atoms, kinetic and potential energy trade back and forth in large swings, so a
+single reading at the end can sit well above or below the start, while the
+total stays within its limit.
 
 ### `add_data`
 
@@ -242,7 +331,9 @@ function that checks each call, and the loop.
 ### The goal
 
 The goal is one message, built from the values in `config.py`, that the LLM
-reads before anything else. The previous page lists what it asks for. Two
+reads before anything else.
+[What it must reach: the goal](02_the_agent.md#what-it-must-reach-the-goal)
+lists what it asks for. Two
 sentences in it set the order of work: every model must be evaluated and
 checked in MD before the LLM says it meets the goal, and the LLM must call
 `stop` with a reason when it is done or cannot succeed.
@@ -258,12 +349,13 @@ Before a tool runs, `check` compares the call with the limits:
 
 If it finds a problem, the tool does not run. The harness sends the reason
 back as the tool's result, as if the tool had answered, and the LLM has to
-choose again. In the first run nothing was refused.
+choose again. This happened once, in the Qwen3 run: it asked for 200 epochs,
+above the limit of 150, and asked again with 150.
 
 `check` enforces the limits, but not the order of work. If the LLM called
 `stop` straight after training, without `evaluate` or `run_md`, the harness
-would end the run. The first run did the checks because the goal asked for
-them, not because the code required them. Moving that rule from the goal
+would end the run. Both runs did the checks because the goal asked for them,
+not because the code required them. Moving that rule from the goal
 into `check` is a small change, and one of the next steps.
 
 ### The loop
@@ -292,93 +384,79 @@ these frames:
 :pyobject: final_test
 ```
 
-The first run was made before this step existed. Run afterwards by hand, it
-gives 19.9 meV/Å for the first run's final model, against 19.6 on the
-selection frames.
+In the Qwen3 run, the last model scored 14.2 meV/Å on the final test frames,
+against 14.1 on the selection frames; in the Claude run, 17.1 against 17.2.
 
-The harness takes only the first tool call in a reply, since the goal asks for
-one at a time and each result should shape the next choice. It asks the LLM
-for its reasoning as well as its answer (`think=True` for Qwen3), at
-temperature 0 with a fixed seed, so that the same history gives the same reply
-as often as the model allows.
+The harness runs only the first tool call in a reply, since the goal asks for
+one at a time and each result should shape the next choice. With Claude, any
+other calls in the reply get an error back saying they were not run; this
+happened once in the Claude run.
+
+The harness also asks the LLM for its reasoning as well as its answer. For
+Qwen3 (`think=True`) it sets temperature 0 and a fixed seed, so that the same
+history gives the same reply as often as the model allows. Claude does not
+accept a temperature setting, so its replies to the same history can differ
+from run to run.
 
 The LLM is a setting, chosen by `--model` when the run starts. A name such as
 `qwen3:8b` goes to Ollama on the same machine. A name starting with `claude-`
-goes to Anthropic's API instead, which needs the reader's own API key. That
-second path has been written and tested offline, but not yet used for a run.
+goes to Anthropic's API instead, which needs the reader's own API key. The
+Claude run, described in [What our agent did](03_first_run.md), used
+`claude-sonnet-5-5` this way; it cost about $0.03.
 
 ## What the log records
 
 Every pass writes one line of JSON to `log.jsonl` in the run's folder. Every
-figure and number about the run on the previous page comes from this file.
-These two lines are from the first run, word for word. First the LLM's choice
+figure and number about the two runs on the previous page comes from these
+files.
+These two lines are from the Qwen3 run, word for word. First the LLM's choice
 (its reasoning, which runs to several paragraphs, is cut here):
 
 ```json
-{"t_min": 0.89, "kind": "llm", "seconds": 53.2, "thinking": "Okay, let's see. ...", "text": "", "tool_calls": [{"name": "train", "args": {"channels": 32, "epochs": 100}}]}
+{"t_min": 0.74, "kind": "llm", "seconds": 44.4, "thinking": "Okay, let's see. ...", "text": "", "tool_calls": [{"name": "train", "args": {"epochs": 50, "channels": 32}}], "usage": {"input_tokens": 661, "output_tokens": 480}}
 ```
 
 then what the tool measured:
 
 ```json
-{"t_min": 2.59, "kind": "tool", "name": "train", "args": {"channels": 32, "epochs": 100}, "result": {"model": "model_1", "training_frames": 200, "epochs": 100, "channels": 32, "minutes": 1.6, "validation_force_mae_meV_per_A": 35.53}}
+{"t_min": 1.74, "kind": "tool", "name": "train", "args": {"epochs": 50, "channels": 32}, "result": {"model": "model_1", "training_frames": 200, "epochs": 50, "channels": 32, "minutes": 0.9, "validation_force_mae_meV_per_A": 53.55}}
 ```
 
-`t_min` is the minutes since the run started and `seconds` is how long the LLM
-took to reply. The `thinking` field keeps the LLM's reasoning, which is how the
-previous page could point out where it misread a number. The log also keeps
+`t_min` is the minutes since the run started, `seconds` is how long the LLM
+took to reply, and `usage` counts the tokens it read and wrote. The `thinking` field keeps the LLM's reasoning, which is how the
+previous page could point out where it misread a number. For Claude it holds
+a summary of the reasoning: Anthropic's API returns that, not the full text.
+The log also keeps
 the goal, the limits and a summary line at the end, so a run can be read back
 without the code.
 
 ## Run it yourself
 
-The first run was made on macOS 15, on a laptop with an Apple M4 processor and
-16 GB of memory, using only the CPU; it took 12.6 minutes. That is the only
-system it has been tested on. Running it on Linux and on Windows through WSL
-is being tested. From a clone of the repository:
-
-1. Create the environment, which holds MACE, OpenMM, OpenMM-ML and Ollama:
-
-   ```bash
-   mamba env create -f agent/environment.yml
-   conda activate mlip-agent
-   ```
-
-2. Download rMD17 from [Figshare](https://doi.org/10.6084/m9.figshare.12672038)
-   and unpack it into `agent/data/rmd17/`, so that this folder holds
-   `npz_data/` and `splits/`. To keep the data somewhere else, point
-   `RMD17_DIR` at it instead:
-
-   ```bash
-   export RMD17_DIR=~/data/rmd17
-   ```
-
-3. Start the Ollama server in a second terminal, and download the model once:
-
-   ```bash
-   ollama serve
-   ```
-
-   ```bash
-   ollama pull qwen3:8b
-   ```
-
-4. Run the agent from the repository root:
-
-   ```bash
-   python -m agent.harness --model qwen3:8b --run-dir agent/runs/mine
-   ```
-
-Each line of the log is printed as it is written. When the run ends,
-`agent/runs/mine/` holds the log, the trained models and MACE's own training
-logs. The run folders are not part of the repository.
+The steps to repeat either run, with Qwen3 on your own machine or Claude over
+Anthropic's API, are at the end of
+[What our agent did](03_first_run.md#run-it-yourself).
 
 ## Check yourself
 
-:::{dropdown} The LLM asks for a training with 300 epochs. What happens?
-`check` refuses it, because epochs must be from 10 to 150. The tool does not
-run. The LLM gets the reason back as the tool's result and has to choose
-again.
+:::{dropdown} What does the LLM do, and what does it not do?
+It chooses the next step and its settings. It does not produce any of the
+numbers: those come from its tools, and the harness enforces the limits.
+:::
+
+:::{dropdown} The LLM remembers nothing between calls. How does it know what it has already tried?
+The harness sends the whole history on every pass, and the LLM rereads it.
+:::
+
+:::{dropdown} Why does the agent use OpenMM rather than the engine built on this site?
+The engine has no way to call a trained model, and it uses reduced units with
+masses fixed at 1.0. OpenMM already runs MLIPs, and the agent is about the
+training loop, not about extending the engine.
+:::
+
+:::{dropdown} In the Qwen3 run, the LLM asked for a training with 200 epochs. What happened?
+`check` refused it, because epochs must be from 10 to 150. The tool did not
+run. The LLM got the reason back as the tool's result and asked again with
+150.
 :::
 
 :::{dropdown} After `add_data` with 200 frames, which frames does the next training use?
@@ -399,7 +477,12 @@ tests the limits on each call, but it would let `stop` through at any point.
 
 ## Next
 
-The first run used one LLM, Qwen3 8B, on a laptop. Whether a stronger LLM
-makes better choices with the same tools and limits is the next question,
-and the next page will answer it with a second recorded run. It is not
-written yet.
+The same code ran twice, once with Qwen3 8B and once with Claude Sonnet 5.5,
+and both runs met the goal, by different paths and with different models.
+What the two runs cannot say is how often that would happen, or which LLM
+chooses better: each LLM ran once. The next
+steps are to repeat the runs, and to move the order of work from the goal into
+`check`, so that a model cannot be declared done without its checks.
+
+This is the last page of the module for now. To read it again from the task
+itself, go back to [the first page](01_training_an_mlip.md).

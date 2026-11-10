@@ -19,19 +19,21 @@ class RunState:
     """What the run has done so far. Tools read and update it; the log records it."""
 
     def __init__(self, run_dir):
-        self.run_dir = run_dir.resolve()
-        self.frames = config.START_FRAMES
-        self.trainings = 0
+        self.run_dir = run_dir.resolve()  # where files are written
+        self.frames = config.START_FRAMES  # frames the next training uses
+        self.trainings = 0                 # trainings so far
         self.model = None          # path of the latest trained model
         self.model_info = None     # its settings, for the log
 
 
 def train(state, epochs, channels):
     """Train a MACE model on the current training frames."""
+    # Write the training frames, and name the model model_1, model_2, ...
     train_path, _ = data.write_frames(state.run_dir, state.frames)
     state.trainings += 1
     name = f"model_{state.trainings}"
     log_path = state.run_dir / f"{name}_train.log"
+    # MACE's training program. Only epochs and channels come from the LLM.
     cmd = [str(config.PYTHON_BIN / "mace_run_train"),
            "--name", name, "--train_file", str(train_path), "--valid_fraction", "0.1",
            "--energy_key", "REF_energy", "--forces_key", "REF_forces",
@@ -39,6 +41,7 @@ def train(state, epochs, channels):
            "--r_max", "4.0", "--batch_size", "10", "--max_num_epochs", str(epochs),
            "--eval_interval", "5", "--device", "cpu", "--default_dtype", "float32",
            "--seed", "1", "--error_table", "PerAtomMAE", "--work_dir", str(state.run_dir)]
+    # Run it as a separate process and wait; its output goes to a log.
     t = time.time()
     with open(log_path, "w") as f:
         done = subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT, cwd=state.run_dir)
@@ -46,8 +49,10 @@ def train(state, epochs, channels):
     model_path = state.run_dir / f"{name}.model"
     if done.returncode != 0 or not model_path.exists():
         return {"error": f"training failed, see {log_path.name}"}
+    # MACE prints a validation force error at each check; keep the last.
     text = (state.run_dir / "logs" / f"{name}_run-1.log").read_text()
     val = re.findall(r"Epoch \d+:.*MAE_F=\s*([\d.]+) meV", text)
+    # This model is now the one evaluate and run_md use.
     state.model = model_path
     state.model_info = {"frames": state.frames, "epochs": epochs, "channels": channels}
     return {"model": name, "training_frames": state.frames, "epochs": epochs,
@@ -59,17 +64,22 @@ def errors(model_path, frames_path):
     """Force and energy errors of one model on the frames in one file."""
     import ase.io
     from mace.calculators import MACECalculator
+    # Load the frames and the model.
     frames = ase.io.read(frames_path, ":")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         calc = MACECalculator(model_paths=str(model_path), device="cpu",
                               default_dtype="float32")
+    # For each frame: the force error on every component, and the
+    # model's and DFT's total energies.
     f_err, e_pred, e_ref = [], [], []
     for a in frames:
         a.calc = calc
         f_err.append(np.abs(a.get_forces() - a.arrays["REF_forces"]))
         e_pred.append(a.get_potential_energy())
         e_ref.append(a.info["REF_energy"])
+    # Energy errors are given per atom; the shift is their mean, the part
+    # that is the same on every frame and changes no force.
     e_diff = np.array(e_pred) - np.array(e_ref)
     n_atoms = len(frames[0])
     return {"model": model_path.stem, "frames": len(frames),
@@ -84,6 +94,8 @@ def evaluate(state):
     """Errors of the latest model on the selection frames."""
     if state.model is None:
         return {"error": "no model trained yet"}
+    # The errors of the latest model on the selection frames, labelled,
+    # with the target so the LLM can compare.
     _, selection_path = data.write_frames(state.run_dir, state.frames)
     result = errors(state.model, selection_path)
     result["frames_used"] = "selection"
@@ -96,6 +108,7 @@ def final_test(state):
     once, after the agent stops; it is not one of the agent's tools."""
     if state.model is None:
         return {"error": "no model trained"}
+    # The same errors as evaluate, on frames the LLM never sees.
     result = errors(state.model, data.write_final_test(state.run_dir))
     result["frames_used"] = "final_test"
     return result
@@ -111,22 +124,27 @@ def run_md(state):
     from openmmml import MLPotential
     if state.model is None:
         return {"error": "no model trained yet"}
+    # Start from the first selection frame. OpenMM needs a topology:
+    # here, just the list of atoms and their elements.
     _, selection_path = data.write_frames(state.run_dir, state.frames)
     atoms = ase.io.read(selection_path, 0)
     top = app.Topology()
     res = top.addResidue("MOL", top.addChain())
     for s in atoms.get_chemical_symbols():
         top.addAtom(s, app.Element.getBySymbol(s), res)
+    # An OpenMM system whose only force is the MACE model.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         system = MLPotential("mace", modelPath=str(state.model)).createSystem(
             top, precision="single", returnEnergyType="energy")
+    # Plain Verlet (leapfrog), 0.5 fs, no thermostat, velocities at 500 K.
     sim = app.Simulation(top, system, mm.VerletIntegrator(0.5 * u.femtosecond),
                          mm.Platform.getPlatformByName("CPU"))
     sim.context.setPositions(atoms.positions * u.angstrom)
     sim.context.setVelocitiesToTemperature(config.MD_TEMPERATURE * u.kelvin, 1)
     kj = u.kilojoule_per_mole
 
+    # Bonded pairs: closer than 1.2 times the sum of covalent radii.
     def bonds(x):
         a = atoms.copy()
         a.positions = x
@@ -135,6 +153,8 @@ def run_md(state):
 
     start_bonds = bonds(atoms.positions)
     totals, closest, t = [], 9.0, time.time()
+    # Every 50 steps: total energy in eV (OpenMM gives kJ/mol), and the
+    # closest pair of atoms. Stop early if positions blow up.
     for _ in range(config.MD_STEPS // 50):
         sim.step(50)
         st = sim.context.getState(getEnergy=True, getPositions=True)
@@ -145,6 +165,7 @@ def run_md(state):
         closest = min(closest, float(d.min()))
         if not np.all(np.isfinite(x)):
             break
+    # Temperature from the kinetic energy; energy range over the readings.
     final_t = st.getKineticEnergy().value_in_unit(kj) / 96.485 * 2 / (3 * len(x) * 8.617e-5)
     drift = float(np.ptp(totals)) if np.all(np.isfinite(totals)) else float("inf")
     return {"model": state.model.stem, "steps": config.MD_STEPS, "timestep_fs": 0.5,
@@ -160,6 +181,7 @@ def run_md(state):
 
 def add_data(state, frames):
     """Use more of the 1000-frame training pool in the next training."""
+    # Move the pointer into the pool, but never past its end.
     state.frames = min(state.frames + frames, config.MAX_FRAMES)
     return {"training_frames_next_time": state.frames, "pool_size": config.MAX_FRAMES}
 

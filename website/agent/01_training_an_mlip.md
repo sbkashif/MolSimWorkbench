@@ -7,7 +7,8 @@ test run, made by hand before the agent existed.
 :::
 
 This section builds an agent for a molecular simulation task. It stands on its
-own: this page sets out the task, and the next two build the agent that does it.
+own: this page sets out the task, and the next three make the case for an
+agent, show what ours did, and show how it was built.
 
 Previously, we presented a step-by-step walkthrough of a
 [simple molecular dynamics loop](../molsim/architecture.md). That loop used the
@@ -249,14 +250,14 @@ The model only maps positions to an energy: give it the positions of a frame's
 atoms, and it returns one number. It has no parameter for a bond length or a twist.
 Panels b and c project its output onto two coordinates we chose because they
 are already understood, to see whether it behaves as the physics says it
-should. Here it does. The energy is lowest at a C–O length of about 1.43 Å,
+should. Here it does. The energy is lowest at a C–O length of about 1.42 Å,
 close to the 1.431 Å measured for ethanol
 ([NIST CCCBDB](https://cccbdb.nist.gov/expgeom2x.asp?casno=64175&charge=0)). With the other atoms free to settle (panel c), the
 twist has three minima, at 60°, 180° and 300°: the trans form, whose measured
 geometry NIST lists, and two gauche forms, seen in ethanol's microwave
 spectrum ([Kakar and Quade 1980](https://doi.org/10.1063/1.439723)). With the other atoms held (panel b),
-trans rises to 0.17 eV, because they stay as they were in a frame near gauche
-(twist 32°).
+trans rises to 0.16 eV, because they stay as they were in a frame at gauche
+(twist 61°).
 
 Such probes show what the model outputs, not how it gets there. Its 67,472
 parameters are all known, stored in the model file, but no single one means
@@ -376,57 +377,57 @@ Here is the whole path for the frame in {numref}`ethanol-frame-figure`.
 right.
 
 **Neighbours in.** The cutoff is 4 Å, and no atom of ethanol is more than
-2.35 Å from the first carbon, so $\mathcal{N}_i$ holds all eight other atoms.
-In this frame no two atoms are more than 3.63 Å apart, so the same is true of
+2.15 Å from the first carbon, so $\mathcal{N}_i$ holds all eight other atoms.
+In this frame no two atoms are more than 3.70 Å apart, so the same is true of
 every atom.
 
 **64 numbers.** Stages 1 to 3 and round 2 turn $\mathcal{N}_i$ into
-$\mathbf{h}_i$, which starts 0.235, 0.087, −0.185. No single one of these has a
+$\mathbf{h}_i$, which starts 0.295, 0.089, −0.143. No single one of these has a
 physical meaning.
 
 **One share, then the total.** The readout turns $\mathbf{h}_i$ into this
-carbon's share, $E_i = -206.112$ eV. The same path for each of the nine atoms
-gives nine shares, and they add up to $U = -4215.102$ eV, the model's energy
+carbon's share, $E_i = -205.800$ eV. The same path for each of the nine atoms
+gives nine shares, and they add up to $U = -4210.064$ eV, the model's energy
 for this frame.
 
 The shares look large because the readout does not produce them whole. Each
 atomic number gets a fixed **baseline**, and the readout supplies a small
-**correction** on top, scaled by a fixed factor of 1.13 (set from the typical force size in the
+**correction** on top, scaled by a fixed factor of 1.18 (set from the typical force size in the
 training data):
 
 | Atom | Baseline (eV) | Correction (eV) | Share $E_i$ (eV) |
 | --- | ---: | ---: | ---: |
-| C | −205.601 | −0.511 | −206.112 |
-| C | −205.601 | −0.276 | −205.877 |
-| O | −102.800 | −0.253 | −103.053 |
-| H | −616.802 | +0.097 | −616.705 |
-| H | −616.802 | +0.191 | −616.611 |
-| H | −616.802 | +0.095 | −616.707 |
-| H | −616.802 | +0.151 | −616.651 |
-| H | −616.802 | +0.159 | −616.643 |
-| H | −616.802 | +0.058 | −616.744 |
-| **Total** | **−4214.816** | **−0.287** | **−4215.102** |
+| C | −205.348 | −0.452 | −205.800 |
+| C | −205.348 | −0.247 | −205.595 |
+| O | −102.674 | −0.249 | −102.923 |
+| H | −616.043 | +0.067 | −615.976 |
+| H | −616.043 | +0.141 | −615.902 |
+| H | −616.043 | +0.026 | −616.017 |
+| H | −616.043 | +0.016 | −616.027 |
+| H | −616.043 | +0.046 | −615.997 |
+| H | −616.043 | +0.217 | −615.826 |
+| **Total** | **−4209.629** | **−0.435** | **−4210.064** |
 
 Each entry is rounded, so a column can differ from its total in the last digit
-or two. A hydrogen at −616.8 eV looks wrong; the end of
+or two. A hydrogen at −616.0 eV looks wrong; the end of
 this detour explains why.
 
 **The forces.** The force on the first carbon is minus the slope of $U$ with
 respect to that atom's position. The software works this slope out exactly, by
 going back through every step of the model
 ([Rumelhart et al. 1986](https://doi.org/10.1038/323533a0)), which is why every step has to be
-smooth. The model gives (−2.266, −1.763, −2.638) eV/Å.
+smooth. The model gives (0.985, 1.430, −1.120) eV/Å.
 
 So an MLIP gets an energy like this: each atom's neighbours go into the network,
-one number comes out per atom, and the numbers add up. Whether −4215.102 eV is
+one number comes out per atom, and the numbers add up. Whether −4210.064 eV is
 right can only be told by comparing it with DFT for the same frame. That
 comparison is what training is built on.
 
 **Where the baselines come from**
 
 The baselines in the ethanol table also come from the training frames. A
-hydrogen at −616.8 eV looks wrong, and as a physical energy it is. The nine
-baselines add up to the average energy of the training frames, −4214.816 eV.
+hydrogen at −616.0 eV looks wrong, and as a physical energy it is. The nine
+baselines add up to the average energy of the training frames, −4209.629 eV.
 Every training frame holds the same nine atoms, so the data cannot say how that
 average should be split between atomic numbers. The software picks the
 smallest set of baselines that adds up to the average, and with one kind of
@@ -446,9 +447,12 @@ subscript $\theta$ is a reminder that both depend on the 67,472 parameters.
 We want this function to give the energy and forces DFT would give. So we start
 from a random guess for the 67,472 numbers and adjust them until the model's
 output matches DFT on examples where the answer is already known: here, ethanol
-frames from MD17, a public dataset
-([Chmiela et al. 2017](https://doi.org/10.1126/sciadv.1603015)), each a
-snapshot from a simulation with its DFT energy and forces. This is called
+frames from rMD17, a public dataset
+([Christensen and von Lilienfeld 2020](https://doi.org/10.1088/2632-2153/abba6f)).
+Each frame is a snapshot from a simulation, taken from an earlier dataset, MD17
+([Chmiela et al. 2017](https://doi.org/10.1126/sciadv.1603015)), with its DFT
+energy and forces computed again with tighter numerical settings
+([data release](https://doi.org/10.6084/m9.figshare.12672038)). This is called
 **training** the model.
 
 The model is meant to be right beyond this data too, for arrangements it has
@@ -463,7 +467,9 @@ on: if their error stops falling while the error on the training frames keeps
 falling, the model is learning those particular frames rather than ethanol. A
 last set, the **test frames**, is checked only once, at the very end, so the
 final error comes from frames that played no part in any choice. The test run
-used 450 frames to train, 50 to validate and 200 to test.
+took 500 frames at random from rMD17's official training set, and MACE set 50
+of them aside to validate, leaving 450 to train. The 200 test frames are the
+first 200 of rMD17's official test set.
 
 Training then goes round a cycle ({numref}`fit-loop-figure`). Take a small
 group of training frames, a **batch**. Predict their energies and forces with
@@ -553,7 +559,7 @@ that lowers $L$. The run used the Adam method for these moves
 ### Watching the error
 
 {numref}`val-curve-figure` shows the force error on the validation frames as
-training went on. It fell from 293 to 48 meV/Å, with one bump on the way, and
+training went on. It fell from 326 to 39 meV/Å, with two bumps on the way, and
 was lowest at the last check: no sign yet of the turn-up in panel d of
 {numref}`train-wrong-figure`. Once the steps were done, the
 finished model was run on the test frames. {numref}`force-parity-figure` puts
@@ -572,19 +578,19 @@ log.
 :width: 340px
 
 Every force component in the 200 test frames, 5400 points. A perfect model
-would put them all on the line. The mean error is 48.2 meV/Å.
+would put them all on the line. The mean error is 41.0 meV/Å.
 ```
 
 ### How close the ethanol frame came
 
 The ethanol frame of {numref}`ethanol-frame-figure` is one of the test frames.
-DFT gives it −4214.753 eV, and the trained model −4215.102 eV: 0.349 eV too low,
-or 39 meV per atom.
-Over all 200 test frames the average is 0.341 eV, or 37.9 meV/atom.
+DFT gives it −4209.890 eV, and the trained model −4210.064 eV: 0.174 eV too low,
+or 19 meV per atom.
+Over all 200 test frames the average is 0.180 eV, or 20.0 meV/atom.
 
 That sounds large, but {numref}`energy-offset-figure` shows what kind of error
 it is. Every test frame is too low by nearly the same amount. With that shift
-taken away, the average error is 0.012 eV per frame, or 1.3 meV/atom. A
+taken away, the average error is 0.011 eV per frame, or 1.2 meV/atom. A
 constant shift changes no force, because forces are slopes of $U$.
 
 ```{figure} ../figures/agent_energy_offset.svg
@@ -592,32 +598,49 @@ constant shift changes no force, because forces are slopes of $U$.
 :width: 340px
 
 The energies of the 200 test frames. The points follow a line parallel to the
-perfect one, shifted down by 0.34 eV.
+perfect one, shifted down by 0.18 eV.
 ```
 
-The forces are close too. For the first carbon, the model's
-(−2.266, −1.763, −2.638) eV/Å compares with (−2.252, −1.742, −2.537) eV/Å from
-DFT.
+The forces are close too, though not every component equally. For the first
+carbon, the model's (0.985, 1.430, −1.120) eV/Å compares with
+(1.015, 1.263, −1.083) eV/Å from DFT. The middle component is 0.17 eV/Å off,
+about four times the average force error.
 
 ### What a low error does not show
 
-A low error is not the end of the job. In a simulation the atoms can reach
-arrangements unlike any in the training frames, so the model also has to be run
-in MD, to see whether the molecule stays intact and the energy is conserved. If
-a check fails, someone has to decide what to change: more data, a larger model,
-longer training. Then the model is trained again, and checked again. Training
-an MLIP is a loop.
+A low test error says the model matches DFT on frames like the ones it was
+trained on. It does not say what the model does when it is used. In MD the
+model decides where the atoms go next, step after step, and small errors in
+the forces can carry the atoms into arrangements the training frames never
+covered. Every frame here comes from one simulation of one molecule, and test
+frames from the same simulation share its gaps, so their error cannot show
+this. Away from its data, the model can fail in three ways that an MD run shows
+directly:
+
+- two atoms pushed closer together than any real bond allows;
+- a bond broken, or a new one formed;
+- the total energy drifting, in a run with no thermostat, where it should stay
+  constant.
+
+None of these stops the run with an error. They have to be looked for.
+
+Benchmarks of MLIPs have found that a low force error on test frames does not
+guarantee a stable MD run ([Fu et al. 2023](https://arxiv.org/abs/2210.07237);
+[Stocker et al. 2022](https://doi.org/10.1088/2632-2153/ac9955)). So the model
+also has to be run in MD, and the run checked.
 
 ### One pass round the loop, by hand
 
-Everything on this page came from one pass round that loop, made by hand. Each
-step, and what came out of it:
+Training an MLIP therefore does not end with the test error. It goes: data,
+train, check the errors, check in MD, and then decide. Is the model good
+enough, or should something change and the model be trained again? Everything
+on this page came from one pass through these steps, made by hand:
 
 | Step | What was done | What came out |
 | --- | --- | --- |
-| 1. Data | 450 MD17 frames to train on, 50 to validate, 200 to test | |
-| 2. Train | MACE, 40 epochs, about 2 minutes on a CPU | validation force error fell from 293 to 48 meV/Å |
-| 3. Check the errors | the finished model on the 200 test frames | force error 48.2 meV/Å (5.7% of the average DFT force component), against 46.5 on the training frames; energy error 37.9 meV/atom |
+| 1. Data | 450 rMD17 frames to train on, 50 to validate, 200 to test | |
+| 2. Train | MACE, 40 epochs, about 2 minutes on a CPU | validation force error fell from 326 to 39 meV/Å |
+| 3. Check the errors | the finished model on the 200 test frames | force error 41.0 meV/Å (4.8% of the average DFT force component), against 37.8 on the training frames; energy error 20.0 meV/atom |
 | 4. Check in MD | 2000 steps of 0.5 fs in OpenMM ([Eastman et al. 2024](https://doi.org/10.1021/acs.jpcb.3c06662)), started at 500 K | closest two atoms in the last frame: the O–H bond, at 0.98 Å |
 | 5. Decide | read steps 3 and 4 against a target: is the force error low enough, and does MD hold? | if yes, stop; if not, change one thing (more frames, a wider model, longer training) and go back to step 2. Not done here: no target had been set |
 
@@ -628,7 +651,7 @@ atoms at the end were the oxygen and its hydrogen, at about their bond length
 (0.971 Å measured, [NIST CCCBDB](https://cccbdb.nist.gov/expgeom2x.asp?casno=64175&charge=0)), so nothing had crashed together.
 
 Some of this is not. The energy error is nearly all the constant shift, and its
-cause is not known. No target was set, so nothing says whether 48.2 meV/Å is
+cause is not known. No target was set, so nothing says whether 41.0 meV/Å is
 good enough. And the test frames come from the same simulation as the training
 frames, so these errors may be optimistic.
 
@@ -639,16 +662,12 @@ reading the numbers each time, deciding, and starting the next training.
 
 The next page hands that reading and deciding to an agent, and gives it what
 this pass lacked: a target, 20 meV/Å for the force error, and limits for the MD
-check. Its first run shows step 5 at work. The first model, trained on 200
-frames, missed the target with a validation force error of 35.5 meV/Å. The
-agent read that, added 200 frames, made the model wider and trained it longer,
-and the second model came in at 19.6 meV/Å on frames it had not trained on.
+check.
 
-The next page also switches to rMD17, a corrected version of MD17
-([Christensen and von Lilienfeld 2020](https://doi.org/10.1088/2632-2153/abba6f))
-that comes with official splits and a warning, in its
-[data release](https://doi.org/10.6084/m9.figshare.12672038), not to train on
-more than 1000 frames, because frames from one simulation are correlated.
+Both pages use the same data, rMD17 ethanol. Its
+[data release](https://doi.org/10.6084/m9.figshare.12672038) comes with official
+splits and a warning not to train on more than 1000 frames, because frames from
+one simulation are not independent of each other.
 
 ## Check yourself
 
@@ -671,8 +690,8 @@ split between atomic numbers. Only the total has meaning.
 ## Next
 
 Every step on this page was run by hand, and a person read the results and
-decided what to do next. [Automating the loop with an agent](02_the_agent.md)
-hands that deciding to a language model.
+decided what to do next. [The case for an agent](02_the_agent.md)
+hands that deciding to an agent, a program built around a language model.
 
 ## References
 
@@ -693,10 +712,12 @@ hands that deciding to a language model.
 | 13 | D. E. Rumelhart, G. E. Hinton and R. J. Williams, "Learning representations by back-propagating errors", *Nature* **323**, 533 (1986). [doi:10.1038/323533a0](https://doi.org/10.1038/323533a0) | slopes by going back through the model |
 | 14 | S. Chmiela, A. Tkatchenko, H. E. Sauceda, I. Poltavsky, K. T. Schütt and K.-R. Müller, "Machine learning of accurate energy-conserving molecular force fields", *Sci. Adv.* **3**, e1603015 (2017). [doi:10.1126/sciadv.1603015](https://doi.org/10.1126/sciadv.1603015) | MD17 |
 | 15 | A. S. Christensen and O. A. von Lilienfeld, "On the role of gradients for machine learning of molecular energies and forces", *Mach. Learn.: Sci. Technol.* **1**, 045018 (2020). [doi:10.1088/2632-2153/abba6f](https://doi.org/10.1088/2632-2153/abba6f) | rMD17 |
-| 16 | A. S. Christensen and O. A. von Lilienfeld, "Revised MD17 dataset (rMD17)", figshare (2020). [doi:10.6084/m9.figshare.12672038](https://doi.org/10.6084/m9.figshare.12672038) | rMD17 data and its 1000-frame warning |
+| 16 | A. S. Christensen and O. A. von Lilienfeld, "Revised MD17 dataset (rMD17)", figshare (2020). [doi:10.6084/m9.figshare.12672038](https://doi.org/10.6084/m9.figshare.12672038) | rMD17 data, how it was recomputed, and its 1000-frame warning |
 | 17 | D. P. Kingma and J. Ba, "Adam: A method for stochastic optimization" (2014). [arXiv:1412.6980](https://arxiv.org/abs/1412.6980) | the training moves |
 | 18 | S. J. Reddi, S. Kale and S. Kumar, "On the convergence of Adam and beyond", *ICLR* (2018). [arXiv:1904.09237](https://arxiv.org/abs/1904.09237) | AMSGrad |
 | 19 | P. Eastman et al., "OpenMM 8: Molecular dynamics simulation with machine learning potentials", *J. Phys. Chem. B* **128**, 109 (2024). [doi:10.1021/acs.jpcb.3c06662](https://doi.org/10.1021/acs.jpcb.3c06662) | the MD check |
 | 20 | F. Oviedo, J. L. Ferres, T. Buonassisi and K. T. Butler, "Interpretable and explainable machine learning for materials science and chemistry", *Acc. Mater. Res.* **3**, 597 (2022). [doi:10.1021/accountsmr.1c00244](https://doi.org/10.1021/accountsmr.1c00244) | interpretable machine learning |
 | 21 | NIST Computational Chemistry Comparison and Benchmark Database (CCCBDB), "Experimental geometry data: ethanol", NIST Standard Reference Database 101. [cccbdb.nist.gov](https://cccbdb.nist.gov/expgeom2x.asp?casno=64175&charge=0) | the measured C–O bond length and the trans form |
 | 22 | R. K. Kakar and C. R. Quade, "Microwave rotational spectrum and internal rotation in gauche ethyl alcohol", *J. Chem. Phys.* **72**, 4300 (1980). [doi:10.1063/1.439723](https://doi.org/10.1063/1.439723) | the gauche form of ethanol |
+| 23 | X. Fu, Z. Wu, W. Wang, T. Xie, S. Keten, R. Gomez-Bombarelli and T. Jaakkola, "Forces are not enough: Benchmark and critical evaluation for machine learning force fields with molecular simulations", *Trans. Mach. Learn. Res.* (2023). [arXiv:2210.07237](https://arxiv.org/abs/2210.07237) | low force error, unstable MD |
+| 24 | S. Stocker, J. Gasteiger, F. Becker, S. Günnemann and J. T. Margraf, "How robust are modern graph neural network potentials in long and hot molecular dynamics simulations?", *Mach. Learn.: Sci. Technol.* **3**, 045010 (2022). [doi:10.1088/2632-2153/ac9955](https://doi.org/10.1088/2632-2153/ac9955) | low force error, unstable MD |

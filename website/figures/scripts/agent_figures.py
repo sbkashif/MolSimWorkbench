@@ -116,7 +116,7 @@ def fig_val_curve():
                 ha="center")
     ax.set_xlabel("Epoch", color=MUTED)
     ax.set_ylabel("Force error (meV/Å)", color=MUTED)
-    ax.set_ylim(0, 320)
+    ax.set_ylim(0, 50 * np.ceil(r[:, 2].max() / 50 + 0.2))
     ax.grid(axis="y", color="#e8eaed", lw=0.8)
     ax.set_axisbelow(True)
     for s in ("top", "right"):
@@ -358,7 +358,7 @@ def fig_lj_family_vs_pes():
         ax.plot([t0], [e0], marker="v", ms=9, color=LLM, ls="none")
         ax.text(t0, e0 - 5, name, ha="center", va="top", fontsize=10, color=LLM)
     ax.set_xlim(0, 360)
-    ax.set_ylim(-14, 60)
+    ax.set_ylim(-14, 10 * np.ceil(100 * en.max()) + 6)
     ax.set_xticks([0, 60, 120, 180, 240, 300, 360])
     ax.set_xlabel("H–O–C–C twist (°)", color=MUTED)
     ax.set_ylabel("energy (meV)", color=MUTED)
@@ -550,7 +550,8 @@ def fig_ethanol_frame():
 
     arrow(ax, (718, 190), (782, 190))
     ax.text(750, 172, "DFT", ha="center", fontsize=12, color=MUTED)
-    box(ax, 885, 190, 190, 92, "Energy", ["−4214.753 eV"], ec=PLUG)
+    box(ax, 885, 190, 190, 92, "Energy",
+        [f"{d['U_dft_eV']:.3f} eV".replace("-", "−")], ec=PLUG)
     ax.text(885, 262, "one point on the", ha="center", fontsize=12,
             color=MUTED)
     ax.text(885, 282, "energy surface", ha="center", fontsize=12,
@@ -683,20 +684,22 @@ def fig_agent_history():
 
 
 def fig_run_timeline():
-    """The first agent run, step by step, from its log."""
-    with open(os.path.join(DATA, "agent_run1_log.jsonl")) as f:
+    """The Qwen3 run, step by step, from its log."""
+    with open(os.path.join(DATA, "agent_qwen3_log.jsonl")) as f:
         log = [json.loads(line) for line in f]
     tools_ = [e for e in log if e["kind"] == "tool"]
     end = [e for e in log if e["kind"] == "end"][0]
 
     def said(r, name):
+        if "refused_by_harness" in r:
+            return ("refused by check, not run", r["refused_by_harness"])
         if name == "train":
             return (f"validation force error {r['validation_force_mae_meV_per_A']:.1f} meV/Å",
                     f"{r['training_frames']} frames, {r['minutes']} min")
         if name == "add_data":
             return (f"{r['training_frames_next_time']} frames next time", "")
         if name == "evaluate":
-            return (f"test force error {r['force_mae_meV_per_A']} meV/Å",
+            return (f"selection force error {r['force_mae_meV_per_A']} meV/Å",
                     f"energy error {r['energy_mae_meV_per_atom']} meV/atom")
         if name == "run_md":
             return (f"energy range {r['energy_range_after_t0_eV']} eV, "
@@ -713,7 +716,7 @@ def fig_run_timeline():
         return e["name"]
 
     rows = [(e["t_min"], chose(e), *said(e["result"], e["name"])) for e in tools_]
-    rows.append((end["t_min"], "stop", "its reason: \"Model meets all criteria\"", ""))
+    rows.append((end["t_min"], "stop", "its reason: \"Target met\"", ""))
     W, H = 1000, 90 + 70 * len(rows)
     fig, ax = canvas(W, H)
     for x, lab, c in [(70, "done at, min", MUTED), (330, "the LLM chose", LLM),
@@ -763,6 +766,194 @@ def fig_pipeline():
     save(fig, "agent_pipeline.svg")
 
 
+def fig_llm_io():
+    """The big picture of an LLM: text in, text out, and its three limits."""
+    W, H = 1000, 270
+    fig, ax = canvas(W, H)
+    y = 120
+    box(ax, 170, y, 300, 150, "Text sent to it",
+        ["\u201cThe validation force error", "is 35.5 meV/\u00c5. What",
+         "should I change?\u201d"], ec=EDGE)
+    box(ax, 500, y, 200, 150, "LLM", ["learned from a", "very large amount", "of text"],
+        ec=LLM, title_color=LLM)
+    box(ax, 830, y, 300, 150, "Text back",
+        ["\u201cAdd more training frames,", "and train a wider", "model.\u201d"],
+        ec=EDGE)
+    arrow(ax, (322, y), (398, y))
+    arrow(ax, (602, y), (678, y))
+    for x, label in [(170, "all it sees: it keeps"), (500, "writes the reply that"),
+                     (830, "only words: nothing")]:
+        ax.text(x, 228, label, ha="center", fontsize=13, color=INK, weight="bold")
+    for x, label in [(170, "nothing between questions"), (500, "fits best, unchecked"),
+                     (830, "is trained or run")]:
+        ax.text(x, 252, label, ha="center", fontsize=13, color=INK, weight="bold")
+    save(fig, "agent_llm_io.svg")
+
+
+def fig_llm_nn():
+    """The LLM drawn like the small network: text in, a score per token out.
+    Sizes are Qwen3 8B's (its config.json); the numbers in the lists and the
+    scores are made up to show the idea."""
+    W, H = 1000, 480
+    fig, ax = canvas(W, H)
+    toks = ["validation", "error", "is", "high", "\u22ee", "change", "?"]
+    ids = ["10519", "1465", "374", "1550", None, "2297", "30"]  # Qwen3 tokenizer
+    ys = [120, 165, 210, 255, 300, 345, 390]
+    vecs = ["0.12, \u22120.40, \u2026", "\u22120.81, 0.05, \u2026", "0.33, 0.27, \u2026",
+            "0.70, \u22120.22, \u2026", None,
+            "\u22120.09, 0.66, \u2026", "0.51, \u22120.18, \u2026"]
+    # text pieces, then the list of numbers each becomes
+    for y, t, v, n in zip(ys, toks, vecs, ids):
+        if v is None:
+            ax.text(75, y, t, ha="center", va="center", fontsize=16, color=MUTED)
+            continue
+        w = 10 * len(t) + 16
+        ax.add_patch(Rectangle((75 - w / 2, y - 14), w, 28, fc="#f1f3f4",
+                               ec=EDGE, lw=1.4))
+        ax.text(75, y, t, ha="center", va="center", fontsize=12.5, color=INK)
+        arrow(ax, (75 + w / 2 + 4, y), (190, y))
+        ax.text(186, y - 13, "#" + n, ha="right", va="center", fontsize=10.5,
+                color=MUTED)
+        ax.text(197, y, "[" + v + "]", ha="left", va="center", fontsize=11,
+                color=MUTED, family="DejaVu Sans Mono")
+    # the network: columns of circles joined by lines, many steps in between
+    cols = [390, 480, 640, 730]
+    cy = [150, 210, 270, 330, 390]
+    for x0, x1 in [(cols[0], cols[1]), (cols[2], cols[3])]:
+        for a in cy:
+            for b in cy:
+                ax.plot([x0, x1], [a, b], color=EDGE, lw=0.8, zorder=1)
+    for x in cols:
+        for y in cy:
+            ax.add_patch(Circle((x, y), 13, fc="white", ec=LLM, lw=1.6, zorder=3))
+    ax.text(560, 270, "\u2026", ha="center", va="center", fontsize=28, color=LLM)
+    ax.add_patch(Rectangle((360, 115), 400, 310, fc="none", ec=LLM, lw=1.2,
+                           ls=(0, (4, 3))))
+    # scores for the next piece
+    arrow(ax, (765, 270), (800, 270))
+    for i, (t, sc) in enumerate([("Add", 0.62), ("Train", 0.21), ("Use", 0.09),
+                                 ("the", 0.03)]):
+        y = 190 + 40 * i
+        ax.text(812, y, t, ha="left", va="center", fontsize=12.5,
+                color=LLM if i == 0 else INK, weight="bold" if i == 0 else None)
+        ax.add_patch(Rectangle((870, y - 8), 110 * sc, 16,
+                               fc=LLM if i == 0 else EDGE, ec="none"))
+    ax.text(812, 350, "\u22ee", ha="left", va="center", fontsize=18, color=MUTED)
+    # headings, as in the small network
+    for x, top, sub in [(75, "in", "text, in pieces"),
+                        (255, "its row", "4,096 numbers"),
+                        (560, "36 steps", "8.2 billion weights"),
+                        (890, "out", "151,936 scores")]:
+        ax.text(x, 40, top, ha="center", fontsize=13, color=INK, weight="bold")
+        ax.text(x, 64, sub, ha="center", fontsize=12.5, color=MUTED)
+    ax.text(500, 462, "Small network of the last page: 3 numbers in, 16 weights, "
+            "1 number out.", ha="center", fontsize=12, color=MUTED, style="italic")
+    save(fig, "agent_llm_nn.svg")
+
+
+def fig_llm_lookup():
+    """How one token becomes numbers: its place in the list picks a row of the
+    table. Place numbers are from Qwen3's tokenizer; row values are made up."""
+    W, H = 1000, 340
+    fig, ax = canvas(W, H)
+    # 1. the token
+    ax.text(90, 40, "1. token", ha="center", fontsize=13, color=INK, weight="bold")
+    ax.add_patch(Rectangle((25, 213), 130, 34, fc="#f1f3f4", ec=EDGE, lw=1.4))
+    ax.text(90, 230, "\u2423validation", ha="center", va="center", fontsize=13,
+            color=INK)
+    arrow(ax, (160, 230), (215, 230))
+    # 2. its place in the list
+    ax.text(317, 40, "2. place in the list", ha="center", fontsize=13, color=INK,
+            weight="bold")
+    rows = [("0", "!"), ("\u22ee", ""), ("1465", "\u2423error"), ("\u22ee", ""),
+            ("10518", "opts"), ("10519", "\u2423validation"),
+            ("10520", "\u2423concerns"), ("\u22ee", "")]
+    for i, (n, t) in enumerate(rows):
+        y = 80 + 30 * i
+        hit = n == "10519"
+        if n == "\u22ee":
+            ax.text(317, y, "\u22ee", ha="center", va="center", fontsize=15,
+                    color=MUTED)
+            continue
+        ax.add_patch(Rectangle((220, y - 13), 195, 26, fc="white",
+                               ec=LLM if hit else EDGE, lw=1.6 if hit else 1))
+        ax.text(228, y, n, ha="left", va="center", fontsize=12,
+                color=LLM if hit else MUTED, weight="bold" if hit else None)
+        ax.text(290, y, t, ha="left", va="center", fontsize=12,
+                color=LLM if hit else INK)
+    arrow(ax, (420, 230), (458, 212))
+    # 3. the table: one row of 4,096 numbers per place
+    ax.text(640, 40, "3. row 10,519 of the table", ha="center", fontsize=13,
+            color=INK, weight="bold")
+    for i, (n, vals) in enumerate([("1465", "\u22120.81   0.05   0.47  \u2026"),
+                                   ("\u22ee", None),
+                                   ("10519", "0.12  \u22120.40   0.93  \u2026"),
+                                   ("\u22ee", None)]):
+        y = 130 + 40 * i
+        if vals is None:
+            ax.text(640, y, "\u22ee", ha="center", va="center", fontsize=15,
+                    color=MUTED)
+            continue
+        hit = n == "10519"
+        ax.add_patch(Rectangle((465, y - 15), 350, 30, fc="white",
+                               ec=LLM if hit else EDGE, lw=1.6 if hit else 1))
+        ax.text(475, y, n, ha="left", va="center", fontsize=12,
+                color=LLM if hit else MUTED, weight="bold" if hit else None)
+        ax.text(545, y, vals, ha="left", va="center", fontsize=12,
+                color=LLM if hit else INK, family="DejaVu Sans Mono")
+    ax.text(640, 75, "151,936 rows \u00d7 4,096 numbers, all weights",
+            ha="center", fontsize=12, color=MUTED)
+    arrow(ax, (820, 210), (870, 210))
+    ax.text(930, 40, "4. into the", ha="center", fontsize=13, color=INK,
+            weight="bold")
+    ax.text(930, 62, "network", ha="center", fontsize=13, color=INK,
+            weight="bold")
+    ax.text(935, 210, "4,096\nnumbers", ha="center", va="center", fontsize=12.5,
+            color=LLM)
+    ax.text(500, 325, "The place numbers are Qwen3's; the numbers in the rows are "
+            "made up.", ha="center", fontsize=12, color=MUTED, style="italic")
+    save(fig, "agent_llm_lookup.svg")
+
+
+def fig_llm_steps():
+    """Inside the LLM: the reply is written one token at a time."""
+    W, H = 1000, 330
+    fig, ax = canvas(W, H)
+    # Inside the LLM: the reply grows one token at a time.
+    ax.add_patch(Rectangle((60, 20), 880, 295, fc="white", ec=LLM, lw=1.2,
+                           ls=(0, (4, 3))))
+    ax.text(500, 48, "Inside the LLM: the reply is written one piece (token) "
+            "at a time", ha="center", fontsize=13, color=LLM, weight="bold")
+    ax.text(500, 72, "each step reads the question (grey) and the reply so far, "
+            "and adds the piece that fits best (purple)", ha="center",
+            fontsize=12, color=MUTED)
+    reply = ["Add", "more", "training", "frames", "."]
+    why = ["answers to \u201cwhat should I change?\u201d often start with \u201cAdd\u201d",
+           "\u201cAdd\u201d is often followed by \u201cmore\u201d",
+           "the question is about a validation error, so \u201cmore training\u201d fits",
+           "\u201cmore training\u201d is often followed by \u201cdata\u201d or \u201cframes\u201d"]
+    for k in range(4):
+        yy = 108 + 56 * k
+        ax.text(130, yy, f"step {k + 1}", ha="left", va="center", fontsize=12,
+                color=MUTED)
+        ax.add_patch(Rectangle((230, yy - 12), 250, 24, fc="#f1f3f4",
+                               ec=EDGE, lw=1.4))
+        ax.text(355, yy, "The validation \u2026 change?", ha="center",
+                va="center", fontsize=12, color=MUTED, style="italic")
+        x = 490
+        for i, tok in enumerate(reply[:k + 1]):
+            new = i == k
+            w = 11 * len(tok) + 16
+            ax.add_patch(Rectangle((x, yy - 12), w, 24, fc="white",
+                                   ec=LLM if new else EDGE, lw=1.4))
+            ax.text(x + w / 2, yy, tok, ha="center", va="center", fontsize=12,
+                    color=LLM if new else INK)
+            x += w + 5
+        ax.text(230, yy + 23, "why: " + why[k], ha="left", va="center",
+                fontsize=11.5, color=MUTED, style="italic")
+    save(fig, "agent_llm_steps.svg")
+
+
 if __name__ == "__main__":
     fig_lj_vs_mlip()
     fig_nn_basics()
@@ -777,6 +968,10 @@ if __name__ == "__main__":
     fig_val_curve()
     fig_force_parity()
     fig_energy_offset()
+    fig_llm_lookup()
+    fig_llm_nn()
+    fig_llm_io()
+    fig_llm_steps()
     fig_pipeline()
     fig_agent_parts()
     fig_agent_history()

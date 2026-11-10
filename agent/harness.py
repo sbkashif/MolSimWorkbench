@@ -52,6 +52,7 @@ once on a separate set of test frames that you never see."""
 
 def check(name, args, state):
     """Refuse a tool call that breaks a limit. Returns a reason, or None if allowed."""
+    # train: trainings left, epochs in range, a known width.
     if name == "train":
         e, c = args.get("epochs"), args.get("channels")
         if state.trainings >= config.MAX_TRAININGS:
@@ -60,12 +61,14 @@ def check(name, args, state):
             return f"epochs must be an integer from {config.EPOCH_RANGE[0]} to {config.EPOCH_RANGE[1]}"
         if c not in config.CHANNEL_CHOICES:
             return f"channels must be one of {list(config.CHANNEL_CHOICES)}"
+    # add_data: a positive number, and frames left in the pool.
     if name == "add_data":
         n = args.get("frames")
         if not isinstance(n, int) or n <= 0:
             return "frames must be a positive integer"
         if state.frames >= config.MAX_FRAMES:
             return f"the pool is used up: already {state.frames} frames"
+    # evaluate and run_md need a model to work on.
     if name in ("evaluate", "run_md") and state.model is None:
         return "no model trained yet"
     return None
@@ -162,7 +165,9 @@ def main():
             log("llm", seconds=round(time.time() - t, 1), thinking=msg.thinking,
                 text=msg.content, tool_calls=[{"name": c.function.name,
                                                "args": dict(c.function.arguments)}
-                                              for c in (msg.tool_calls or [])])
+                                              for c in (msg.tool_calls or [])],
+                usage={"input_tokens": reply.prompt_eval_count,
+                       "output_tokens": reply.eval_count})
             messages.append({"role": "assistant", "content": msg.content or "",
                              "tool_calls": msg.tool_calls or []})
             if not msg.tool_calls:

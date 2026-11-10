@@ -7,9 +7,9 @@ harness enforces the limits and writes every step to a log. The website section
 | File | What it holds |
 | --- | --- |
 | `config.py` | the goal's thresholds and every limit the harness enforces |
-| `data.py` | turns rMD17 ethanol into the files MACE reads |
-| `tools.py` | `train`, `evaluate`, `run_md`, `add_data`, and the tool list the LLM sees |
-| `harness.py` | the loop: send the history, check the call, run the tool, log it |
+| `data.py` | turns rMD17 ethanol into the files MACE reads: training frames (official split, at most 1000), 500 selection frames from neither official set, and the official 1000 test frames as the final test |
+| `tools.py` | `train`, `evaluate`, `run_md`, `add_data`, `final_test`, and the tool list the LLM sees |
+| `harness.py` | the loop: send the history, check the call, run the tool, log it, then score the final test |
 
 ## Run
 
