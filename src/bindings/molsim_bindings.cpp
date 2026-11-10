@@ -22,8 +22,14 @@
 
 namespace py = pybind11;
 
+// Set by the build from project(VERSION) in CMakeLists.txt.
+#ifndef MOLSIM_VERSION
+#define MOLSIM_VERSION "unknown"
+#endif
+
 PYBIND11_MODULE(_molsim, module) {
     module.doc() = "MolSimWorkbench C++ bindings";
+    module.attr("__version__") = MOLSIM_VERSION;
 
     py::enum_<MinimizationMethod>(module, "MinimizationMethod")
         .value("STEEPEST_DESCENT", MinimizationMethod::STEEPEST_DESCENT)

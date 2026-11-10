@@ -43,7 +43,11 @@ SOURCES=(
   src/bindings/molsim_bindings.cpp
 )
 
+# Version comes from project(VERSION) in CMakeLists.txt, as in the CMake build.
+MOLSIM_VER=$(sed -n 's/^project(MolSimWorkbench VERSION \([0-9.]*\)).*/\1/p' CMakeLists.txt)
+
 em++ -std=c++17 -O3 -fPIC -fexceptions -fvisibility=hidden \
+  -DMOLSIM_VERSION="\"$MOLSIM_VER\"" \
   -Isrc -Ibuild/_deps/json-src/include -Ibuild/_deps/pybind11-src/include -I"$PYINC" \
   "${SOURCES[@]}" \
   -sSIDE_MODULE=1 -sWASM_BIGINT -fexceptions \

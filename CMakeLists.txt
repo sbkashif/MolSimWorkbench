@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(MolSimWorkbench)
+project(MolSimWorkbench VERSION 0.7.0)
 
 # Default to an optimised build. Without this, a plain `cmake -B build -S .`
 # compiles with no optimisation, and every timing in docs/learn-parallel/ is
@@ -123,6 +123,7 @@ pybind11_add_module(_molsim
 )
 target_link_libraries(_molsim PRIVATE BuilderLib EngineLib)
 target_include_directories(_molsim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(_molsim PRIVATE MOLSIM_VERSION="${PROJECT_VERSION}")
 
 # Copy Python YAML parser to build directory
 configure_file(

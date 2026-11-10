@@ -1,10 +1,11 @@
 # Changelog
 
 Changes to the engine, its Python interface and its build. Website and
-documentation edits are not listed here. Dates are commit dates; the project has
-no version numbers yet.
+documentation edits are not listed here. Versions follow [Semantic Versioning](https://semver.org/);
+before 1.0.0 a minor version may change the API. Dates are commit dates.
+Versions before 0.7.0 were numbered afterwards, from the history.
 
-## 2026-11-08
+## 0.7.0 — 2026-11-08
 
 ### Added
 - **Integrator plug.** `Integrator` interface (`src/engine/integrators/`) with
@@ -29,7 +30,7 @@ no version numbers yet.
 - `MolecularDynamics::integrateVelocityVerlet`, `applyTemperatureControl` and
   `applyPeriodicBoundaryConditions`; their code now lives in the plugs.
 
-## 2026-11-07
+## 0.6.0 — 2026-11-07
 
 ### Added
 - Equilibration and NVE production phases: `equilibration_steps`,
@@ -39,7 +40,7 @@ no version numbers yet.
   `data/lj_nve_simulation.yaml`.
 - A Pyodide (WebAssembly) build of the engine, so it can run in a web browser.
 
-## 2026-10-21 – 2026-10-22
+## 0.5.0 — 2026-10-21 – 2026-10-22
 
 ### Fixed
 - Linux build: position-independent code for `_molsim`, `stdc++fs` on older
@@ -50,27 +51,40 @@ no version numbers yet.
 ### Changed
 - CMake builds Release by default.
 - nlohmann/json bumped to 3.11.3, for CMake 4.
+- LJ forces and energy are computed in one pass over the pairs
+  (`calculateForcesAndEnergy`), instead of two. Trajectories are unchanged; one
+  step at N=4096 goes from 37.5 ms to 18.4 ms.
 
-## 2026-09-02
+## 0.4.0 — 2026-09-02
 
 ### Added
 - An opt-in parallel LJ backend using OpenMP.
 
-## 2026-07-01
+## 0.3.0 — 2026-07-01
 
 ### Added
 - `LJParticleBoxBuilder`: `lj_particle_box` mode builds an LJ box from a
   target density, with no geometry file.
+- Minimum-image convention in the LJ potential, for periodic boundaries.
+- The pybind11 module `_molsim` (`src/bindings/molsim_bindings.cpp`), which
+  `molsimworkbench.py` now calls.
+- GitHub Actions CI on Ubuntu and macOS.
 
 ### Fixed
 - The LJ bulk Python path, and a trajectory file extension that was added twice.
+- The DFT example finds its YAML file.
 
-## 2026-01-23
+## 0.2.0 — 2026-01-23
+
+### Added
+- A basic DFT example and placeholder DFT modules.
 
 ### Changed
 - The Python module `molsimworkbench.py` replaces `main.cpp` as the way to run
   a simulation.
 
-## 2025-04-24
+## 0.1.0 — 2025-04-24
 
 - First working version: a single water molecule with an LJ potential, in C++.
+  Also includes steepest-descent energy minimization (the conjugate-gradient
+  and L-BFGS options fall back to it) and stub DFT and ML potentials.

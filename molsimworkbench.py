@@ -29,6 +29,9 @@ def _load_bindings():
 
 _molsim = _load_bindings()
 
+# The version is set in CMakeLists.txt; a build older than 0.7.0 has none.
+__version__ = getattr(_molsim, "__version__", "unknown")
+
 # In a web browser the engine cannot start a separate Python process to read
 # YAML, so it reads through the Python it is already running in.
 if sys.platform == "emscripten":
