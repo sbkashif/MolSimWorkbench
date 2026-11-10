@@ -111,7 +111,7 @@ Whether one row of trays (AoS) or three separate rows of x, y and z (SoA) is fas
 | 2 | fill both cups in order | brace initialisation | `Params p = {1.0, 1.0};` |
 | 3 | reach for one cup by name | `.` | `p.epsilon` |
 | 4 | the tray design is fixed: no adding cups later | fixed fields | `p.extra = 1.0;` does not compile |
-| 5 | the repo's tray of the same design | `AtomParameters` | `lj_potential.h:65-68` |
+| 5 | the repo's tray of the same design | `AtomParameters` | `lj_potential.h:67-70` |
 
 ---
 
@@ -201,8 +201,8 @@ A typo in an atom type does not fail loudly. It quietly files a blank card, and 
 | 2 | handed out under a taped second label | `const std::vector<…>& getPositions() const` | `geometry.h:19-20` |
 | 3 | the repo's grid recipe: same dice, same loops, same nudge | `createCubicLattice` | `lj_particle_box_builder.cpp:29-50` |
 | 4 | one `addAtom` puts a jar at the end of **both** rows | `geometry.addAtom("LJ", {x, y, z});` | line 46 |
-| 5 | the repo checks the tab exists **before** opening the box with `[]`, so no blank card is ever filed | `atomParameters.find(type1) == atomParameters.end()` then `atomParameters[type1]` | `lj_potential.cpp:336-342` |
-| 6 | preparing the force row: wrong length → resize it with zero trays; right length → zero every tray through an untaped label | `forces.resize(…)`, `for (auto& force : forces)` | `lj_potential.cpp:301-307` |
+| 5 | the repo checks the tab exists **before** opening the box with `[]`, so no blank card is ever filed | `atomParameters.find(type1) == atomParameters.end()` then `atomParameters[type1]` | `lj_potential.cpp:344-350` |
+| 6 | preparing the force row: wrong length → resize it with zero trays; right length → zero every tray through an untaped label | `forces.resize(…)`, `for (auto& force : forces)` | `lj_potential.cpp:309-315` |
 
 ---
 

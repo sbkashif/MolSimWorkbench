@@ -596,61 +596,61 @@ to about 10⁻¹⁴: rounding error from adding thousands of `double`s in a diff
 ## 5.11 In the real code
 
 Open `src/engine/potentials/lj_potential.cpp`. The repo's reference loop calls the same three functions
-the same way, lines 328-330:
+the same way, lines 336-338:
 
 ```cpp
-328              auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);
-329              std::array<double, 3> direction = {dx/distance, dy/distance, dz/distance};
-330              calculatePairForce(epsilon, sigma, distance, direction, forces[i], forces[j]);
+336              auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);
+337              std::array<double, 3> direction = {dx/distance, dy/distance, dz/distance};
+338              calculatePairForce(epsilon, sigma, distance, direction, forces[i], forces[j]);
 ```
 
-and line 291 is the energy version, `auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);`
+and line 299 is the energy version, `auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);`
 followed by `totalEnergy += calculatePairEnergy(epsilon, sigma, distance);`.
 
-The functions themselves, lines 335-386, shortened:
+The functions themselves, lines 343-394, shortened:
 
 ```cpp
-335  std::pair<double, double> LJPotential::getMixedParameters(const std::string& type1, const std::string& type2) {
-336      if (atomParameters.find(type1) == atomParameters.end() ||
-337          atomParameters.find(type2) == atomParameters.end()) {
-338          return {0.0, 0.0};  // Return zero parameters if missing
-339      }
-340
-341      const auto& params1 = atomParameters[type1];
-342      const auto& params2 = atomParameters[type2];
+343  std::pair<double, double> LJPotential::getMixedParameters(const std::string& type1, const std::string& type2) {
+344      if (atomParameters.find(type1) == atomParameters.end() ||
+345          atomParameters.find(type2) == atomParameters.end()) {
+346          return {0.0, 0.0};  // Return zero parameters if missing
+347      }
+348
+349      const auto& params1 = atomParameters[type1];
+350      const auto& params2 = atomParameters[type2];
          ...
-357      return {mixedEpsilon, mixedSigma};
-358  }
-359
-360  double LJPotential::calculatePairEnergy(double epsilon, double sigma, double distance) {
-361      if (distance <= 0.0) return 0.0;
+365      return {mixedEpsilon, mixedSigma};
+366  }
+367
+368  double LJPotential::calculatePairEnergy(double epsilon, double sigma, double distance) {
+369      if (distance <= 0.0) return 0.0;
          ...
-367      return 4.0 * epsilon * (sigma_r12 - sigma_r6);
-368  }
-369
-370  void LJPotential::calculatePairForce(double epsilon, double sigma, double distance,
-371                                      const std::array<double, 3>& direction,
-372                                      std::array<double, 3>& force1,
-373                                      std::array<double, 3>& force2) {
+375      return 4.0 * epsilon * (sigma_r12 - sigma_r6);
+376  }
+377
+378  void LJPotential::calculatePairForce(double epsilon, double sigma, double distance,
+379                                      const std::array<double, 3>& direction,
+380                                      std::array<double, 3>& force1,
+381                                      std::array<double, 3>& force2) {
          ...
-380      double forceMagnitude = 24.0 * epsilon * (2.0 * sigma_r12 - sigma_r6) / distance;
-381
-382      for (int i = 0; i < 3; ++i) {
-383          force1[i] -= forceMagnitude * direction[i];
-384          force2[i] += forceMagnitude * direction[i];
-385      }
-386  }
+388      double forceMagnitude = 24.0 * epsilon * (2.0 * sigma_r12 - sigma_r6) / distance;
+389
+390      for (int i = 0; i < 3; ++i) {
+391          force1[i] -= forceMagnitude * direction[i];
+392          force2[i] += forceMagnitude * direction[i];
+393      }
+394  }
 ```
 
 | Line | What you now recognise |
 |---|---|
-| 335 | returns `std::pair<double, double>`; the strings come in by `const &` |
-| 336-339 | `.find(key) == .end()` is the "not found" test from §5.7. A missing type gives ε = σ = 0 instead of an exception — a different choice from mini_lj's `.at()` |
-| 338, 357 | `return {a, b};` builds the pair |
-| 341-342 | `[]` is safe here, because 336-339 already proved both keys exist |
-| 360 | the same signature as mini_lj's `calculatePairEnergy`: three `double`s by value, returns `double` |
-| 370-373 | the same six parameters as §5.4: three by value, `direction` by `const &`, two outputs by plain `&` |
-| 383-384 | Newton's third law, written into the caller's force slots |
+| 343 | returns `std::pair<double, double>`; the strings come in by `const &` |
+| 344-347 | `.find(key) == .end()` is the "not found" test from §5.7. A missing type gives ε = σ = 0 instead of an exception — a different choice from mini_lj's `.at()` |
+| 346, 365 | `return {a, b};` builds the pair |
+| 349-350 | `[]` is safe here, because 344-347 already proved both keys exist |
+| 368 | the same signature as mini_lj's `calculatePairEnergy`: three `double`s by value, returns `double` |
+| 378-381 | the same six parameters as §5.4: three by value, `direction` by `const &`, two outputs by plain `&` |
+| 391-392 | Newton's third law, written into the caller's force slots |
 
 One thing is different, and you can now see exactly what it is: every name has an `LJPotential::`
 prefix, and `getMixedParameters` takes only the two type names. It does not need the map passed in. The

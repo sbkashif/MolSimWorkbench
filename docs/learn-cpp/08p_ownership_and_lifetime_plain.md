@@ -179,9 +179,9 @@ includes the tether's pull, because the rack adds every station's forces togethe
 | # | Kitchen | C++ | Example |
 |---|---|---|---|
 | 1 | the fast force loop gets **cards with shelf positions** of rows of jars someone else owns | `LJKernelView`: `const double* x` | `lj_kernels.h:27` |
-| 2 | the jars belong to the LJ machine | `std::vector<double> sx, …` members | `lj_potential.h:89` |
+| 2 | the jars belong to the LJ machine | `std::vector<double> sx, …` members | `lj_potential.h:91` |
 | 3 | first make each row the right length, **then** write the cards | `sx.resize(n)` before `view.x = sx.data()` | `lj_potential.cpp:99`, then `:136` |
-| 4 | the cards are thrown away when this sub-recipe ends, long before the machine is | `LJKernelView view;` is a local | `lj_potential.cpp:165` |
+| 4 | the cards are thrown away when this sub-recipe ends, long before the machine is | `LJKernelView view;` is a local | `lj_potential.cpp:172` |
 | 5 | rule: **never follow a card after the owner has moved or emptied that shelf** | a borrowed pointer must not outlive the storage | |
 
 ### Why the order matters
@@ -208,7 +208,7 @@ includes the tether's pull, because the rack adds every station's forces togethe
 | 1 | `main` fetches a station rack from the storeroom | `auto forceCalculator = std::make_shared<ForceCalculator>();` | `run_simulation.cpp:43` |
 | 2 | for each potential file, the parser's sub-recipe fetches a machine and hands it back | `parser.parsePotential(potentialFile)` | `run_simulation.cpp:45` |
 | 3 | inside the parser: fetch, set up, hand back | `auto ljPotential = std::make_shared<LJPotential>();` … `return ljPotential;` | `yaml_parser.cpp:339`, `:359` |
-| 4 | the rack signs for each machine | `std::vector<std::shared_ptr<Potential>> potentials;` | `force_calculator.h:31` |
+| 4 | the rack signs for each machine | `std::vector<std::shared_ptr<Potential>> potentials;` | `force_calculator.h:35` |
 | 5 | the MD driver also signs for the rack | `this->forceCalculator = forceCalc;` | `molecular_dynamics.cpp:209` |
 | 6 | so the driver's clean-up step has nothing to throw out by hand | `// No need to delete forceCalculator as it's a shared_ptr` | `molecular_dynamics.cpp:26` |
 

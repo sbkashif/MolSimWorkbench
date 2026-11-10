@@ -38,23 +38,23 @@ Every `mini_lj` piece has a twin in the repo. Line numbers are in the current so
 
 | ch | `mini_lj` (`docs/learn-cpp/examples/`) | repo | where |
 |---|---|---|---|
-| 2 | one pair: `E = 4ε[(σ/r)¹² − (σ/r)⁶]` with `std::pow` | `LJPotential::calculatePairEnergy` | `src/engine/potentials/lj_potential.cpp:360-368` |
-| 3 | `applyMinimumImage(Vec3& d, double box)` | the three `std::round` lines inside the reference loops | `lj_potential.cpp:282-284` |
+| 2 | one pair: `E = 4ε[(σ/r)¹² − (σ/r)⁶]` with `std::pow` | `LJPotential::calculatePairEnergy` | `src/engine/potentials/lj_potential.cpp:368-376` |
+| 3 | `applyMinimumImage(Vec3& d, double box)` | the three `std::round` lines inside the reference loops | `lj_potential.cpp:290-292` |
 | 3 | `using Vec3 = std::array<double, 3>` | written out in full as `std::array<double, 3>` everywhere | e.g. `src/builder/geometry.h:20` |
 | 4 | the cubic lattice loop | `LJParticleBoxBuilder::createCubicLattice` | `src/builder/lj_particle_box_builder.cpp:38-50` |
-| 4 | the `i < j` pair loop in `main` | the body of `calculateEnergyReference` | `lj_potential.cpp:276-294` |
-| 5 | `getMixedParameters` returning `std::pair`; `auto [epsilon, sigma]` | same name, plus an arithmetic mixing rule | `lj_potential.cpp:335-358`, `:291` |
-| 5 | `calculatePairForce(…, Vec3& force1, Vec3& force2)` | same name, same out-parameters | `lj_potential.cpp:370-386` |
+| 4 | the `i < j` pair loop in `main` | the body of `calculateEnergyReference` | `lj_potential.cpp:284-302` |
+| 5 | `getMixedParameters` returning `std::pair`; `auto [epsilon, sigma]` | same name, plus an arithmetic mixing rule | `lj_potential.cpp:343-366`, `:299` |
+| 5 | `calculatePairForce(…, Vec3& force1, Vec3& force2)` | same name, same out-parameters | `lj_potential.cpp:378-394` |
 | 5 | `makeCubicLattice(…, double& box)` | `createCubicLattice(config, boxSize)`: box handed back the same way | `lj_particle_box_builder.cpp:13-16` |
 | 6 | `class Geometry` | `class Geometry` (same public shape, a few more methods) | `src/builder/geometry.h:12-33` |
-| 6 | `class LJPotential` and its `calculateEnergy` / `calculateForces` | `calculateEnergyReference` / `calculateForcesReference` | `lj_potential.cpp:269-333` |
-| 7 | `class Potential` (pure virtual, virtual destructor) | identical | `src/engine/force_calculator.h:35-48` |
+| 6 | `class LJPotential` and its `calculateEnergy` / `calculateForces` | `calculateEnergyReference` / `calculateForcesReference` | `lj_potential.cpp:277-341` |
+| 7 | `class Potential` (pure virtual, virtual destructor) | identical, plus a fourth method with a default body, `calculateForcesAndEnergy` | `src/engine/force_calculator.h:39-60` |
 | 7 | `HarmonicTether`, a second potential | `DFTPotential` plays that role in the repo | `src/engine/potentials/dft_potential.h:10-17` |
-| 8 | `class ForceCalculator` holding `vector<shared_ptr<Potential>>` | identical idea | `force_calculator.h:13-32` |
+| 8 | `class ForceCalculator` holding `vector<shared_ptr<Potential>>` | identical idea | `force_calculator.h:13-36` |
 | 8 | `buildForceCalculator()` with `make_shared` | `run_simulation.cpp` + `YAMLParser::parseClassicalPotential` | `src/tools/run_simulation.cpp:43-46`, `src/utils/yaml_parser.cpp:339` |
 | 9 | `timeMs` template in `timing.h` | `timeMs` in the benchmark | `benchmarks/bench_lj.cpp:56-68` |
 | 9 | threads, each writing `partial[t]` | the `Threads` backend | `src/engine/potentials/lj_kernels.cpp:302-333` |
-| — | `main` | two programs: the simulation, and the benchmark | `run_simulation.cpp:10-78`, `bench_lj.cpp:83-163` |
+| — | `main` | two programs: the simulation, and the benchmark | `run_simulation.cpp:10-77`, `bench_lj.cpp:83-163` |
 
 The repo has more around these pieces (YAML parsing, the MD integrator, trajectory output, the fast
 kernels), but nothing in this table is a different idea from the one you practised.
@@ -63,39 +63,39 @@ kernels), but nothing in this table is a different idea from the one you practis
 
 ## 10.1 In the real code: the reference loop is mini_lj chapter 6
 
-`src/engine/potentials/lj_potential.cpp:269-297`, the repo's original energy loop, kept unchanged as the
+`src/engine/potentials/lj_potential.cpp:277-305`, the repo's original energy loop, kept unchanged as the
 correctness baseline:
 
 ```cpp
-269  double LJPotential::calculateEnergyReference(const Geometry& geometry) {
-270      double totalEnergy = 0.0;
-271
-272      const auto& atoms = geometry.getAtoms();
-273      const auto& positions = geometry.getPositions();
-274      const auto& boxDim = geometry.getBoxDimensions();
-275
-276      for (size_t i = 0; i < atoms.size(); ++i) {
-277          for (size_t j = i + 1; j < atoms.size(); ++j) {
-278              double dx = positions[j][0] - positions[i][0];
-279              double dy = positions[j][1] - positions[i][1];
-280              double dz = positions[j][2] - positions[i][2];
-281
-282              if (boxDim[0] > 0.0) dx = dx - boxDim[0] * std::round(dx / boxDim[0]);
-283              if (boxDim[1] > 0.0) dy = dy - boxDim[1] * std::round(dy / boxDim[1]);
-284              if (boxDim[2] > 0.0) dz = dz - boxDim[2] * std::round(dz / boxDim[2]);
-285
-286              double distanceSquared = dx*dx + dy*dy + dz*dz;
-287              double distance = std::sqrt(distanceSquared);
-288
-289              if (distance > cutoff || distance < 1e-10) continue;
-290
-291              auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);
-292              totalEnergy += calculatePairEnergy(epsilon, sigma, distance);
-293          }
-294      }
-295
-296      return totalEnergy;
-297  }
+277  double LJPotential::calculateEnergyReference(const Geometry& geometry) {
+278      double totalEnergy = 0.0;
+279
+280      const auto& atoms = geometry.getAtoms();
+281      const auto& positions = geometry.getPositions();
+282      const auto& boxDim = geometry.getBoxDimensions();
+283
+284      for (size_t i = 0; i < atoms.size(); ++i) {
+285          for (size_t j = i + 1; j < atoms.size(); ++j) {
+286              double dx = positions[j][0] - positions[i][0];
+287              double dy = positions[j][1] - positions[i][1];
+288              double dz = positions[j][2] - positions[i][2];
+289
+290              if (boxDim[0] > 0.0) dx = dx - boxDim[0] * std::round(dx / boxDim[0]);
+291              if (boxDim[1] > 0.0) dy = dy - boxDim[1] * std::round(dy / boxDim[1]);
+292              if (boxDim[2] > 0.0) dz = dz - boxDim[2] * std::round(dz / boxDim[2]);
+293
+294              double distanceSquared = dx*dx + dy*dy + dz*dz;
+295              double distance = std::sqrt(distanceSquared);
+296
+297              if (distance > cutoff || distance < 1e-10) continue;
+298
+299              auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);
+300              totalEnergy += calculatePairEnergy(epsilon, sigma, distance);
+301          }
+302      }
+303
+304      return totalEnergy;
+305  }
 ```
 
 And `mini_lj`'s chapter 6 version (`examples/06/lj_potential.cpp:14-35`), for comparison:
@@ -129,24 +129,24 @@ Line for line, the differences are:
 
 | repo | mini_lj | what the repo's version adds |
 |---|---|---|
-| 278–280: `dx`, `dy`, `dz` | 22–26: `Vec3 d` and a `k` loop | nothing: the same arithmetic, written out per axis |
-| 282–284: `if (boxDim[0] > 0.0)` | 25: no test | a box length of 0 means "this axis does not wrap"; `mini_lj` always has a box |
-| 289: `distance < 1e-10` | 28: only `r > cutoff` | skips two atoms sitting on the same point (division by zero in `calculatePairEnergy`) |
+| 286–288: `dx`, `dy`, `dz` | 22–26: `Vec3 d` and a `k` loop | nothing: the same arithmetic, written out per axis |
+| 290–292: `if (boxDim[0] > 0.0)` | 25: no test | a box length of 0 means "this axis does not wrap"; `mini_lj` always has a box |
+| 297: `distance < 1e-10` | 28: only `r > cutoff` | skips two atoms sitting on the same point (division by zero in `calculatePairEnergy`) |
 | `size_t` | `std::size_t` | the same type, without the `std::` prefix |
-| 291: `getMixedParameters` | 30: same | the repo's version (335–358) returns `{0, 0}` for an unknown type and supports `"arithmetic"` mixing |
+| 299: `getMixedParameters` | 30: same | the repo's version (343–366) returns `{0, 0}` for an unknown type and supports `"arithmetic"` mixing |
 
-That is the whole difference. `calculateForcesReference` (`:299-333`) is `mini_lj`'s chapter 6
-`calculateForces` in the same way. The header says what they are for (`src/engine/potentials/lj_potential.h:54-61`):
+That is the whole difference. `calculateForcesReference` (`:307-341`) is `mini_lj`'s chapter 6
+`calculateForces` in the same way. The header says what they are for (`src/engine/potentials/lj_potential.h:56-63`):
 
 ```cpp
-54      // ---- Reference implementation ------------------------------------------
-55      // The ORIGINAL triangular (i<j) loop, kept verbatim as the correctness
-56      // baseline that every parallel backend is tested against. Slow on purpose:
-57      // it does a std::map<std::string> lookup per pair. Do not "optimise" it --
-58      // its entire value is being the thing we did not touch.
-59      double calculateEnergyReference(const Geometry& geometry);
-60      void calculateForcesReference(const Geometry& geometry,
-61                                    std::vector<std::array<double, 3>>& forces);
+56      // ---- Reference implementation ------------------------------------------
+57      // The ORIGINAL triangular (i<j) loop, kept verbatim as the correctness
+58      // baseline that every parallel backend is tested against. Slow on purpose:
+59      // it does a std::map<std::string> lookup per pair. Do not "optimise" it --
+60      // its entire value is being the thing we did not touch.
+61      double calculateEnergyReference(const Geometry& geometry);
+62      void calculateForcesReference(const Geometry& geometry,
+63                                    std::vector<std::array<double, 3>>& forces);
 ```
 
 The repo's *default* `calculateEnergy` (`lj_potential.cpp:147-157`) no longer runs this loop. It builds
@@ -250,7 +250,7 @@ serial-triangular       0.045     5.88x   -611.491665613    1.066e-13    3.413e-
 
 `run_simulation` reads a YAML config (ch 1 §1.2 walked its `main`). Run it from the repo root: the YAML
 loader shells out to a Python helper and looks for `yaml_parser.py` relative to the current directory
-(`src/utils/yaml_parser.cpp:36-45`). Started from another directory, it failed with:
+(`src/utils/yaml_parser.cpp:46-55`). Started from another directory, it failed with:
 
 ```
 Warning: Python YAML parser script not found at any expected location
@@ -405,7 +405,7 @@ and points there.
 | `static_cast<std::size_t>(t)` | `lj_kernels.cpp:307` and throughout | GLOSSARY: `static_cast<T>(x)` |
 | `#pragma omp parallel for …` | `lj_kernels.cpp:352` | learn-parallel 06 |
 | `auto it = typeIds.find(atoms[i]);` … `it->second` | `lj_potential.cpp:107`, `:111` | below |
-| `constexpr double kPi = …;` | `lj_potential.cpp:224` | below |
+| `constexpr double kPi = …;` | `lj_potential.cpp:232` | below |
 
 The four marked "below", briefly:
 

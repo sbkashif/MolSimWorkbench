@@ -225,7 +225,7 @@ most dangerous outcome of all.
 
 Here the compiler warned, because the mistake was two lines apart. In longer code it often cannot. The
 habit that prevents it: **always give a variable a value when you create it.** The repo does this
-everywhere an accumulator starts — `double totalEnergy = 0.0;` at `src/engine/potentials/lj_potential.cpp:270`.
+everywhere an accumulator starts — `double totalEnergy = 0.0;` at `src/engine/potentials/lj_potential.cpp:278`.
 
 > **Unlike Python:** a name there cannot exist without an object; using one before assigning it raises
 > `NameError`, every time. C++ will happily hand you the leftover bits, and the result can even look right.
@@ -276,7 +276,7 @@ Every "half" in the repo is written as the `double` literal `0.5`:
 // src/engine/integrators/velocity_verlet_integrator.cpp:7
 const double dtSquaredHalf = 0.5 * dt * dt;
 
-// src/engine/potentials/lj_potential.cpp:350-351  (arithmetic mixing rule)
+// src/engine/potentials/lj_potential.cpp:358-359  (arithmetic mixing rule)
 mixedEpsilon = 0.5 * (params1.epsilon + params2.epsilon);
 mixedSigma = 0.5 * (params1.sigma + params2.sigma);
 ```
@@ -351,7 +351,7 @@ sizeof(a) = 4, sizeof(b) = 8
 division.
 
 The repo uses `auto` where the type is long and obvious from the right-hand side —
-`const auto& atoms = geometry.getAtoms();` at `src/engine/potentials/lj_potential.cpp:272` (the `&` is
+`const auto& atoms = geometry.getAtoms();` at `src/engine/potentials/lj_potential.cpp:280` (the `&` is
 chapter 3) — and spells out `double` everywhere the type is the point. The parallel course's glossary
 entry is a one-line reminder: [`auto`](../learn-parallel/GLOSSARY.md#c-you-will-meet-in-the-exercises).
 
@@ -499,44 +499,44 @@ Nothing on lines 6–8 or 10–15 changes after it is set. In chapter 3 they all
 ## 2.10 In the real code
 
 The repo's version of lines 10–12 is `LJPotential::calculatePairEnergy`,
-`src/engine/potentials/lj_potential.cpp:360-367`:
+`src/engine/potentials/lj_potential.cpp:368-375`:
 
 ```cpp
-360  double LJPotential::calculatePairEnergy(double epsilon, double sigma, double distance) {
-361      if (distance <= 0.0) return 0.0;
-362
-363      double sigma_r = sigma / distance;
-364      double sigma_r6 = std::pow(sigma_r, 6);
-365      double sigma_r12 = sigma_r6 * sigma_r6;
-366
-367      return 4.0 * epsilon * (sigma_r12 - sigma_r6);
+368  double LJPotential::calculatePairEnergy(double epsilon, double sigma, double distance) {
+369      if (distance <= 0.0) return 0.0;
+370
+371      double sigma_r = sigma / distance;
+372      double sigma_r6 = std::pow(sigma_r, 6);
+373      double sigma_r12 = sigma_r6 * sigma_r6;
+374
+375      return 4.0 * epsilon * (sigma_r12 - sigma_r6);
 ```
 
 | Line | Read it as | mini_lj |
 |---|---|---|
-| 360 | a function returning a `double`, taking three `double`s (functions are chapter 5) | `epsilon`, `sigma`, `r` on lines 6–8 |
-| 361 | guard: a zero distance would divide by zero; `0.0` is a `double` literal | — |
-| 363–365 | the same three boxes, the same `std::pow` | lines 10–11 |
-| 367 | the same formula, with the same `4.0` | line 12 |
+| 368 | a function returning a `double`, taking three `double`s (functions are chapter 5) | `epsilon`, `sigma`, `r` on lines 6–8 |
+| 369 | guard: a zero distance would divide by zero; `0.0` is a `double` literal | — |
+| 371–373 | the same three boxes, the same `std::pow` | lines 10–11 |
+| 375 | the same formula, with the same `4.0` | line 12 |
 
-The force version, `calculatePairForce`, starts at line 370 and has
-`double forceMagnitude = 24.0 * epsilon * (2.0 * sigma_r12 - sigma_r6) / distance;` at line 380 — mini_lj's
+The force version, `calculatePairForce`, starts at line 378 and has
+`double forceMagnitude = 24.0 * epsilon * (2.0 * sigma_r12 - sigma_r6) / distance;` at line 388 — mini_lj's
 line 15 with longer names. Its parameter list is the subject of chapter 3.
 
-The class header shows each of this chapter's types once, `src/engine/potentials/lj_potential.h:71-76`:
+The class header shows each of this chapter's types once, `src/engine/potentials/lj_potential.h:73-78`:
 
 ```cpp
-71      double cutoff = 10.0;  // Default cutoff
-72      std::string mixingRule = "geometric";  // Default mixing rule
-73
-74      LJBackend backend;
-75      int numThreads = 0;
-76      bool tailCorrection = false;
+73      double cutoff = 10.0;  // Default cutoff
+74      std::string mixingRule = "geometric";  // Default mixing rule
+75
+76      LJBackend backend;
+77      int numThreads = 0;
+78      bool tailCorrection = false;
 ```
 
 Each line is a variable with a fixed type and a starting value: a `double`, a `std::string` (a piece of
 text; chapter 4), an `int`, a `bool`. They sit inside a class, which chapter 6 explains; the way each one is
-declared is exactly this chapter's. Line 74 is the exception — it has no `= …`. `LJBackend` is an `enum
+declared is exactly this chapter's. Line 76 is the exception — it has no `= …`. `LJBackend` is an `enum
 class` (a named set of choices; see the glossary section
 [C++ you will meet in `lj_kernels`](../learn-parallel/GLOSSARY.md#c-you-will-meet-in-lj_kernelshcpp)),
 and the class's constructor gives it its value. That is chapter 6's topic.

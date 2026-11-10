@@ -483,7 +483,7 @@ third row.
 ...
 16      const std::string configPath = argv[1];
 ...
-74      } catch (const std::exception& error) {
+73      } catch (const std::exception& error) {
 ```
 
 **Line 10, `char* argv[]`.** A `char` is a single character (1 byte). A piece of text in C — older than
@@ -515,7 +515,7 @@ is a copy**: `const std::string configPath = argv[1];` copies the letters into a
 owns them. Changing the copy did not change `argv[1]`. After line 16 the program never touches the raw
 pointer again.
 
-**Line 74, `const std::exception& error`.** `catch` receives the thrown error like a function parameter
+**Line 73, `const std::exception& error`.** `catch` receives the thrown error like a function parameter
 (§3.2). `const …&` means: do not copy it, do not change it, just read it — the "input" pattern from §3.3.
 There is a second reason it must be a reference, which chapter 7 explains: the error thrown is usually a
 more specific kind (a subclass) of `std::exception`, and catching by reference keeps it intact, so
@@ -523,26 +523,26 @@ more specific kind (a subclass) of `std::exception`, and catching by reference k
 
 ### The force function's signature
 
-`src/engine/potentials/lj_potential.h:99-102` declares the repo's version of mini_lj's `pairForce`:
+`src/engine/potentials/lj_potential.h:101-104` declares the repo's version of mini_lj's `pairForce`:
 
 ```cpp
- 99      void calculatePairForce(double epsilon, double sigma, double distance,
-100                             const std::array<double, 3>& direction,
-101                             std::array<double, 3>& force1,
-102                             std::array<double, 3>& force2);
+101      void calculatePairForce(double epsilon, double sigma, double distance,
+102                             const std::array<double, 3>& direction,
+103                             std::array<double, 3>& force1,
+104                             std::array<double, 3>& force2);
 ```
 
 Read it with §3.3's table: three numbers by value; `direction` is an input (`const&`); `force1` and
-`force2` are outputs (`&`, no `const`). Its body in `lj_potential.cpp:383-384` is mini_lj's lines 29–30:
+`force2` are outputs (`&`, no `const`). Its body in `lj_potential.cpp:391-392` is mini_lj's lines 29–30:
 `force1[i] -= forceMagnitude * direction[i];` and `force2[i] += …`. The one difference is the split of the
 maths: the repo passes a unit `direction` and the full force size; mini_lj passes `d` and F/r. The product
 is the same.
 
-And the call, `src/engine/potentials/lj_potential.cpp:329-330`:
+And the call, `src/engine/potentials/lj_potential.cpp:337-338`:
 
 ```cpp
-329              std::array<double, 3> direction = {dx/distance, dy/distance, dz/distance};
-330              calculatePairForce(epsilon, sigma, distance, direction, forces[i], forces[j]);
+337              std::array<double, 3> direction = {dx/distance, dy/distance, dz/distance};
+338              calculatePairForce(epsilon, sigma, distance, direction, forces[i], forces[j]);
 ```
 
 `forces[i]` and `forces[j]` are elements of a list of forces (a `std::vector`, chapter 4). Because the
@@ -551,13 +551,13 @@ list. No copy goes in, nothing is returned, and the totals build up pair by pair
 
 ### The interface every potential implements
 
-`src/engine/force_calculator.h:40-44`, from the `Potential` base class (chapter 7):
+`src/engine/force_calculator.h:44-48`, from the `Potential` base class (chapter 7):
 
 ```cpp
-40      virtual double calculateEnergy(const Geometry& geometry) = 0;
+44      virtual double calculateEnergy(const Geometry& geometry) = 0;
 ...
-43      virtual void calculateForces(const Geometry& geometry,
-44                                  std::vector<std::array<double, 3>>& forces) = 0;
+47      virtual void calculateForces(const Geometry& geometry,
+48                                  std::vector<std::array<double, 3>>& forces) = 0;
 ```
 
 Ignore `virtual` and `= 0` until chapter 7. The parameters tell the whole data-flow story: `const
@@ -566,16 +566,16 @@ list is filled in. Every potential in the repo has this shape.
 
 ### A `const` reference to avoid a copy
 
-`src/engine/potentials/lj_potential.cpp:272-274`, at the top of the reference energy loop:
+`src/engine/potentials/lj_potential.cpp:280-282`, at the top of the reference energy loop:
 
 ```cpp
-272      const auto& atoms = geometry.getAtoms();
-273      const auto& positions = geometry.getPositions();
-274      const auto& boxDim = geometry.getBoxDimensions();
+280      const auto& atoms = geometry.getAtoms();
+281      const auto& positions = geometry.getPositions();
+282      const auto& boxDim = geometry.getBoxDimensions();
 ```
 
 `const auto&` is chapter 2's `auto` plus this chapter's `const &`: "a read-only second name for whatever
-this returns, whatever its type is". Without the `&`, line 273 would copy every position in the system
+this returns, whatever its type is". Without the `&`, line 281 would copy every position in the system
 into a new local list before the loop even started.
 
 ---

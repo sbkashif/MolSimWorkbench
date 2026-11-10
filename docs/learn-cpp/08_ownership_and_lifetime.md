@@ -605,10 +605,10 @@ holds plain addresses:
 ```
 
 The view owns nothing. The numbers live in `std::vector<double>` members of `LJPotential`
-(`lj_potential.h:89`):
+(`lj_potential.h:91`):
 
 ```cpp
-89      std::vector<double> sx, sy, sz, sfx, sfy, sfz;
+91      std::vector<double> sx, sy, sz, sfx, sfy, sfz;
 ```
 
 and `buildView` points the view at them with `.data()`, which returns the address of a vector's first
@@ -652,15 +652,15 @@ x[0] = 5.88185e-310
 printed `5.88185e-310`. No warning, no crash: just a wrong number.
 
 That is why `buildView` resizes first (line 99) and takes the addresses last (lines 136–141). The view is
-also a local variable of the function that uses it (`lj_potential.cpp:165-167`):
+also a local variable of the function that uses it (`lj_potential.cpp:172-174`):
 
 ```cpp
-165      LJKernelView view;
-166      buildView(geometry, view);
-167      ljComputeGather(view, backend, numThreads);
+172      LJKernelView view;
+173      buildView(geometry, view);
+174      const double energy = ljComputeGather(view, backend, numThreads);
 ```
 
-The view is born after the vectors were sized and dies at the end of `calculateForces`. No resize can
+The view is born after the vectors were sized and dies at the end of `calculateForcesAndEnergy`. No resize can
 happen while it is alive. The owner (`LJPotential`) outlives the borrower (`view`). That is the whole
 safety argument, and it is why the view can be plain pointers, which is what a GPU needs (learn-parallel
 09, and the POD entry in [GLOSSARY.md](../learn-parallel/GLOSSARY.md)).
@@ -729,12 +729,12 @@ from a function declared to return `shared_ptr<Potential>`: the derived-to-base 
 The parser's local `ljPotential` dies at the function's `}`, and the object lives on in the returned
 `shared_ptr`. This is the exact situation `dangling_potentials.cpp` got wrong, done right.
 
-**Who owns what** — `src/engine/force_calculator.h:19` and `:31`:
+**Who owns what** — `src/engine/force_calculator.h:19` and `:35`:
 
 ```cpp
 19      void addPotential(std::shared_ptr<Potential> potential);
     ...
-31      std::vector<std::shared_ptr<Potential>> potentials;
+35      std::vector<std::shared_ptr<Potential>> potentials;
 ```
 
 and `src/engine/molecular_dynamics.cpp:208-210`:
@@ -768,6 +768,8 @@ main (stack)
     │                                         └── potentials: vector<shared_ptr<Potential>>
     │                                             └──► LJPotential (heap, use_count 1)
     │                                                  └── sx, sy, sz, … vectors (borrowed by LJKernelView)
+    ├── integrator       shared_ptr ────────► VelocityVerletIntegrator (heap)
+    ├── thermostat       shared_ptr ────────► VelocityRescaleThermostat (heap)
     └── trajectoryWriter unique_ptr ────────► TrajectoryWriter (heap) ── closes its file in ~TrajectoryWriter
 ```
 
@@ -776,12 +778,12 @@ in that tree is freed by a destructor. The repo never says `delete`.
 
 ### Why pybind11 wants `shared_ptr` (deep dive later)
 
-`src/bindings/molsim_bindings.cpp:102` and `:104`:
+`src/bindings/molsim_bindings.cpp:108` and `:110`:
 
 ```cpp
-102     py::class_<Potential, std::shared_ptr<Potential>>(module, "Potential");
+108     py::class_<Potential, std::shared_ptr<Potential>>(module, "Potential");
     ...
-104     py::class_<LJPotential, Potential, std::shared_ptr<LJPotential>>(module, "LJPotential")
+110     py::class_<LJPotential, Potential, std::shared_ptr<LJPotential>>(module, "LJPotential")
 ```
 
 The second template argument tells pybind11 to hold these objects through `shared_ptr`. A Python script

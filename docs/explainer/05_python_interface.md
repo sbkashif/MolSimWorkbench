@@ -43,12 +43,12 @@ from molsimworkbench import System
 system = System.from_yaml("data/simulation_config.yaml",
                           trajectory_output="output/trajectory.xyz")
 final_energy = system.run()
-print(f"Final energy: {final_energy:.4f} kJ/mol")
+print(f"Final energy: {final_energy:.4f}")
 ```
 
 Internally `from_yaml` does:
 1. `YAMLParser.parseSimulationConfig()` → `SimulationConfig`
-2. `YAMLParser.parseGeometry()` → `Geometry`
+2. `YAMLParser.parseGeometry()` → `Geometry` (or `LJParticleBoxBuilder.createCubicLattice()` in `lj_particle_box` mode)
 3. Loop over `potentialConfigFiles` → `ForceCalculator` with potentials added
 4. Wire everything into `MolecularDynamics`
 5. Call `initialize()` then `runSimulation()` on `.run()`
@@ -117,7 +117,7 @@ The `ForceCalculator.calculateForces()` binding uses a lambda to convert the C++
 .def("calculateForces", [](ForceCalculator& self, const Geometry& geometry) {
     std::vector<std::array<double, 3>> forces;
     self.calculateForces(geometry, forces);
-    return forces;   // auto-converted to Python list of 3-tuples
+    return forces;   // auto-converted to a Python list of [fx, fy, fz] lists
 })
 ```
 

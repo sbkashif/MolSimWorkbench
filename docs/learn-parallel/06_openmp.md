@@ -153,7 +153,9 @@ roughly half speed. The other four finish and sit at the barrier waiting for it.
 
 `guided` fixes it completely (7.06 ms at 5 threads, faster than 4). Slow cores
 simply request fewer chunks. That is why the shipped kernel uses `guided`, and
-why the comment in `lj_kernels.cpp` says so with the numbers attached.
+why the comment in `lj_kernels.cpp` says so with the numbers attached. (Those
+numbers come from a different machine with more efficiency cores, so they do not
+match this table; the 4-to-5-thread slowdown under `static` is the same.)
 
 The general lesson is not "always use guided" — `static` is free and `guided`
 is not, and on homogeneous cores with uniform work `static` wins. The lesson is

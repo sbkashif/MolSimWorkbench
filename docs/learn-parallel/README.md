@@ -16,7 +16,7 @@ But that headline hides the actual lesson, which is this table:
 | Kernel | ms/call | What changed |
 |---|---:|---|
 | reference (original) | 34.89 | — |
-| serial-triangular | 16.14 | **No parallelism at all.** Just deleting a `std::map` lookup from the inner loop. |
+| serial-triangular | 16.14 | **No parallelism at all.** Just a serial rewrite of the inner loop — mostly dropping `sqrt` and the divisions (lesson 2). |
 | serial-gather | 28.39 | Slower again — gave up Newton's third law to make threading possible |
 | `std::thread` × 8 | 6.57 | |
 | OpenMP × 8 | 6.57 | |
@@ -98,7 +98,7 @@ lj.setBackend(LJBackend::OpenMP);   // C++
 lj.setNumThreads(8);                // 0 = runtime default
 ```
 ```bash
-MOLSIM_LJ_BACKEND=openmp            # serial | threads | openmp
+MOLSIM_LJ_BACKEND=openmp            # serial | threads | openmp | openmp-private
 MOLSIM_LJ_THREADS=4
 ```
 

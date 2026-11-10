@@ -17,9 +17,10 @@ The code is layered. Each layer has one job and talks to the layer below it thro
 │         MolecularDynamics  (top-level driver)       │
 │    setup → minimize → integrate → write trajectory  │
 ├──────────────────────┬──────────────────────────────┤
-│  VV integration      │   Force Calculator           │
-│  (method on MD, not  │   (sums up all potentials)   │
-│   a separate class)  │                              │
+│  Integrator plug     │   Force Calculator           │
+│  (Velocity Verlet    │   (sums up all potentials)   │
+│   by default)        │                              │
+│  Thermostat plug     │                              │
 ├──────────────────────┴──────────────────────────────┤
 │                  Potentials                         │
 │      LJPotential  |  DFTPotential  |  MLPotential   │

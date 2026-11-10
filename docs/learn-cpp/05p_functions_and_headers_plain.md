@@ -203,10 +203,10 @@ written into, by `&`.
 
 | # | Kitchen | C++ | Example |
 |---|---|---|---|
-| 1 | the real force loop calls the same three recipes the same way | lines 291, 328-330 | `auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);` |
-| 2 | the mixing recipe first checks the card box has both cards, and hands back an empty tray if not | `.find(…) == .end()`, lines 336-339 | `return {0.0, 0.0};` |
-| 3 | after that check, `[]` cannot write a blank card | lines 341-342 | |
-| 4 | the force recipe takes the same six ingredients, the same three ways | lines 370-373 | |
+| 1 | the real force loop calls the same three recipes the same way | lines 299, 336-338 | `auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);` |
+| 2 | the mixing recipe first checks the card box has both cards, and hands back an empty tray if not | `.find(…) == .end()`, lines 344-347 | `return {0.0, 0.0};` |
+| 3 | after that check, `[]` cannot write a blank card | lines 349-350 | |
+| 4 | the force recipe takes the same six ingredients, the same three ways | lines 378-381 | |
 | 5 | one difference: every recipe name has a prefix, and the mixing recipe is **not handed the card box** | `LJPotential::getMixedParameters(type1, type2)` | the card box lives inside the LJ station itself — chapter 6 |
 
 ---
