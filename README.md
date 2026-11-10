@@ -221,6 +221,17 @@ vmd -e examples/output/load_trajectory.vmd
 
 ## Documentation
 
+The learning material comes in two forms:
+
+- **[`website/`](website/)** — the course: a shorter, guided version of the
+  notes, with figures, quizzes and runs of the real engine. Build it with
+  `python -m sphinx -E -b html website website/_build/html` (requirements in
+  `website/requirements.txt`) and open `website/_build/html/index.html`.
+- **[`docs/`](docs/README.md)** — the full notes: every chapter in detail, the
+  parallelization course with its exercises, and a layer-by-layer walk through
+  the engine's code. Read these on GitHub when you want every line, or before
+  changing the engine.
+
 **Learning C++ and the parallel kernel from scratch?** Start at
 [`docs/LEARNING_PATH.md`](docs/LEARNING_PATH.md): C++ basics
 ([`docs/learn-cpp/`](docs/learn-cpp/README.md)) → this codebase → the
