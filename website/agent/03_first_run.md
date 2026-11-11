@@ -91,7 +91,7 @@ API. Nothing else changed.
 | Force error, final test frames | 14.2 meV/Å | 17.1 meV/Å |
 | MD check | passed | passed |
 | Time | 35.6 min, 9.7 of them the LLM | 13.8 min, 8 s of them the LLM |
-| Cost | none (runs locally) | about $0.03 (10,929 tokens in, 477 out) |
+| Cost | none (runs locally) | a few cents (10,929 tokens in, 477 out) |
 
 Claude took a shorter path. It trained once (32 channels, 60 epochs), scored
 that model on the selection frames (53.5 meV/Å), added 600 frames in one step,
@@ -113,7 +113,7 @@ Both runs can be repeated from a clone of the
 [repository](https://github.com/sbkashif/MolSimWorkbench). They were made on
 macOS 15, on a laptop with an Apple M4 processor and 16 GB of memory, using
 only the CPU. That is the only system tested so far; Linux, and Windows
-through WSL, are being tested.
+through WSL, are not tested yet.
 
 1. Create the environment, which holds MACE, OpenMM, OpenMM-ML, Ollama and
    Anthropic's Python client:
@@ -160,7 +160,7 @@ through WSL, are being tested.
    :::{tab-item} Claude Sonnet 5.5, over the API
    This needs your own API key from the
    [Claude Console](https://platform.claude.com/), and the run is billed to
-   your account: about $0.03 for the run on this page. Set the key in the
+   your account: a few cents for the run on this page. Set the key in the
    terminal you run from, and keep it out of files you commit:
 
    ```bash

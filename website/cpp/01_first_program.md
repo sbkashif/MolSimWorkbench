@@ -49,7 +49,7 @@ Read from the top:
   that is all you need: `#include` is how a program gets to use code someone
   else wrote. [What the compiler does](#what-the-compiler-does) below shows
   the pasting happen.
-- **Line 4.** `int main()` starts the [main function](https://en.cppreference.com/w/cpp/language/main_function).
+- **Line 4.** `int main()` starts the [main function](https://en.cppreference.com/cpp/language/main_function).
   Every C++ program has exactly one, and running the program means running
   `main`, from its opening brace `{` to its closing brace `}` on line 10.
 - **Line 5.** `double r = 1.5;` makes a **variable** named `r` that holds the
@@ -252,8 +252,8 @@ pair:
 ```
 
 `libc++` is the C++ standard library; `libSystem` holds, among other things,
-the C math functions such as `pow`. On Linux, `ldd pair` gives the same list
-there. The executable is 39 KB; it does not copy those libraries in, it
+the C math functions such as `pow`. On Linux, `ldd pair` gives the matching
+list: `libstdc++`, `libm` and `libc`. The executable is 39 KB; it does not copy those libraries in, it
 records which ones to load when it starts.
 
 You will write your own header files later in this module, when the program

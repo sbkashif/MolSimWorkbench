@@ -273,6 +273,6 @@ of σ the LJ wall dwarfs everything else.
 ## Next
 
 `plug.cpp` is one file of 93 lines, and the engine's `src/` folder holds about
-4,700. The next chapter, [Several files](06_several_files.md), splits a program across several files, the way the engine is
+4,600. The next chapter, [Several files](06_several_files.md), splits a program across several files, the way the engine is
 organised: declarations in headers, code in source files, joined by the
 linker.

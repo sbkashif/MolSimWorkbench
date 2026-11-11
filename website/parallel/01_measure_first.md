@@ -160,7 +160,7 @@ are slower and use less power.
 A program uses several cores through **threads**. A thread is one stream of
 instructions within a program; in the words of the C++ reference, the class
 `std::thread` "represents a single thread of execution"
-([std::thread](https://en.cppreference.com/w/cpp/thread/thread)). Every
+([std::thread](https://en.cppreference.com/cpp/thread/thread)). Every
 program starts with one thread, running `main`, and can start more. The
 operating system runs each thread on a core, and all the threads of a
 program share its memory ({numref}`par-cores-threads-figure`).

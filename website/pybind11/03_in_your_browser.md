@@ -116,7 +116,7 @@ and the same `molsim_bindings.cpp`, with **Emscripten**, a C++ compiler whose
 output is WebAssembly instead of machine code for your processor. It compiles
 against Pyodide's copy of the Python headers, so the result is a Python
 extension module for Pyodide, just as the normal build makes one for your
-Python. The file is 651 KB and is part of the website. It is rebuilt by hand
+Python. The file is about 660 KB and is part of the website. It is rebuilt by hand
 whenever the engine's C++ changes.
 ::::
 

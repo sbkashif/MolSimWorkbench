@@ -111,18 +111,19 @@ line, which changes from run to run; so the error changes too. C++ names this
 a **data race**: two evaluations conflict "if one of them modifies a memory
 location" and "the other one reads or modifies the same memory location",
 and "if a data race occurs, the behavior of the program is undefined"
-([multi-threaded executions and data races](https://en.cppreference.com/w/cpp/language/multithread)).
+([multi-threaded executions and data races](https://en.cppreference.com/cpp/language/multithread)).
 Undefined means the language promises nothing at all about the result, not
 even that the error stays small.
 
 ## How the engine avoids it
 
 The engine's threaded backends use **gather**. Each thread runs
-`computeRange` on its own block of atoms, so every force has one writer and
-no two threads ever write the same memory. The energy is handled the same
-way: each thread adds its share into its own slot, `partial[t]`, and the
-slots are added up after all threads have finished, always in thread order 0,
-1, 2, … so that the sum comes out the same on every run.
+`computeRange` on its own atoms, so every force has one writer and
+no two threads ever write the same memory. In the `Threads` backend the
+energy is handled the same way: each thread adds its share into its own slot,
+`partial[t]`, and the slots are added up after all threads have finished,
+always in thread order 0, 1, 2, … so that the sum comes out the same on every
+run.
 
 Gather pays for its safety with the doubled arithmetic measured above. The
 engine has one more backend, `OpenMPPrivate`, that keeps scatter and removes

@@ -373,8 +373,8 @@ The rest of `harness.py` is one loop. On each pass it:
 
 The loop also ends after 20 tool calls, so a run cannot go in circles.
 
-When the loop ends, for whatever reason, the harness runs one more check that
-the LLM did not ask for: `final_test`, the same errors as `evaluate`, on the
+When the loop ends, for whatever reason, and a model has been trained, the
+harness runs one more check that the LLM did not ask for: `final_test`, the same errors as `evaluate`, on the
 final test frames. It writes the result to the log as a `final_test` line.
 The LLM has already made every decision, so nothing it chose was tuned to
 these frames:
@@ -402,7 +402,7 @@ The LLM is a setting, chosen by `--model` when the run starts. A name such as
 `qwen3:8b` goes to Ollama on the same machine. A name starting with `claude-`
 goes to Anthropic's API instead, which needs the reader's own API key. The
 Claude run, described in [What our agent did](03_first_run.md), used
-`claude-sonnet-5-5` this way; it cost about $0.03.
+`claude-sonnet-5-5` this way; it cost a few cents.
 
 ## What the log records
 
@@ -424,8 +424,10 @@ then what the tool measured:
 
 `t_min` is the minutes since the run started, `seconds` is how long the LLM
 took to reply, and `usage` counts the tokens it read and wrote. The `thinking` field keeps the LLM's reasoning, which is how the
-previous page could point out where it misread a number. For Claude it holds
-a summary of the reasoning: Anthropic's API returns that, not the full text.
+previous page could point out where it misread a number. For Claude it can
+hold only a summary of the reasoning, since Anthropic's API returns that, not
+the full text; in the run on the previous page Claude's replies were short
+and the field stayed empty.
 The log also keeps
 the goal, the limits and a summary line at the end, so a run can be read back
 without the code.

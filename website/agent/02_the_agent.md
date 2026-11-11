@@ -48,8 +48,8 @@ one small piece, a **token**, at a time. A common English word is usually one
 token, so here you can read "token" as "word"; rarer words and units such as
 meV/Å are split into smaller pieces. At each step it reads the question and
 the reply so far, scores every token that could come next, and adds the one
-that scores highest (chatbots often pick at random among the top few; the
-agent's code asks for the top one).
+that scores highest (chatbots often pick at random among the top few; for
+the local model the agent's code asks for the top one).
 
 The scores come from fitting, done once, before any question: as page 1's
 network was fitted to DFT energies, the LLM was first fitted to a very large amount
@@ -222,7 +222,7 @@ Level 2 already takes the tedious part off your hands, and it
 can be enough. Anthropic's guide to building agents advises starting from the
 simplest solution that works, which "might mean not building agentic systems
 at all"
-([Schluntz and Zhang 2024](https://www.anthropic.com/engineering/building-effective-agents)).
+([Schluntz and Zhang 2024](https://www.anthropic.com/research/building-effective-agents)).
 If the possible answers are few and well known, you can read
 them in batches, adjust your rules, and keep every decision your own: the LLM
 suggests and the script does the work, but you decide. Every action then comes
@@ -355,8 +355,8 @@ calling well.
 
 The script then runs the step, adds it and its result to `history`, and asks
 again, until the LLM picks `stop`. The LLM remembers nothing between passes, so
-the whole history is sent every time; its reasoning is not, only the steps and
-results. The goal stays the same while the history grows, and the answers
+the whole history is sent every time (for the local model, without its
+reasoning: only the steps and results). The goal stays the same while the history grows, and the answers
 change with it: after a high error the LLM may add frames; after a low one,
 run an MD check. The script also checks each step against its limits before
 running it, such as at most five trainings; that and the other details are in
@@ -398,7 +398,7 @@ The guide quoted under level 3 has names for the last two. Level 2 is a
 *workflow*: LLMs and tools run "through predefined code paths", so the order
 of the steps is written in code. Level 3 is an *agent*: the LLM directs which
 tools are used, and when
-([Schluntz and Zhang 2024](https://www.anthropic.com/engineering/building-effective-agents)).
+([Schluntz and Zhang 2024](https://www.anthropic.com/research/building-effective-agents)).
 
 An agent takes the deciding from level 1 and the running from level 2. Before
 handing it the deciding, we decide what it may do.

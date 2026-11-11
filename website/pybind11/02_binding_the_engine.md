@@ -27,7 +27,7 @@ one below it.
 
 ## The bridge: molsim_bindings.cpp
 
-The engine's binding file starts like `ljmodule.cpp`, with one extra header:
+The engine's binding file starts like `ljmodule.cpp`, with two extra headers:
 
 ```{literalinclude} ../../src/bindings/molsim_bindings.cpp
 :language: cpp
@@ -65,10 +65,12 @@ The `Geometry` binding shows the pattern:
   ([return value policies](https://pybind11.readthedocs.io/en/stable/advanced/functions.html)).
 
 Some functions take or return a list of numbers, such as a position with
-three coordinates. The second header, `pybind11/stl.h`, converts C++
+three coordinates. The last header, `pybind11/stl.h`, converts C++
 containers such as `std::vector` and `std::array` to and from Python lists,
 copying them on every crossing
 ([STL containers](https://pybind11.readthedocs.io/en/stable/advanced/cast/stl.html)).
+The middle one, `pybind11/functional.h`, is for the browser and comes up on
+[the next page](03_in_your_browser.md).
 
 ## Building a pair from Python
 
@@ -283,5 +285,5 @@ run inside the one `runSimulation` call, in C++.
 
 On your computer, this path needs Python and the compiled module, yet the Run
 buttons on these pages need neither. [The same module, in your
-browser](03_in_your_browser.md) shows what runs them: these same layers, with
-two more on top.
+browser](03_in_your_browser.md) shows what runs them: the bottom three of these
+layers, with two JavaScript layers on top in place of your script.
