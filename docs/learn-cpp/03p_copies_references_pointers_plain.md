@@ -170,11 +170,11 @@ Read the label right to left: "p is a pointer to double that is const".
 | 1 | the order slip is a stack of index cards, one per word; each card points at the first letter of a word | `char* argv[]` | `run_simulation.cpp:10` |
 | 2 | follow card 1 to its first letter | `argv[1][0]`, `*argv[1]` | `word[0] = c`, `*word = c` |
 | 3 | copy the letters into the kitchen's own string jar; never touch the card again | copy into `std::string` | `run_simulation.cpp:16`; changing the copy gave `Xonfig.yaml`, `argv[1]` stayed `config.yaml` |
-| 4 | the burnt-dish report is read through a taped second label: not copied, not changed | `catch (const std::exception& error)` | `run_simulation.cpp:74` |
-| 5 | the repo's force recipe: three numbers as copies, the direction under tape, two force trays to add into | `calculatePairForce(double, double, double, const std::array<double,3>&, std::array<double,3>&, std::array<double,3>&)` | `lj_potential.h:99-102` |
-| 6 | it is handed atom i's and atom j's own force trays from the shelf | `calculatePairForce(…, forces[i], forces[j]);` | `lj_potential.cpp:330` |
-| 7 | every potential's job description: read the atoms under tape, fill the caller's force shelf | `calculateForces(const Geometry&, std::vector<…>& forces)` | `force_calculator.h:43-44` |
-| 8 | a taped second label on the whole positions shelf, so nothing is copied before the loop | `const auto& positions = geometry.getPositions();` | `lj_potential.cpp:273` |
+| 4 | the burnt-dish report is read through a taped second label: not copied, not changed | `catch (const std::exception& error)` | `run_simulation.cpp:73` |
+| 5 | the repo's force recipe: three numbers as copies, the direction under tape, two force trays to add into | `calculatePairForce(double, double, double, const std::array<double,3>&, std::array<double,3>&, std::array<double,3>&)` | `lj_potential.h:101-104` |
+| 6 | it is handed atom i's and atom j's own force trays from the shelf | `calculatePairForce(…, forces[i], forces[j]);` | `lj_potential.cpp:338` |
+| 7 | every potential's job description: read the atoms under tape, fill the caller's force shelf | `calculateForces(const Geometry&, std::vector<…>& forces)` | `force_calculator.h:47-48` |
+| 8 | a taped second label on the whole positions shelf, so nothing is copied before the loop | `const auto& positions = geometry.getPositions();` | `lj_potential.cpp:281` |
 
 ---
 

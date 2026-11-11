@@ -1,32 +1,24 @@
 # A simple molecular dynamics loop
 
-A molecular dynamics (MD) simulation moves atoms by Newton's second law. It
-treats each atom $i$ as a point with mass $m_i$, position $\mathbf{r}_i$ and
-velocity $\mathbf{v}_i$, and follows classical mechanics: no quantum effects
-for the atoms themselves. That is the main simplification MD makes.
+On the [home page](../index.md) you ran liquid argon and read the loop in one
+paragraph: from the positions of the atoms comes the potential energy,
+differentiating it gives the forces, the forces move the atoms over a short
+time step, and repeating that gives a trajectory. This page explains that loop
+properly, one part at a time, and runs each part as it comes.
 
-The force on each atom comes from the potential energy $U$ of all the atoms
-together. The force on atom $i$ points downhill in $U$, the direction in
-which moving atom $i$ lowers the energy fastest:
-
-$$
-\mathbf{F}_i = -\frac{\partial U}{\partial \mathbf{r}_i}
-$$
-
-and the force sets the acceleration, as in Newton's second law:
+Molecular dynamics (MD) treats each atom $i$ as a classical point with mass
+$m_i$, position $\mathbf{r}_i$ and velocity $\mathbf{v}_i$. The force on the
+atom is the downhill slope of the potential energy $U$ of all the atoms, and it
+sets the acceleration, as in Newton's second law:
 
 $$
+\mathbf{F}_i = -\frac{\partial U}{\partial \mathbf{r}_i},
+\qquad
 m_i \frac{d^2 \mathbf{r}_i}{dt^2} = \mathbf{F}_i
 $$
 
-For more than two atoms these equations have no solution on paper. The
-simulation solves them step by step instead: from the positions and
-velocities at time $t$, it computes every force, then the positions and
-velocities a short time $\Delta t$ later. Repeating that step thousands of
-times produces a **trajectory**: a film of the atoms in motion, like the one
-on the [home page](../index.md).
-
-This page builds that loop one part at a time, and runs each part as it comes.
+For more than two atoms these equations have no solution on paper, so the loop
+solves them one short time step $\Delta t$ at a time.
 
 ## What the simulation holds
 
@@ -34,7 +26,8 @@ The simulation holds one **state**: the positions and velocities of every
 atom, and the box that contains them. Everything else in the loop reads this
 state or updates it.
 
-A typical run here has 512 atoms in a cube. The numbers are in
+The run on this page has 125 atoms in a cube; the longer runs behind some of
+the figures have 512. The numbers are in
 **reduced units**: lengths are measured in σ (the atom's size, defined below),
 energies in ε (the strength of attraction between two atoms), and every atom
 has mass 1. Temperature is measured in units of ε divided by Boltzmann's
@@ -100,7 +93,8 @@ functions that fit the same place.
    factor, so that the kinetic energy matches the target temperature exactly.
 
 The loop then starts again from the new state. The time step is short (0.001
-in reduced units here), so 4000 steps cover 4 time units.
+in reduced units here), so the 1000 steps of the run below cover one unit of
+time.
 
 ## Running the loop
 
@@ -136,8 +130,7 @@ potential_config_files:
   - "potentials/lj_bulk.yaml"
 ```
 
-All numbers are in reduced units (the comment on `timestep` in the file
-still says picoseconds). `system_mode: "lj_particle_box"` tells the engine
+All numbers are in reduced units. `system_mode: "lj_particle_box"` tells the engine
 to build the atoms itself: it places `num_particles` atoms on a cubic grid
 inside a cube whose side $L$ gives the requested density,
 $L = (N / \rho)^{1/3}$. For 125 atoms at density 0.8 that is
@@ -168,10 +161,14 @@ print("final energy:", sim.run())
 loop and returns the final energy. These lines only hand the work to the C++
 engine; the [pybind11 module](../pybind11/index.md) explains how.
 
-You can run it here. The boxes hold the two real files, and **Run** does what
-`run.py` does, then plays the trajectory as a movie, with every atom drawn at
-its diameter σ. The engine is compiled to run inside your browser, so it runs
-on your own computer and nothing is sent to a server. The first Run of a visit
+You can run it here. The boxes hold the two real files, and you can edit any
+line of them: this is the layer under the home-page sliders, which write their
+settings into files of the same kind (they use `lj_play_simulation.yaml`, a
+sparser box of 125 atoms, with this same potential file). **Run** does what
+`run.py` does, shows the lines the engine prints, and plays the XYZ trajectory
+as a movie, with every atom drawn at its diameter σ. The engine is compiled to run inside your browser, so it runs
+on your own computer and nothing is sent to a server
+([the pybind11 module](../pybind11/03_in_your_browser.md) shows how). The first Run of a visit
 downloads Python for the browser, which takes a few seconds. Your edits are
 gone when you reload the page.
 
@@ -193,9 +190,24 @@ add `total_steps` under `simulation`, as the 512-atom run below does
 
 ### What comes out
 
-**Printed lines.** Every 10 steps the engine prints the potential energy, the
-kinetic energy, their sum, and the temperature. (The `Å` after the box length
-is a leftover label; the length is in units of σ.) The kinetic energy stays at
+**Printed lines.** After reading the files, the engine reports the box it
+built and the starting temperature, then every 10 steps prints the potential
+energy, the kinetic energy, their sum, and the temperature. The first lines of
+the run, after the lines about reading the files:
+
+```text
+Creating LJ particle box: N=125, rho=0.8, L=5.38609
+Placed 125 particles on cubic lattice
+Initializing velocities for temperature: 1
+Initial temperature before scaling: 1.08014
+Initial temperature after scaling: 1
+Initial kinetic energy: 187.5
+Step 0, Potential Energy: -611.553, Kinetic Energy: 187.5, Total Energy: -424.053, Temperature: 1
+Step 10, Potential Energy: -608.269, Kinetic Energy: 187.5, Total Energy: -420.769, Temperature: 1
+```
+
+Every number is in reduced units: the box side `L` in σ, energies in ε, the
+temperature in ε / $k_B$. The kinetic energy stays at
 exactly 187.5: the thermostat rescales the velocities after every step so that
 the temperature is 1, and for 125 atoms that means
 $\tfrac{3}{2} \times 125 \times 1 = 187.5$. Because the thermostat adds and
@@ -204,7 +216,14 @@ removes energy, the total energy is not constant in these runs.
 **The trajectory** records every atom at each saved step, and it is what the
 movie plays. It is in **XYZ** format, plain text that viewers such as VMD read
 directly. Each frame is a block of lines: the number of atoms, a comment, then
-one line per atom:
+one line per atom. The first frame, `Initial configuration`, is the grid before
+any step; the next is step 0:
+
+```text
+125
+Initial configuration
+   LJ   -2.122491   -2.188536   -2.124306    0.593392   -0.465811    1.235932
+```
 
 ```text
 125
@@ -213,7 +232,10 @@ Step 0, PE: -611.552758, KE: 187.500000
 ```
 
 On each atom line come the atom type, its position $x, y, z$, and its velocity
-$v_x, v_y, v_z$. In the movie, an atom that leaves through a face comes back
+$v_x, v_y, v_z$. The grid is built centred on the origin, so its coordinates run
+from $-L/2$ to $L/2$. The first step wraps every negative coordinate into the
+box by adding $L$: −2.122 + 5.386 = 3.264, so from step 0 on every position lies
+between 0 and $L$. In the movie, an atom that leaves through a face comes back
 through the opposite one, as the
 [periodic box](#what-the-simulation-holds) rule says.
 
@@ -271,6 +293,7 @@ is the energy of motion. If the dashed line is below zero, the ball stops
 partway up and rolls back, and the two atoms vibrate but stay together. If
 it is above zero, the ball rolls out of the valley and the atoms fly apart.
 
+(thermal-energy)=
 ### $k_B T$: the thermal energy
 
 How much energy of motion a pair has depends on the temperature. In the
@@ -301,18 +324,10 @@ $-0.016\varepsilon$ to zero at $r_c$.
 
 ## What ε and σ do to many atoms
 
-The sliders showed ε and σ for two atoms. With many atoms their effect shows
-directly. {numref}`run-sigma-epsilon-figure` shows four runs,
-each with 512 atoms in the same box (density 0.3 for σ = 1), at T = 1, for
-10,000 steps of 0.004, changing only ε or σ:
-
-- **ε = 0.5 and ε = 2.** The ratio $k_B T / \varepsilon$ is 2 and 0.5. With
-  the weaker attraction, pairs break apart as fast as they form and the atoms
-  spread through the box: each atom has on average 4.1 others within 1.5σ.
-  With the stronger attraction, the atoms pull together into a dense region
-  and leave empty space beside it: 10.1 neighbours within 1.5σ.
-- **σ = 0.8 and σ = 1.4.** The same number of atoms fills 8% of the box
-  volume with the small atoms and 43% with the large ones.
+The [home-page experiments](../index.md#change-the-material) changed the
+stickiness and size of 125 atoms. {numref}`run-sigma-epsilon-figure` shows the
+same two settings in four longer runs of 512 atoms at T = 1, each changing only
+ε or σ.
 
 ```{figure} ../figures/run_sigma_epsilon_runs.svg
 :name: run-sigma-epsilon-figure
@@ -322,22 +337,13 @@ seen from above, with every atom drawn to scale (diameter σ). The left two
 differ only in ε (σ = 1), the right two only in σ (ε = 0.5).
 ```
 
-Each of those runs is the same two files with different settings, and you can
-run your own in the boxes under [Starting a run](#starting-a-run). The engine
-reads the files every time it starts, so there is nothing to rebuild. Keep
-`random_seed` the same when you compare two runs, so that your change is the
-only difference between them.
-
-A sparse, cold box is a good first try: `density: 0.1`, the first `temperature`
-at 0.6, and `total_steps: 6000` added under `simulation`. In the movie the atoms
-no longer fill the box; they gather into clumps with empty space between them.
-
 ## Your own slider
 
 The interactive plot above has sliders for ε, σ and $k_B T$. A loop over one setting is the same idea,
 and you can build it yourself: every stop along the way is a real simulation.
-`sweep.py` runs the engine once per value and plots the average potential energy
-per atom. Press **Run**, then change `SETTING` and `VALUES` at the top and press
+Where the box under [Starting a run](#starting-a-run) runs one pair of files,
+this box runs a sweep: `sweep.py` edits a copy of the same two files once per value, runs the
+engine each time, and plots the average potential energy per atom. Press **Run**, then change `SETTING` and `VALUES` at the top and press
 it again. The first Run also downloads a plotting library.
 
 ```{engine-python}
@@ -414,59 +420,10 @@ freezes at this temperature, about 0.91 (from the freezing line in the same
 Khrapak and Morfill paper). The starting grid was never a crystal of LJ
 atoms, only a convenient way to place them without overlaps.
 
-## One material, two states
-
-Reduced units turn back into a real material once you choose its ε and σ. Argon
-is the classic choice: [Rahman's 1964 simulation](https://doi.org/10.1103/PhysRev.136.A405)
-of liquid argon used $\varepsilon / k_B$ = 120 K and σ = 3.4 Å. With those values
-$T = 1$ means 120 K, and density 0.82 means 1.38 g/cm³, close to
-[real liquid argon at its boiling point](https://lar.bnl.gov/properties/index.html),
-1.396 g/cm³. His run was 864 atoms at 94.4 K and 1.374 g/cm³.
-
-Each button below runs the engine on the same 125 atoms (ε = σ = 1, 2500 steps),
-changing only the conditions: $T$ and the density. The material stays the
-same; the box shrinks or grows to give the density.
-
-```{engine-states}
-```
-
-| Button | $T$ | Density | As argon | Neighbours within 1.5σ | MSD over t = 4 |
-|---|---|---|---|---|---|
-| Liquid argon at 94.4 K | 0.79 | 0.81 | 94.4 K (−179 °C) | 11.5 | 1.1σ² |
-| Compressed gas | 2.50 | 0.10 | 300 K (27 °C) | 1.3 | 51σ² |
-
-**Liquid argon at 94.4 K** uses Rahman's temperature and density, his cutoff of 2.25σ and his
-steps of 10⁻¹⁴ s, with 125 atoms where he used 864. It is not an exact repeat:
-this engine holds the temperature with a thermostat and integrates with velocity
-Verlet, where Rahman let his system run freely and used a predictor-corrector.
-Over six seeds it still gives neighbours at 3.6 to 3.7 Å and a diffusion constant
-of about 2.4 × 10⁻⁵ cm²/s, against his 3.7 Å and 2.43 × 10⁻⁵ cm²/s, so the smaller
-box loses little. Rahman reports 45 seconds per step on his CDC 3600; 864 atoms take
-under 10 milliseconds per step here.
-
-The table averages three runs with different seeds, and takes the MSD from the
-second half of each run, without any drift of the whole box.
-
-At $T = 0.79$, between the triple and critical points, the atoms keep moving past
-each other: an atom keeps about half of its neighbours over $t = 4$. The second run
-is above the critical point, where liquid and gas are no longer distinct, and at
-this low density the atoms behave as a gas: an atom has only about one close
-neighbour.
-
-There is no solid button. Lennard-Jones atoms do form a stable crystal below the
-triple point, but near a density of 0.96, and this engine starts from a simple
-cubic grid at a lower density. Cooled to $T = 0.3$ at density 0.82, those atoms
-jam into a packing that is barely more ordered than the liquid, so calling it a
-solid would claim more than the run shows.
-
-The density is fixed, so the liquid
-at 94.4 K is under pressure: at atmospheric pressure argon boils at 87.3 K. The gas
-run is 0.17 g/cm³, which the ideal gas law puts at roughly 100 times atmospheric
-pressure, as in a gas cylinder.
-
-Other materials are other values of ε and σ. Attraction between krypton atoms is
-about five times that between neon atoms, and krypton boils at −153 °C where neon
-boils at −246 °C.
+The home page's liquid argon button uses Rahman's temperature, density, cutoff
+and time step, but it is not an exact repeat of his run: this engine holds the
+temperature with the thermostat and integrates with Velocity-Verlet, where
+Rahman let his 864 atoms run freely and used a predictor-corrector method.
 
 ## The energy function is a plug
 
@@ -520,10 +477,13 @@ Each part of {numref}`md-loop-figure` is one C++ class in the engine:
 | --- | --- |
 | System (positions, box) | `Geometry` |
 | Force step | `ForceCalculator`, which holds a list of energy functions and adds up their forces |
-| Energy function (the plug) | `Potential`; the LJ plug is `LJPotential`, the DFT plug is `DFTPotential` |
-| Integrator and thermostat | `MolecularDynamics`, in `integrateVelocityVerlet` and `applyTemperatureControl` |
+| Energy function (the plug) | `Potential`; the LJ plug is `LJPotential`. `DFTPotential` fits the same socket, but it is not implemented yet: building one raises an error |
+| Integrator | `Integrator`; the default plug is `VelocityVerletIntegrator`, the other is `LeapfrogIntegrator` |
+| Thermostat | `Thermostat`; the default plug is `VelocityRescaleThermostat` (Berendsen when given a time constant), the other is `LangevinThermostat` |
 
-`Potential` is the shape of the socket. It declares two functions,
+`Potential` is the shape of the energy-function socket. The integrator and
+the thermostat have sockets of their own, `Integrator` and `Thermostat`, so
+each part of the loop can be swapped from the YAML file. `Potential` declares two functions,
 `calculateEnergy` and `calculateForces`, and every plug provides its own
 version of both. How C++ expresses "every plug provides its own version" is
 the subject of the C++ module.

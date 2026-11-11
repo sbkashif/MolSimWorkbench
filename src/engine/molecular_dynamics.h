@@ -9,6 +9,8 @@
 #include <cstdlib> // For getenv
 #include "../builder/geometry.h"
 #include "force_calculator.h"
+#include "integrators/integrator.h"
+#include "thermostats/thermostat.h"
 #include "../utils/trajectory_writer.h" // Include for SimulationBox and TrajectoryFormat
 
 // Forward declarations
@@ -34,9 +36,9 @@ struct MinimizationParameters {
 
 // Structure to hold simulation parameters
 struct SimulationParameters {
-    double timeStep = 0.001;            // Time step in picoseconds
-    double temperature = 300.0;         // Temperature in Kelvin
-    double totalTime = 1.0;             // Total simulation time in picoseconds
+    double timeStep = 0.001;            // Time step (reduced units)
+    double temperature = 300.0;         // Temperature (reduced units, kB = 1)
+    double totalTime = 1.0;             // Total simulation time (same units as timeStep)
     bool useMinimization = true;        // Perform energy minimization before dynamics
     MinimizationParameters minimization;// Energy minimization parameters
     
@@ -51,6 +53,13 @@ struct SimulationParameters {
     // Diagnostics
     double energyDriftTolerance = 0.01; // Relative energy drift threshold (NVE)
     unsigned int randomSeed = 0;        // Random seed for reproducibility (0 = auto)
+
+    // Plugs, chosen by name (see makeIntegrator / makeThermostat).
+    // setIntegrator() / setThermostat() on MolecularDynamics override these.
+    std::string integrator = "velocity_verlet"; // "velocity_verlet" | "leapfrog"
+    std::string thermostat = "velocity_rescale";// "velocity_rescale" | "berendsen" | "langevin" | "none"
+    double thermostatTau = 0.0;         // Berendsen time constant (0 = rescale onto target every step)
+    double langevinFriction = 1.0;      // Langevin gamma (1/time)
 };
 
 class MolecularDynamics {
@@ -62,6 +71,14 @@ public:
     void setGeometry(const Geometry& geometry);
     void setForceCalculator(std::shared_ptr<ForceCalculator> forceCalc);
     void setSimulationParameters(const SimulationParameters& params);
+
+    // Plugs. setSimulationParameters() picks them by name from the params;
+    // these override that choice, and later setSimulationParameters() calls
+    // keep the override. A null thermostat means no temperature control.
+    void setIntegrator(std::shared_ptr<Integrator> integrator);
+    void setThermostat(std::shared_ptr<Thermostat> thermostat);
+    std::shared_ptr<Integrator> getIntegrator() const { return integrator; }
+    std::shared_ptr<Thermostat> getThermostat() const { return thermostat; }
     
     // Box handling methods
     void setBox(double a, double b, double c, double alpha = 90.0, double beta = 90.0, double gamma = 90.0);
@@ -97,6 +114,10 @@ private:
     // Simulation settings
     SimulationParameters params;
     std::shared_ptr<ForceCalculator> forceCalculator;
+    std::shared_ptr<Integrator> integrator;
+    std::shared_ptr<Thermostat> thermostat;
+    bool integratorSetByUser = false;
+    bool thermostatSetByUser = false;
     
     // Trajectory output
     std::unique_ptr<TrajectoryWriter> trajectoryWriter;
@@ -113,9 +134,6 @@ private:
     
     // Helper methods for dynamics
     void initializeVelocities(double temperature);
-    void integrateVelocityVerlet();
-    void applyTemperatureControl();
-    void applyPeriodicBoundaryConditions();
 
     // Helper methods to write PDB files  
     std::string generatePDBContent() const;

@@ -33,14 +33,14 @@ one, then have the robot do a full run.
 
 | # | Practice kitchen (chapter) | Real kitchen | Where |
 |---|---|---|---|
-| 1 | one pair of atoms, energy by hand (2) | `calculatePairEnergy` | `lj_potential.cpp:360-368` |
-| 2 | wrapping round the box (3) | three `std::round` lines | `lj_potential.cpp:282-284` |
+| 1 | one pair of atoms, energy by hand (2) | `calculatePairEnergy` | `lj_potential.cpp:368-376` |
+| 2 | wrapping round the box (3) | three `std::round` lines | `lj_potential.cpp:290-292` |
 | 3 | laying atoms out on a lattice (4) | `createCubicLattice` | `lj_particle_box_builder.cpp:38-50` |
-| 4 | the every-pair-once loop (4) | inside `calculateEnergyReference` | `lj_potential.cpp:276-294` |
-| 5 | mixing, pair force (5) | `getMixedParameters`, `calculatePairForce` | `lj_potential.cpp:335-358`, `:370-386` |
-| 6 | the `Geometry` and `LJPotential` cookie cutters (6) | same names | `geometry.h:12-33`; `lj_potential.cpp:269-333` |
-| 7 | the job description `Potential` (7) | identical | `force_calculator.h:35-48` |
-| 8 | the station rack, the storeroom, the sub-recipe that builds machines (8) | `ForceCalculator`, `make_shared`, the YAML parser | `force_calculator.h:13-32`; `run_simulation.cpp:43-46`; `yaml_parser.cpp:301` |
+| 4 | the every-pair-once loop (4) | inside `calculateEnergyReference` | `lj_potential.cpp:284-302` |
+| 5 | mixing, pair force (5) | `getMixedParameters`, `calculatePairForce` | `lj_potential.cpp:343-366`, `:378-394` |
+| 6 | the `Geometry` and `LJPotential` cookie cutters (6) | same names | `geometry.h:12-33`; `lj_potential.cpp:277-341` |
+| 7 | the job description `Potential` (7) | identical, plus one duty with default instructions | `force_calculator.h:39-60` |
+| 8 | the station rack, the storeroom, the sub-recipe that builds machines (8) | `ForceCalculator`, `make_shared`, the YAML parser | `force_calculator.h:13-36`; `run_simulation.cpp:43-46`; `yaml_parser.cpp:339` |
 | 9 | the stopwatch, the extra robots (9) | `timeMs`, the `Threads` backend | `bench_lj.cpp:56-68`; `lj_kernels.cpp:302-333` |
 
 ---
@@ -49,13 +49,13 @@ one, then have the robot do a full run.
 
 | # | Kitchen | Real (`lj_potential.cpp`) | Practice (`examples/06/lj_potential.cpp`) |
 |---|---|---|---|
-| 1 | for every atom, pair it with every later atom | `for i …`, `for j = i + 1 …` (276–277) | same (20–21) |
-| 2 | measure the gap along each wall | `dx`, `dy`, `dz` (278–280) | `d[k]` in a little loop (22–26) |
-| 3 | wrap round the box, **but only if that wall wraps** | `if (boxDim[0] > 0.0) …` (282–284) | always wraps (25) |
-| 4 | too far apart, or **on top of each other**: skip | `distance > cutoff \|\| distance < 1e-10` (289) | only `r > cutoff` (28) |
-| 5 | look up the mixed ε and σ, add the pair's energy | `getMixedParameters`, `calculatePairEnergy` (291–292) | same (30–31) |
+| 1 | for every atom, pair it with every later atom | `for i …`, `for j = i + 1 …` (284–285) | same (20–21) |
+| 2 | measure the gap along each wall | `dx`, `dy`, `dz` (286–288) | `d[k]` in a little loop (22–26) |
+| 3 | wrap round the box, **but only if that wall wraps** | `if (boxDim[0] > 0.0) …` (290–292) | always wraps (25) |
+| 4 | too far apart, or **on top of each other**: skip | `distance > cutoff \|\| distance < 1e-10` (297) | only `r > cutoff` (28) |
+| 5 | look up the mixed ε and σ, add the pair's energy | `getMixedParameters`, `calculatePairEnergy` (299–300) | same (30–31) |
 
-That is the whole difference. The recipe is framed on the wall (`lj_potential.h:54-61`) so every faster
+That is the whole difference. The recipe is framed on the wall (`lj_potential.h:56-63`) so every faster
 method can be checked against it. The kitchen's everyday `calculateEnergy` now uses the faster methods,
 and learn-parallel is about those.
 
@@ -94,9 +94,9 @@ a different translator setting.
 | 1 | switch the robot on at the kitchen's front door (the repo root) | the YAML reader looks for a helper script relative to where you are | started elsewhere: `Python YAML parser script not found` |
 | 2 | hand it the order slip, with a second word saying where to put the trajectory | `build/run_simulation data/lj_bulk_simulation.yaml /tmp/trajectory.xyz` | second word keeps `trajectory.xyz` out of the repo |
 | 3 | same 125-atom lattice as the practice kitchen | | `N=125, rho=0.8, L=5.38609` |
-| 4 | the first line on the serving tray comes **after** one step of cooking | velocity Verlet runs before the print | `Step 0, Potential Energy: -611.774` (not −611.4917: the atoms have already moved) |
-| 5 | the order slip asks for 1000 + 5000 steps, but only 1000 are cooked | phase control is a TODO in the repo (`run_simulation.cpp:65`) | last line `Step 990` |
-| 6 | the run is finished | | `Final energy: -457.539` |
+| 4 | the first line on the serving tray comes **after** one step of cooking | velocity Verlet runs before the print | `Step 0, Potential Energy: -611.553` (not −611.4917: the atoms have already moved) |
+| 5 | the order slip names no warm-up or main course, so the plain run length is cooked: 1000 steps | no `equilibration_steps` / `production_steps`, so `totalTime / timeStep` (`molecular_dynamics.cpp:295-297`) | last line `Step 990` |
+| 6 | the run is finished | | `Final energy: -458.604` |
 
 ---
 
@@ -134,7 +134,7 @@ optimised Release build. For a debug build, ask for it: `-DCMAKE_BUILD_TYPE=Debu
 | 5 | "if the kitchen has the OpenMP gadget, use this page, else that one" | `#ifdef _OPENMP` | GLOSSARY |
 | 6 | pick one branch by that choice | `switch` / `case` | GLOSSARY |
 | 7 | finding a card in the tabbed box: a finger on its position | `find`, `it->second` (`lj_potential.cpp:107`, `:111`) | technical §10.6 |
-| 8 | a number worked out by the translator, before the robot is even switched on | `constexpr` (`lj_potential.cpp:224`) | technical §10.6 |
+| 8 | a number worked out by the translator, before the robot is even switched on | `constexpr` (`lj_potential.cpp:232`) | technical §10.6 |
 
 ---
 

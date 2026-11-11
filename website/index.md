@@ -1,22 +1,80 @@
 # MolSimWorkbench
 
-*Prepared by [Salman Bin Kashif](https://sbkashif.github.io/) as part of the [US-RSE Mentorship Program](https://us-rse.org/wg/mentorship-program), with mentorship from [Chris Neely](https://github.com/cjneely10).*
+*Prepared by [Salman Bin Kashif](https://sbkashif.github.io/) as part of the [US-RSE Mentorship Program](https://us-rse.org/wg/mentorship-program), with mentorship from [Chris Neely](https://github.com/cjneely10), and with the help of an AI assistant (see the [AI usage statement](#ai-usage-statement)).*
 
-Simulation theory is hard to grasp without writing the code, and programming
-tutorials are hard to follow without building an application with them.
-This website teaches the two together by programming a basic molecular dynamics
-simulator.
+Molecular simulations have become a routine part of materials discovery.
+However, they are often used as a black box. Without knowing what the
+critical parts of the engine do, users cannot be sure what a run has actually
+given them. Understanding those parts means reading and writing code, and
+programming has its own problem: it is hard to learn without something real
+to build.
 
-We start with one of the simplest materials to simulate: **argon**, the liquid in
-Aneesur Rahman's pioneering 1964 simulation. It can be modeled effectively with a
-simple equation called the Lennard-Jones potential, which treats each atom as a hard
-ball with two settings: how big it is and how sticky it is.
+This website teaches both at once. You take apart a small but real
+simulation engine piece by piece, and learn the C++ it is written in along
+the way. I chose C++ because I wanted to learn it myself; a Python version
+for a broader audience is coming soon.
 
-The simulator below starts from a solid-like grid of 125 argon atoms, which settles
-into a liquid as the simulation equilibrates. It then shows two properties of that
-liquid beside the values Rahman published. After that you can change the temperature
-and density, or try your own hypothetical material, described by the same equation,
-by changing the properties of the atoms.
+:::::{admonition} Learning approach: read, play, take apart and code your own
+:class: tip
+
+::::{grid} 1 2 2 2
+:gutter: 2
+
+:::{grid-item-card} 1. Read
+:link: "#getting-started"
+:link-type: url
+
+A brief text and figures, from the ground up.
+:::
+
+:::{grid-item-card} 2. Play
+:link: "#what-to-look-for"
+:link-type: url
+
+Explore the settings in the built-in simulator.
+:::
+
+:::{grid-item-card} 3. Take apart
+:link: "#behind-the-buttons"
+:link-type: url
+
+Read the code, one part at a time.
+:::
+
+:::{grid-item-card} 4. Code your own
+:link: cpp/05_the_plug
+:link-type: doc
+
+Plug in your own energy function, integrator or thermostat.
+:::
+::::
+:::::
+
+## Getting started
+
+We start with one of the simplest materials to simulate: **argon**, the liquid
+in [pioneering work by Aneesur Rahman in 1964](https://doi.org/10.1103/PhysRev.136.A405),
+the first molecular dynamics simulation of a realistic liquid. Argon can be
+modelled well with a simple equation called the Lennard-Jones potential, which
+treats each atom as a soft sphere with two settings: how big it is and how
+sticky it is.
+
+A simulation of argon is a
+[simple loop](molsim/architecture.md). It starts with a set of atoms at given
+positions. From the positions, the Lennard-Jones potential gives the potential
+energy. Differentiating the energy gives the force on each atom, and
+integrating the forces over a short time step gives the new positions.
+Repeating this many times gives a trajectory: how the atoms move over time.
+
+The simulator below holds only 125 atoms, a nanoscale block of liquid argon;
+a beaker of the real liquid holds about 10²⁴. Yet 125 atoms are enough: one
+small region of a liquid looks much like any other, so the properties
+calculated from how these atoms move are the same ones measured on real liquid
+argon at the same temperature and density.
+
+Press **Liquid argon at 94.4 K** to rerun Rahman's liquid. The atoms start from
+a solid-like grid and settle into a liquid; the simulator then shows two
+values, compared against those Rahman published.
 
 ```{engine-play}
 ```
@@ -33,30 +91,44 @@ close to one value:
 - **Diffusion constant:** how quickly atoms wander away from where they were. The
   larger it is, the faster they spread.
 
+Rahman checked both against experiment: the arrangement of neighbours with
+X-ray scattering on liquid argon, and the diffusion with measured values. So
+the table checks your run against his, and through him against real argon.
+
 ## What to look for
 
+Now play with the parameter space: change the temperature and density, or
+invent a material of your own by changing the size and stickiness of its atoms.
 Try these six experiments in order.
 
 ### Change the temperature
 
-**1. Heat a liquid.** Press **Liquid argon at 94.4 K**. Then set How hot to 300 K and
-press **Run custom**. Watch the Visualization panel, and read the last row of the
-table in the Simulator panel. *Will the atoms spread apart as they heat up?*
+**1. Heat a liquid.** Press **Liquid argon at 94.4 K**. Then set How hot to
+300 K and press **Run custom**. Watch the Visualization panel, and read the last
+row of the table in the Simulator panel. *Will the atoms spread apart as they
+heat up?*
 
 :::{dropdown} What happens
-They stay just as crowded, because the box does not change. What changes is the
-motion: the atoms move faster, and the diffusion constant rises about four times. In an open container argon would boil away long before 300 K; here the
-box keeps it crowded.
+No. They stay just as crowded, but they move faster: the diffusion constant
+rises about four times.
+
+They cannot spread apart because the simulation keeps the number of atoms, the
+size of the box and the temperature fixed, the conditions known as the NVT
+ensemble. It is like heating liquid argon in a sealed, rigid container: the
+atoms have nowhere to go, so the density stays the same however hot it gets.
+In an open container they could leave, and argon would boil away at 87 K, long
+before 300 K. A real sealed container would need to hold an enormous pressure
+to keep argon this crowded at 300 K.
 :::
 
 ### Change the density
 
-**2. Give the atoms room.** Keep How hot at 300 K, set How crowded to 0.17 g/cm³ and
-run it. *What do the atoms do with the extra space?*
+**2. Give the atoms room.** Keep How hot at 300 K, set How crowded to
+0.17 g/cm³ and run it. *What do the atoms do with the extra space?*
 
 :::{dropdown} What happens
-They spread out and become a gas. Liquid and gas are names for what atoms do, so
-what you see is what tells them apart:
+They spread out and become a gas. Liquid and gas are names for what atoms do,
+so what you see is what tells them apart:
 
 | Run | How hot | How crowded | What the atoms do | Diffusion constant (× 10⁻⁵ cm²/s) |
 |---|---|---|---|---|
@@ -64,57 +136,61 @@ what you see is what tells them apart:
 | Experiment 1 | 300 K | 1.36 g/cm³ | Stay packed together and move faster | About 10 |
 | This run | 300 K | 0.17 g/cm³ | Stay far apart and fly across the box | About 90 |
 
-In the liquid, the atoms push past each other, which is what lets a liquid flow. At
-−179 °C argon stays liquid only under pressure. In the gas, the atoms rarely meet,
-which is why a gas spreads to fill its container and can be squeezed.
+In a liquid, the atoms push past each other, which is what lets a liquid flow.
+In a gas, they rarely meet, which is why a gas spreads to fill its container
+and can be squeezed.
 :::
 
-**3. Condense a gas.** With How crowded still at 0.17 g/cm³, set How hot to 96 K and
-run it, and again at 36 K. *Where do the atoms go as the gas cools?*
+**3. Condense a gas.** With How crowded still at 0.17 g/cm³, set How hot to
+96 K and run it, then again at 36 K. *Where do the atoms go as the gas cools?*
 
 :::{dropdown} What happens
-They stop filling the box evenly. By 36 K the atoms have gathered into clumps with
-empty space between them, and the diffusion constant has fallen from about 90 × 10⁻⁵ to about
-5 × 10⁻⁵ cm²/s, because an atom in a clump cannot wander far. The attraction was always there, but the hot atoms moved too
-fast to stay together. A real gas starts to condense the same way.
+They stop filling the box evenly. By 36 K they have gathered into clumps with
+empty space between them, and the diffusion constant has fallen from about
+90 × 10⁻⁵ to about 5 × 10⁻⁵ cm²/s, because an atom in a clump cannot wander
+far. The attraction between the atoms was always there; the hot atoms simply
+moved too fast to stay together. A real gas starts to condense the same way.
 :::
 
 ### Change the material
 
-**4. Change the stickiness.** With How crowded still at 0.17 g/cm³, set How hot to 120 K.
-Run it with How sticky at 60 K, then at 360 K. *At the same temperature, which
-material is a gas?*
+**4. Change the stickiness.** With How crowded still at 0.17 g/cm³, set How
+hot to 120 K. Run it with How sticky at 60 K, then at 360 K. *At the same
+temperature, which material is a gas?*
 
 :::{dropdown} What happens
 The less sticky one. At 60 K the atoms spread through the box; at 360 K they
-clump, and the diffusion constant is about six times smaller. Stickier atoms need
-more heat to pull apart, so the material boils at a higher temperature. Real materials show the same
-thing: attraction between krypton atoms is about five times that between neon
-atoms, and krypton boils at −153 °C where neon boils at −246 °C.
+clump, and the diffusion constant is about six times smaller. Stickier atoms
+need more heat to pull apart, so the material boils at a higher temperature.
+Real materials show the same thing: the attraction between krypton atoms is
+about five times that between neon atoms, and krypton boils at −153 °C, where
+neon boils at −246 °C.
 :::
 
-**5. Heat against stickiness.** Press **Reset**, then **Run custom**. Now set How hot
-to 240 K and How sticky to 240 K and run again. *This material is hotter, but also
-stickier. Which effect wins?*
+**5. Heat against stickiness.** Press **Reset**, then **Run custom**. Now set
+How hot to 240 K and How sticky to 240 K, and run again. *This material is
+hotter, but also stickier. Which effect wins?*
 
 :::{dropdown} What happens
-Neither. The atoms make the same pattern in both runs, and only move a little faster
-in the second. The state depends on heat compared with stickiness, not on either one
-alone.
+Neither. The atoms make the same pattern in both runs, and only move a little
+faster in the second. What decides the state is the heat compared with the
+stickiness, not either one alone.
 :::
 
-**6. Size against space.** Press **Reset**, set How big to 4.76 Å and run it. Press
-**Reset** again, set How crowded to 1.38 g/cm³ and run it. *Bigger atoms, or the same atoms
-in a smaller box: which is more crowded?*
+**6. Size against space.** Press **Reset**, set How big to 4.76 Å and run it.
+Press **Reset** again, set How crowded to 1.38 g/cm³ and run it. *Bigger atoms,
+or the same atoms in a smaller box: which is more crowded?*
 
 :::{dropdown} What happens
-They come out the same: a crowded liquid, with a diffusion constant of about 3 to
-4 × 10⁻⁵ cm²/s in both. The box looks smaller in the second run, but the atoms fill the
-same share of it. The state depends on atom size compared with the space available.
+They come out the same: a crowded liquid, with a diffusion constant of about 3
+to 4 × 10⁻⁵ cm²/s in both. The box looks smaller in the second run, but the
+atoms fill the same share of it. What decides the state is the size of the
+atoms compared with the space they have.
 :::
 
-So two contests decide what a material does: heat against stickiness, and atom size
-against space. Change those, and you change whether it is a liquid or a gas.
+So two contests decide what a material does: heat against stickiness, and
+atom size against space. Change either balance, and you change whether it is
+a liquid or a gas.
 
 ## Behind the buttons
 
@@ -171,12 +247,12 @@ click a call to see its code.
   [`_molsim`](pybind11/02_binding_the_engine.md#the-bridge-molsim_bindingscpp).
   - [`MolecularDynamics::runSimulation()`](engine/reading_the_engine.md#the-loop-moleculardynamics)\
     One pass of the simulation loop per time step.
-    - [`integrateVelocityVerlet()`](engine/reading_the_engine.md#the-loop-moleculardynamics)\
+    - [`VelocityVerletIntegrator::step()`](engine/reading_the_engine.md#the-loop-moleculardynamics)\
       Moves every atom by its velocity and force.
-      - [`ForceCalculator::calculateForces()`](engine/reading_the_engine.md#the-force-step-forcecalculator)\
+      - [`ForceCalculator::calculateForcesAndEnergy()`](engine/reading_the_engine.md#the-force-step-forcecalculator)\
         Adds up the forces of every
         energy function.
-        - [`LJPotential::calculateForces()`](engine/reading_the_engine.md#the-socket-potential)\
+        - [`LJPotential::calculateForcesAndEnergy()`](engine/reading_the_engine.md#the-socket-potential)\
           The energy function, here
           Lennard-Jones.
           - [`ljComputeGather(view, backend, numThreads)`](engine/reading_the_engine.md#the-pair-loop)\
@@ -193,6 +269,52 @@ Each part of the loop gets its own explanation on the
 with the equation and the code behind it. Then you can code your own: a different
 system, a different integrator, a different energy function. For that, learn
 {bdg-link-primary}`C++ programming <cpp/index.html>`.
+:::
+
+## History
+
+- **November 2026:** A new section,
+  [agentic AI in a molecular simulation workflow](agent/01_training_an_mlip.md),
+  hands the decisions in training a machine learning interatomic potential to
+  a language model. For the MD it uses OpenMM beside this simulator, because
+  OpenMM can already run such a potential.
+- **October 2026:** Grown into a molecular simulation workflow, with a Python
+  interface and settings files. It is built so that any part of a molecular
+  simulation, such as the energy function, the integrator or the thermostat,
+  can be swapped for a new one, so that a new concept can be learned by adding
+  it. The first addition, density functional
+  theory and ab initio MD, is still a work in progress.
+- **April 2025:** Rewritten in C++, as an application for learning basic C++
+  ([repository](https://github.com/sbkashif/lennard-jones-cpp)).
+- **March 2018:** The code started as a class project, a Lennard-Jones simulation
+  in Python for a course on multiscale modelling at Clemson University, taught
+  by [Sapna Sarupria](https://www.linkedin.com/in/sarupria/)
+  ([repository](https://github.com/sbkashif/Lennard-Jones)).
+
+(ai-usage-statement)=
+:::{admonition} AI usage statement
+:class: tip
+
+The simulation engine powering the interactive sliders and examples on this
+website was built by repurposing my own Python code from a class project. Turning that code into the engine, and then
+into this interactive website, relied heavily on an AI assistant, Claude (by
+Anthropic). However, both the code and the pages were revised substantially
+after the AI's first drafts, as the commit history shows.
+
+My aim in building this simulator and website is to learn new skills from the
+ground up, hands-on, by building applications related to my field. My own
+research projects have had little room for new and advanced concepts, such as
+agentic workflows, at the *rigor* needed for publication. So I built this
+*workbench* to learn such concepts hands-on, and used AI heavily to reduce the
+logistical friction: first to build working end-to-end applications, then to
+learn the basics interactively, and to write the webpages. After reading the
+code and the pages, I had the assistant quiz me on them; some of those
+questions became the "Check yourself" sections.
+
+What you read here is still my own understanding, written down with AI help.
+I am responsible for the content and have made reasonable checks, but it may
+still contain mistakes. If you find one, please open an issue on the
+[repository](https://github.com/sbkashif/MolSimWorkbench).
 :::
 
 ```{toctree}
@@ -225,6 +347,7 @@ cpp/06_several_files
 pybind11/index
 pybind11/01_a_first_binding
 pybind11/02_binding_the_engine
+pybind11/03_in_your_browser
 ```
 
 ```{toctree}
@@ -252,4 +375,15 @@ parallel/03_openmp_and_speedup
 :hidden:
 
 gpu/index
+```
+
+```{toctree}
+:caption: Agentic AI in a molecular simulation workflow
+:maxdepth: 1
+:hidden:
+
+agent/01_training_an_mlip
+agent/02_the_agent
+agent/03_first_run
+agent/04_the_code
 ```

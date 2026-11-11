@@ -144,17 +144,19 @@ environment as above. (There is no YAML switch yet, and no Python one — see
 
 # Part 2 — Technical reference
 
-Line numbers verified on 2026-10-07, branch `parallelization-curriculum`.
+Line numbers verified on 2026-11-10.
 
 ## Call path
 
 ```
 LJPotential::calculateForces          src/engine/potentials/lj_potential.cpp:159
+└─ LJPotential::calculateForcesAndEnergy  lj_potential.cpp:166   what the MD loop reaches, via ForceCalculator
   └─ LJPotential::buildView           lj_potential.cpp:91    AoS + strings -> SoA + int type ids
        └─ rebuildTables (if dirty)    lj_potential.cpp:56    pre-mixed eps4 / sigma2 tables
   └─ ljComputeGather(view, backend, numThreads)
                                       src/engine/potentials/lj_kernels.cpp:273   dispatch on LJBackend
-  └─ copy SoA forces back to AoS      lj_potential.cpp:170
+  └─ copy SoA forces back to AoS      lj_potential.cpp:177
+  └─ + tail correction energy         lj_potential.cpp:180
 ```
 
 `calculateEnergy` (`lj_potential.cpp:147`) takes the same path and adds the
@@ -175,7 +177,7 @@ doubles only, so a CUDA backend could take it unchanged.
 
 ## Selecting a backend
 
-- C++: `lj.setBackend(LJBackend::OpenMPPrivate)`, `lj.setNumThreads(n)` (`lj_potential.h:33`, `:36`).
+- C++: `lj.setBackend(LJBackend::OpenMPPrivate)`, `lj.setNumThreads(n)` (`lj_potential.h:35`, `:38`).
 - Environment, read once in the `LJPotential` constructor (`lj_potential.cpp:19-36`):
   `MOLSIM_LJ_BACKEND=serial|threads|openmp|openmp-private`, `MOLSIM_LJ_THREADS=n`.
 - `numThreads < 1` means the OpenMP default; it is capped at N (`lj_kernels.cpp:276-278`).
@@ -191,7 +193,7 @@ doubles only, so a CUDA backend could take it unchanged.
 | `LJTailCorrection` | changes no force; lowers the energy; matches the analytic formula; off by default and needs a box |
 
 The reference is the original serial code, kept as
-`calculateEnergyReference` / `calculateForcesReference` (`lj_potential.cpp:269`, `:299`).
+`calculateEnergyReference` / `calculateForcesReference` (`lj_potential.cpp:277`, `:307`).
 
 ## Measured (2026-10-07, Apple M1, 4 P + 4 E cores, `bench_lj 4096 7`)
 

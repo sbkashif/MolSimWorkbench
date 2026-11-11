@@ -38,6 +38,51 @@ class TestMolSimWorkbench:
         assert trajectory.suffix == ".xyz", "Trajectory should be XYZ format"
         assert trajectory.stat().st_size > 0, "Trajectory should have content"
 
+    def test_integrator_and_thermostat_plugs(self):
+        """Integrator and thermostat are chosen by name or plugged in as objects"""
+        import molsimworkbench as mw
+        _molsim = mw._molsim
+
+        params = _molsim.SimulationParameters()
+        assert params.integrator == "velocity_verlet"
+        assert params.thermostat == "velocity_rescale"
+
+        dynamics = _molsim.MolecularDynamics()
+        assert dynamics.getIntegrator().getName() == "velocity_verlet"
+        assert dynamics.getThermostat().getName() == "velocity_rescale"
+
+        params.integrator = "leapfrog"
+        params.thermostat = "berendsen"
+        params.thermostatTau = 0.1
+        dynamics.setSimulationParameters(params)
+        assert dynamics.getIntegrator().getName() == "leapfrog"
+        assert dynamics.getThermostat().getName() == "berendsen"
+
+        params.thermostat = "none"
+        dynamics.setSimulationParameters(params)
+        assert dynamics.getThermostat() is None
+
+        dynamics.setThermostat(_molsim.LangevinThermostat(friction=2.0, seed=1))
+        dynamics.setIntegrator(_molsim.VelocityVerletIntegrator())
+        dynamics.setSimulationParameters(params)  # explicit plugs are kept
+        assert dynamics.getThermostat().getName() == "langevin"
+        assert dynamics.getIntegrator().getName() == "velocity_verlet"
+
+        try:
+            _molsim.makeIntegrator("euler")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("unknown integrator name should raise")
+
+        system = mw.System.from_yaml(
+            self.workbench.project_root / "data" / "lj_langevin_simulation.yaml",
+            trajectory_output=self.workbench.build_dir / "plug_test.xyz",
+            trajectory_every=1000,
+        )
+        energy = system.run()
+        assert energy == energy, "energy should not be NaN"
+
 if __name__ == "__main__":
     # Run tests directly
     test = TestMolSimWorkbench()
@@ -54,5 +99,9 @@ if __name__ == "__main__":
     print("Testing LJ simulation...")
     test.test_lj_simulation()
     print("✓ LJ simulation test passed")
+    
+    print("Testing integrator and thermostat plugs...")
+    test.test_integrator_and_thermostat_plugs()
+    print("✓ Integrator and thermostat plug test passed")
     
     print("\nAll tests passed! 🎉")

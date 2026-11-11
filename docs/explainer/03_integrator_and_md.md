@@ -14,62 +14,78 @@ The code currently assumes $m = 1$ for all particles (reduced units), so $\mathb
 
 ## Velocity Verlet algorithm
 
-> **Where it actually lives:** integration is **not** a separate integrator class. It is the private method `MolecularDynamics::integrateVelocityVerlet()` in `src/engine/molecular_dynamics.cpp:440`. The classes under `src/engine/integrators/` (`velocity_verlet_integrator.h`, `md_integrator.h`, `md_parameters.h`) are unused scaffolding — nothing includes them. The code snippets below are faithful to the *algorithm*, but the real methods are all members of `MolecularDynamics`.
+> **Where it actually lives:** the integrator is a plug. `Integrator` (`src/engine/integrators/integrator.h`) is an abstract class with one pure virtual method, `step(MDState& state, double dt)`. The default plug is `VelocityVerletIntegrator::step` in `src/engine/integrators/velocity_verlet_integrator.cpp`. `MDState` (`src/engine/md_state.h`) is a view of the positions, velocities and forces that `MolecularDynamics` owns, plus `computeForces()` and `wrapPositions()`.
 
-The method is a direct implementation of the standard 3-step Velocity Verlet:
+The step is the standard Velocity Verlet, written as a half kick around the force call:
 
-### Step 1 — advance positions
+### Step 1 — advance positions, half-kick velocities with the old forces
 
 $$\mathbf{r}(t + \Delta t) = \mathbf{r}(t) + \mathbf{v}(t)\,\Delta t + \tfrac{1}{2}\mathbf{a}(t)\,\Delta t^2$$
 
-```cpp
-newCoords[d] += velocities[i][d] * params.timeStep
-              + 0.5 * forces[i][d] * params.timeStep * params.timeStep;
-geometry->setCoordinates(i, newCoords);
-```
-
-### Step 2 — recalculate forces at new positions
+$$\mathbf{v}(t + \tfrac12\Delta t) = \mathbf{v}(t) + \tfrac{1}{2}\mathbf{a}(t)\,\Delta t$$
 
 ```cpp
-calculateForces();   // calls ForceCalculator → LJPotential
+pos[0] + velocities[i][0] * dt + forces[i][0] * dtSquaredHalf,   // likewise y, z
+...
+velocities[i][0] += forces[i][0] * 0.5 * dt;
 ```
 
-### Step 3 — update velocities using average of old and new accelerations
-
-$$\mathbf{v}(t + \Delta t) = \mathbf{v}(t) + \tfrac{1}{2}\bigl[\mathbf{a}(t) + \mathbf{a}(t + \Delta t)\bigr]\,\Delta t$$
+### Step 2 — wrap into the box, recalculate forces at the new positions
 
 ```cpp
-velocities[i][d] += 0.5 * (oldForces[i][d] + forces[i][d]) * params.timeStep;
+state.wrapPositions();   // no-op without PBC
+state.computeForces();   // calls ForceCalculator → LJPotential
 ```
+
+### Step 3 — finish the velocities with the new forces
+
+$$\mathbf{v}(t + \Delta t) = \mathbf{v}(t + \tfrac12\Delta t) + \tfrac{1}{2}\mathbf{a}(t + \Delta t)\,\Delta t$$
+
+```cpp
+velocities[i][0] += forces[i][0] * 0.5 * dt;
+```
+
+Steps 1 and 3 together give the textbook form $\mathbf{v}(t + \Delta t) = \mathbf{v}(t) + \tfrac{1}{2}[\mathbf{a}(t) + \mathbf{a}(t + \Delta t)]\,\Delta t$.
 
 Why Velocity Verlet instead of plain Euler? It is **symplectic** (conserves the symplectic structure of Hamiltonian mechanics), which means energy drift stays bounded over long runs rather than growing without limit. This matters enormously for NVE (microcanonical) simulations.
 
+The other plug, `LeapfrogIntegrator` (`leapfrog_integrator.cpp`), is written as kick, drift, kick. In exact arithmetic it gives the same trajectory. Pick it with `integrator: "leapfrog"` under `simulation:` in the YAML.
+
 ---
 
-## Thermostat — optional NVT
+## Thermostat — a plug too
 
-After the VV step, if `params.useConstantTemperature == true`, a velocity-rescaling thermostat is applied:
+`Thermostat` (`src/engine/thermostats/thermostat.h`) has two hooks: `beforeStep` (default: do nothing) and `afterStep` (pure virtual). The loop calls them around the integrator step while the temperature is held. The YAML key `thermostat:` picks one:
 
-```cpp
-if (params.useConstantTemperature) applyThermostat();
+| Name | Class | What it does |
+|------|-------|--------------|
+| `velocity_rescale` (default) | `VelocityRescaleThermostat`, `tau = 0` | after every step, scale all velocities so the temperature is exactly the target |
+| `berendsen` | `VelocityRescaleThermostat`, `tau > 0` | after every step, scale by $\sqrt{1 + (\Delta t/\tau)(T_0/T - 1)}$, so the temperature relaxes towards the target |
+| `langevin` | `LangevinThermostat` | before and after the step, a friction plus random kick on every velocity (an exact Ornstein–Uhlenbeck update over $\Delta t/2$). Samples the canonical ensemble |
+| `none` | no object | no temperature control (NVE) |
+
+```yaml
+thermostat: "velocity_rescale"
+thermostat: { type: "berendsen", tau: 0.1 }
+thermostat: { type: "langevin", friction: 2.0 }
 ```
 
-The thermostat is a simple Berendsen-style rescale. For the LJ-bulk NVE benchmark it is turned off; energy conservation is instead monitored via `energyDriftTolerance`.
+The rescaling thermostats hold the temperature but do not let it fluctuate as it would in a real system; Langevin does. When `production_steps` is set, the production phase runs with no thermostat at all (NVE), and energy conservation is checked via `energyDriftTolerance`.
 
 ---
 
 ## Velocity initialisation — Maxwell-Boltzmann
 
-Before the first step, `MolecularDynamics::initializeVelocities(temperature)` (`.cpp:122`, called from `initialize()`) draws each velocity component from a Gaussian:
+Before the first step, `MolecularDynamics::initializeVelocities(temperature)` (`molecular_dynamics.cpp:124`, called from `initialize()`) draws each velocity component from a Gaussian:
 
 $$v_\alpha \sim \mathcal{N}\!\left(0,\; \sqrt{k_B T / m}\right)$$
 
 ```cpp
-std::normal_distribution<double> distribution(0.0, 1.0);
-const double kB = 8.3144621e-3;  // kJ/(mol·K)
-
-double sigma_v = std::sqrt(kB * temperature);  // m = 1
-velocities[i][d] = sigma_v * distribution(gen);
+// Using kB = 1 and m = 1 in reduced units
+double stddev = std::sqrt(temperature);
+std::normal_distribution<double> dist(0.0, stddev);
+...
+velocities[i][d] = dist(gen);
 ```
 
 After assigning, the code removes the **centre-of-mass drift** (net momentum set to zero) so the box doesn't translate as a whole, and then **rescales** to hit the exact target temperature.
@@ -78,7 +94,7 @@ After assigning, the code removes the **centre-of-mass drift** (net momentum set
 
 ## The MD driver — `MolecularDynamics`
 
-`MolecularDynamics` in `src/engine/molecular_dynamics.h/.cpp` owns the outer loop. The actual flow when you call `runSimulation()` (`.cpp:237`):
+`MolecularDynamics` in `src/engine/molecular_dynamics.h/.cpp` owns the outer loop. The actual flow when you call `runSimulation()` (`.cpp:271`):
 
 ```
 initialize()   ← called separately, before runSimulation()
@@ -91,47 +107,57 @@ initialize()   ← called separately, before runSimulation()
 write frame 0 ("Initial configuration")
 
 single loop:  totalSteps = totalTime / timeStep     ← e.g. 1.0 / 0.001 = 1000
-    ├── integrateVelocityVerlet()    ← method on MolecularDynamics
-    ├── applyTemperatureControl()    ← no-op unless useConstantTemperature
-    ├── recompute KE + PE, log to stdout
+              (or equilibration_steps + production_steps, if either is set)
+    ├── thermostat->beforeStep()     ← skipped in NVE production
+    ├── integrator->step()           ← Velocity Verlet by default; leaves F and PE at the new positions
+    ├── thermostat->afterStep()      ← skipped in NVE production
+    ├── KE + PE, print to stdout every 10 steps
     └── write XYZ frame (per writeFrequency; the Python/CLI paths pass 1 ⇒ every step)
 ```
 
-> **Not implemented (config stubs):** despite `equilibration_steps`, `production_steps`, and `output.frequency` in `lj_bulk_simulation.yaml`, there is **no** equilibration/production split and **no** output stride in the loop. The number of steps is `totalTime / timeStep` only; the phase fields (`SimulationParameters.equilibrationSteps/productionSteps`) are parsed but never read. Likewise `output.energy: true` writes no file — energy is only printed to stdout. This matches the `// TODO: phase-aware runSimulation` in `src/tools/run_simulation.cpp:65`.
+> **Phases:** `equilibration_steps` and `production_steps` under `simulation:` switch on phase control. Equilibration holds the temperature; production runs with no thermostat (NVE) and reports its energy drift. `data/lj_nve_simulation.yaml` is such a file. Without them, `totalTime / timeStep` sets the length and the thermostat runs the whole time. (`lj_box.equilibration_steps` / `production_steps` are parsed into `LJBoxConfig` but not read by the loop.)
+>
+> **Not implemented (config stubs):** `output.frequency` and `output.energy: true` in `lj_bulk_simulation.yaml` are not read; there is no output stride, and energy is only printed to stdout.
 
 ---
 
 ## Energy conservation monitoring
 
-In NVE mode the total energy $E = K + V$ should be constant. `MolecularDynamics` tracks the relative drift:
+In NVE production the total energy $E = K + V$ should be constant. `MolecularDynamics` tracks the largest deviation from the first production step, and at the end prints
 
 ```
-|E(t) - E(0)| / |E(0)| < energyDriftTolerance  (default 1%)
+Production energy drift: max|E(t) - E(0)| / |E(0)|  (tolerance energyDriftTolerance, default 1%): PASS or FAIL
 ```
 
-If this is violated, a warning is printed. Typical causes: time step too large, or particles overlapping at initialisation (which is why the lattice builder adds small random offsets to break perfect symmetry).
+A FAIL means the energy was not conserved. Typical causes: time step too large, or particles overlapping at initialisation (which is why the lattice builder adds small random offsets to break perfect symmetry).
 
 ---
 
 ## `SimulationParameters` config struct
 
-The live config struct is `SimulationParameters`, defined in `src/engine/molecular_dynamics.h:36` (there is a separate `md_parameters.h` in the unused integrators/ scaffolding — ignore it). This is what `setSimulationParameters()` receives:
+The config struct is `SimulationParameters`, defined in `src/engine/molecular_dynamics.h:38`. This is what `setSimulationParameters()` receives; it also builds the integrator and thermostat plugs from the names in it:
 
 ```cpp
 struct SimulationParameters {
-    double timeStep = 0.001;            // ps (or reduced time units)
-    double temperature = 300.0;         // K (or reduced units)
-    double totalTime = 1.0;             // total time; steps = totalTime / timeStep
+    double timeStep = 0.001;            // reduced units
+    double temperature = 300.0;         // reduced units, kB = 1
+    double totalTime = 1.0;             // steps = totalTime / timeStep, unless phases are set
     bool useMinimization = true;        // run minimizeEnergy() before the loop
     MinimizationParameters minimization;
     bool usePBC = false;                // minimum-image PBC
     SimulationBox box;                  // box dimensions
-    std::size_t equilibrationSteps = 0; // PARSED BUT UNUSED (see note above)
-    std::size_t productionSteps = 0;    // PARSED BUT UNUSED
-    double energyDriftTolerance = 0.01; // NVE drift warning threshold
+    std::size_t equilibrationSteps = 0; // thermostat on
+    std::size_t productionSteps = 0;    // NVE, energy drift reported
+    double energyDriftTolerance = 0.01; // NVE drift threshold
     unsigned int randomSeed = 0;        // 0 = auto
+    std::string integrator = "velocity_verlet";  // or "leapfrog"
+    std::string thermostat = "velocity_rescale"; // or "berendsen", "langevin", "none"
+    double thermostatTau = 0.0;         // Berendsen time constant
+    double langevinFriction = 1.0;      // Langevin gamma
 };
 ```
+
+`setIntegrator()` and `setThermostat()` on `MolecularDynamics` plug in an object directly instead.
 
 ---
 
@@ -139,9 +165,11 @@ struct SimulationParameters {
 
 | File | Role |
 |------|------|
-| [src/engine/molecular_dynamics.cpp](../../src/engine/molecular_dynamics.cpp) | **The real code:** VV loop (`integrateVelocityVerlet`, :440), MB init (:122), thermostat (:524), PBC (:480), `runSimulation` (:237) |
-| [src/engine/molecular_dynamics.h](../../src/engine/molecular_dynamics.h) | Driver API + `SimulationParameters` struct (:36) |
-| `src/engine/integrators/*.h` | ⚠️ Unused scaffolding — not part of the compiled code path |
+| [src/engine/molecular_dynamics.cpp](../../src/engine/molecular_dynamics.cpp) | The loop (`runSimulation`, :271), MB init (`initializeVelocities`, :124), plug choice (`setSimulationParameters`, :212) |
+| [src/engine/molecular_dynamics.h](../../src/engine/molecular_dynamics.h) | Driver API + `SimulationParameters` struct (:38) |
+| [src/engine/md_state.h](../../src/engine/md_state.h) | `MDState`, the view the plugs work on |
+| [src/engine/integrators/](../../src/engine/integrators/) | `Integrator` base, Velocity Verlet, leapfrog |
+| [src/engine/thermostats/](../../src/engine/thermostats/) | `Thermostat` base, velocity rescale / Berendsen, Langevin |
 
 ---
 

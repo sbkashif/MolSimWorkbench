@@ -8,9 +8,9 @@ The engine is written in C++17 and exposed to Python through a pybind11 native m
 
 - **Lennard-Jones MD**: Full NVE/NVT molecular dynamics with periodic boundary conditions, minimum-image convention, configurable cutoff, and geometric/arithmetic mixing rules
 - **LJ Bulk Box**: Automatic cubic-lattice initialization from density — no geometry file needed
-- **Velocity Verlet Integrator**: Symplectic integrator with Maxwell-Boltzmann velocity initialization and optional Berendsen thermostat
+- **Swappable integrator and thermostat**: Velocity Verlet (default) or leapfrog; velocity rescale (default), Berendsen, Langevin or none. Chosen by name in the YAML. Maxwell-Boltzmann velocity initialization
 - **Energy Minimization**: Steepest descent, conjugate gradient, and L-BFGS minimizers for pre-MD relaxation
-- **Pluggable Potentials**: `LJPotential` and `DFTPotential` share the same `Potential` interface; multiple potentials can be stacked in one `ForceCalculator` (`MachineLearningPotential` is an unbuilt stub that does not yet implement it)
+- **Pluggable Potentials**: every energy function implements the `Potential` interface, and a `ForceCalculator` sums several of them. `LJPotential` is the one implemented today; `DFTPotential` is a placeholder that raises a not-implemented error when built, and `MachineLearningPotential` is an unbuilt stub that does not yet implement the interface
 - **Molecule Builder**: Build explicit molecules (e.g. water) from YAML geometry files
 - **YAML Configuration**: One file drives geometry, potential parameters, integrator settings, and output
 - **Python API**: High-level `System.from_yaml()` and low-level direct object API
@@ -100,9 +100,6 @@ python examples/lj/water_lj_sim.py
 
 # LJ bulk box (125 particles, rho=0.8, NVE)
 python examples/lj_bulk_box/run_lj_bulk_sim.py
-
-# DFT water example
-python examples/dft/run_dft_example.py
 ```
 
 ### Run Tests
@@ -131,12 +128,17 @@ MolSimWorkbench/
 │   ├── engine/
 │   │   ├── potentials/
 │   │   │   ├── lj_potential.h/.cpp          # LJ energy + forces
-│   │   │   ├── dft_potential.h/.cpp         # DFT interface
+│   │   │   ├── dft_potential.h/.cpp         # DFT placeholder (not implemented)
 │   │   │   └── machine_learning_potential.h/.cpp
 │   │   ├── integrators/
-│   │   │   ├── velocity_verlet_integrator.h # VV step()
-│   │   │   ├── md_integrator.h              # base class + MB init
-│   │   │   └── md_parameters.h
+│   │   │   ├── integrator.h/.cpp            # Integrator base + makeIntegrator()
+│   │   │   ├── velocity_verlet_integrator.h/.cpp  # default
+│   │   │   └── leapfrog_integrator.h/.cpp
+│   │   ├── thermostats/
+│   │   │   ├── thermostat.h/.cpp            # Thermostat base + makeThermostat()
+│   │   │   ├── velocity_rescale_thermostat.h/.cpp  # default; Berendsen with tau
+│   │   │   └── langevin_thermostat.h/.cpp
+│   │   ├── md_state.h/.cpp                  # view the integrator/thermostat work on
 │   │   ├── force_calculator.h/.cpp          # potential aggregator
 │   │   └── molecular_dynamics.h/.cpp        # top-level MD driver
 │   ├── builder/
@@ -164,7 +166,7 @@ MolSimWorkbench/
 ├── examples/
 │   ├── lj/                                  # LJ water example
 │   ├── lj_bulk_box/                         # LJ bulk box example
-│   └── dft/                                 # DFT example
+│   └── dft/                                 # DFT example (raises not-implemented)
 ├── tests/
 │   ├── unit/                                # C++ GoogleTest suite
 │   └── test_python_api.py
@@ -182,14 +184,14 @@ MolSimWorkbench/
 | Potential | Status | Notes |
 |---|---|---|
 | `LJPotential` | **Active** | Full energy + forces, PBC, cutoff, mixing rules |
-| `DFTPotential` | Integration stub | Interface wired; DFT backend pluggable |
+| `DFTPotential` | Not implemented | Placeholder on the `Potential` interface; constructing it raises an error. No DFT calculation is performed |
 | `MachineLearningPotential` | Stub | Placeholder for ML force fields; not built, does not derive from `Potential` |
 
 ## Current Limitations / Planned Work
 
 - Pair loop is O(N^2) — neighbor list not yet implemented (config stubs exist)
 - Potential is not shifted to zero at cutoff (`shift_potential: false`)
-- Long-range tail corrections not applied (`tail_correction: false`)
+- Long-range tail correction implemented but off by default (`tail_correction: false`)
 - Particle mass is fixed at 1.0 (reduced units); per-atom masses not yet supported
 
 ---
@@ -216,6 +218,17 @@ vmd -e examples/output/load_trajectory.vmd
 
 ## Documentation
 
+The learning material comes in two forms:
+
+- **[`website/`](website/)** — the course: a shorter, guided version of the
+  notes, with figures, quizzes and runs of the real engine. Build it with
+  `python -m sphinx -E -b html website website/_build/html` (requirements in
+  `website/requirements.txt`) and open `website/_build/html/index.html`.
+- **[`docs/`](docs/README.md)** — the full notes: every chapter in detail, the
+  parallelization course with its exercises, and a layer-by-layer walk through
+  the engine's code. Read these on GitHub when you want every line, or before
+  changing the engine.
+
 **Learning C++ and the parallel kernel from scratch?** Start at
 [`docs/LEARNING_PATH.md`](docs/LEARNING_PATH.md): C++ basics
 ([`docs/learn-cpp/`](docs/learn-cpp/README.md)) → this codebase → the
@@ -230,6 +243,8 @@ Layer-by-layer explanations of the codebase are in [`docs/explainer/`](docs/expl
 3. [Velocity Verlet integrator and MD loop](docs/explainer/03_integrator_and_md.md)
 4. [Builders and YAML configuration](docs/explainer/04_builders_and_config.md)
 5. [Python interface via pybind11](docs/explainer/05_python_interface.md)
+
+Changes to the engine, its Python interface and its build are listed in [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 

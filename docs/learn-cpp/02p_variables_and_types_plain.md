@@ -95,8 +95,8 @@ The habit: **always fill a jar when you put it out.** The repo does: `double tot
 | 6 | to do it on purpose, say so | `static_cast<int>(x)` | used in chapter 4 |
 
 **Our kitchen's habit:** every "half" in the repo is written `0.5`, never `1/2`. `1/2` is two whole-cup jars,
-so it is `0`, and `1/2 * dt * dt` would be zero. `src/engine/molecular_dynamics.cpp:443` writes
-`0.5 * dt * dt`; the arithmetic mixing rule in `lj_potential.cpp:350-351` writes `0.5 * (… + …)`.
+so it is `0`, and `1/2 * dt * dt` would be zero. `src/engine/integrators/velocity_verlet_integrator.cpp:7` writes
+`0.5 * dt * dt`; the arithmetic mixing rule in `lj_potential.cpp:358-359` writes `0.5 * (… + …)`.
 
 ---
 
@@ -178,11 +178,11 @@ Same numbers as learn-parallel lesson 00's
 
 | # | Kitchen | C++ | Example |
 |---|---|---|---|
-| 1 | the repo's own "energy of one pair" recipe | `calculatePairEnergy` | `src/engine/potentials/lj_potential.cpp:360-367` |
-| 2 | same three jars, longer names | `sigma_r`, `sigma_r6`, `sigma_r12` | lines 363–365 |
-| 3 | same final line, same `4.0` | `return 4.0 * epsilon * (sigma_r12 - sigma_r6);` | line 367 |
-| 4 | the pull recipe right below it | `forceMagnitude = 24.0 * …` | line 380 |
-| 5 | jars of each size, each filled when put out | `double cutoff = 10.0;`, `int numThreads = 0;`, `bool tailCorrection = false;` | `lj_potential.h:71`, `:75`, `:76` |
+| 1 | the repo's own "energy of one pair" recipe | `calculatePairEnergy` | `src/engine/potentials/lj_potential.cpp:368-375` |
+| 2 | same three jars, longer names | `sigma_r`, `sigma_r6`, `sigma_r12` | lines 371–373 |
+| 3 | same final line, same `4.0` | `return 4.0 * epsilon * (sigma_r12 - sigma_r6);` | line 375 |
+| 4 | the pull recipe right below it | `forceMagnitude = 24.0 * …` | line 388 |
+| 5 | jars of each size, each filled when put out | `double cutoff = 10.0;`, `int numThreads = 0;`, `bool tailCorrection = false;` | `lj_potential.h:73`, `:77`, `:78` |
 
 ---
 

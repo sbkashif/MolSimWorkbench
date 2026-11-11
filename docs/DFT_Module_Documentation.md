@@ -1,17 +1,23 @@
-# Enhanced DFT Module Documentation
+# DFT Module Documentation
+
+> **Not implemented.** `DFTPotential` performs no DFT calculation, and
+> constructing one raises an error. The code is kept as a placeholder showing
+> where a quantum backend plugs into the `Potential` interface. What follows
+> describes that placeholder: per-atom energy tables, a basis-set scaling
+> factor, a bond correction and nuclear repulsion. It is not DFT.
 
 ## Overview
 
-The DFT (Density Functional Theory) module in MolSimWorkbench has been enhanced with realistic basis sets, functionals, and energy calculations. This module provides a simplified but physically meaningful implementation of DFT energy calculations for molecular systems.
+The placeholder below has the shape of a DFT backend (functional and basis-set settings, energies and forces) without the calculation. It was a first step toward a real backend.
 
 ## Features
 
 ### 1. Realistic Functionals
 - **B3LYP**: Becke 3-parameter Lee-Yang-Parr hybrid functional (20% exact exchange)
 - **PBE**: Perdew-Burke-Ernzerhof generalized gradient approximation
-- **PW91**: Perdew-Wang 91 functional
 - **HF**: Hartree-Fock method (100% exact exchange)
-- **PBE0**: PBE0 hybrid functional (25% exact exchange)
+- Any other name (PW91, PBE0, ...) is rejected at load. None of these is a real
+  DFT calculation: each name selects a table of per-atom energies.
 
 ### 2. Multiple Basis Sets
 - **STO-3G**: Minimal basis set (fast but low quality)
@@ -68,6 +74,8 @@ parameters:
 
 ## Test Results
 
+These numbers are printed by `examples/enhanced_dft_test.cpp`, a standalone program with its own copy of the model (it does not use `DFTPotential`). `DFTPotential` in the engine gives different values for the same molecule; see Implementation Details.
+
 ### Water (H2O) with B3LYP/6-31G*
 - **Electronic Energy**: -76.045 Hartree
 - **Nuclear Repulsion**: 17.366 Hartree
@@ -90,7 +98,7 @@ parameters:
 ## Implementation Details
 
 ### Atomic Energies
-The module uses literature-based atomic energies that vary by functional and basis set:
+`examples/enhanced_dft_test.cpp` uses literature-based atomic energies that vary by functional and basis set:
 
 **B3LYP/6-31G* Atomic Energies (Hartree):**
 - H: -0.502081
@@ -98,11 +106,15 @@ The module uses literature-based atomic energies that vary by functional and bas
 - N: -54.583861
 - O: -75.064579
 
+`DFTPotential` (`dft_potential.cpp`) instead keeps one rounded set per functional (B3LYP: H -0.502, C -37.845, N -54.583, O -75.064; PBE and HF have their own; any other functional uses the B3LYP set) and multiplies the sum by a per-basis-set factor (1.015 for STO-3G down to 0.990 for aug-cc-pVDZ, 1.000 for 6-31G*).
+
 ### Bonding Corrections
-Molecular systems receive empirical bonding corrections:
+In `examples/enhanced_dft_test.cpp`, molecular systems receive empirical bonding corrections:
 - **H2O**: +0.024 Ha (hydrogen bonding stabilization)
 - **CH4**: +0.062 Ha (C-H bonding effects)
 - **C6H6**: +0.124 Ha (aromatic stabilization)
+
+`DFTPotential` instead adds a Morse-like correction for every atom pair whose distance is within 0.8–1.5 times a typical bond length for that pair of elements.
 
 ### Force Calculations
 Forces are calculated using numerical differentiation:

@@ -10,7 +10,7 @@ struct LJBoxConfig {
     double density = 0.8;                   // Density in reduced units (particles/volume)
     std::string initialization = "cubic_lattice"; // Initialization method
     unsigned int randomSeed = 42;           // Random seed for reproducibility
-    double temperature = 1.0;               // Initial temperature in Kelvin/reduced units
+    double temperature = 1.0;               // Initial temperature (reduced units)
     
     // Phase control
     std::size_t equilibrationSteps = 1000;  // Equilibration steps (optional, for NVE can be 0)

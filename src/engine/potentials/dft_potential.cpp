@@ -2,10 +2,17 @@
 #include "../../utils/yaml_parser.h"
 #include <iostream>
 #include <cmath>
+#include <stdexcept>
 #include <nlohmann/json.hpp>
 
-DFTPotential::DFTPotential(const std::string& parametersFile) {
-    loadParameters(parametersFile);
+// Not implemented: this class performs no DFT calculation. Building one is an
+// error, so no run can use it by mistake. The placeholder below (per-atom energy
+// tables, a bond correction, nuclear repulsion, finite-difference forces) is kept
+// only to show where a quantum backend plugs into the Potential interface.
+DFTPotential::DFTPotential(const std::string& /*parametersFile*/) {
+    throw std::runtime_error(
+        "DFTPotential is not implemented yet: it performs no DFT calculation. "
+        "The class is kept as a placeholder for where a quantum backend will plug in.");
 }
 
 double DFTPotential::calculateEnergy(const Geometry& geometry) {
@@ -49,6 +56,16 @@ void DFTPotential::loadParameters(const std::string& parametersFile) {
         scfConvergence = 1.0e-6;
         maxScfCycles = 100;
         gridQuality = "fine";
+    }
+
+    // This is a placeholder, not DFT: the functional name only selects one of
+    // three tables of per-atom energies in calculateElectronicEnergy. Checked
+    // outside the try block so the error is not swallowed above.
+    if (functional != "B3LYP" && functional != "PBE" && functional != "HF") {
+        throw std::invalid_argument(
+            "DFT functional \"" + functional + "\" is not recognised. The DFT "
+            "potential is a placeholder that performs no DFT calculation; it has "
+            "per-atom energy tables labelled B3LYP, PBE and HF only");
     }
 }
 
@@ -101,12 +118,8 @@ double DFTPotential::calculateElectronicEnergy(const Geometry& geometry) {
             {"N", -54.401},   // HF nitrogen
             {"O", -74.810}    // HF oxygen
         };
-    } else {
-        // Default to B3LYP values
-        atomicEnergies = {
-            {"H", -0.502}, {"C", -37.845}, {"N", -54.583}, {"O", -75.064}
-        };
     }
+    // Any other functional was rejected in loadParameters.
     
     // Calculate atomic contributions
     for (size_t i = 0; i < numAtoms; ++i) {

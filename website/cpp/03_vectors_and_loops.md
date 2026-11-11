@@ -94,7 +94,7 @@ lowest energy -0.999824 at r = 1.12
 
 The scan finds the bottom of the well at 1.12σ, the
 $2^{1/6}\sigma \approx 1.1225\sigma$ of the
-[architecture page](../molsim/architecture.md#the-energy-function), to the
+[energy function](../molsim/architecture.md#the-energy-function), to the
 0.01σ spacing of the scan; the energy there is within 0.0002ε of −ε.
 
 ## Where the elements live
@@ -218,7 +218,7 @@ total U = -1.28933
 ```
 
 This is the sum over pairs from the
-[architecture page](../molsim/architecture.md#the-energy-function), for
+[energy function](../molsim/architecture.md#the-energy-function), for
 three atoms. With N atoms the two loops visit $N(N-1)/2$ pairs, so the work
 grows with the square of N: 512 atoms make 130,816 pairs.
 
@@ -257,5 +257,5 @@ zero. Starting at `i + 1` visits each pair exactly once.
 ## Next
 
 `lj_energy` takes ε and σ on every call, and the positions sit in a loose
-vector. The next chapter bundles values and the functions that work on them
+vector. The next chapter, [Classes](04_classes.md), bundles values and the functions that work on them
 into one new type, a **class**, the building block the engine is made of.

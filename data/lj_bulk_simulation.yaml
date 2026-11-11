@@ -4,7 +4,7 @@
 simulation:
   type: "dynamics"  # Options: "dynamics" or "minimization"
   system_mode: "lj_particle_box"  # Use LJ particle box initialization
-  timestep: 0.001  # in picoseconds (reduced units)
+  timestep: 0.001  # in reduced units
   temperature: 1.0  # Initial temperature in reduced units (epsilon/kB)
   random_seed: 42  # Seed for reproducible initialization
 

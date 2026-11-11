@@ -11,9 +11,9 @@
 > something you copy.
 >
 > The interesting part of this chapter is what happens when your cores are not
-> all the same speed. Your Mac has 4 fast cores and 4 slow ones, and the
-> straightforward way of dividing up the work makes a **5-worker run slower
-> than a 4-worker run**. One line fixes it.
+> all the same speed. The machine these numbers come from (Apple Silicon) has
+> 4 fast cores and 4 slow ones, and the straightforward way of dividing up the
+> work makes a **5-worker run slower than a 4-worker run**. One line fixes it.
 >
 > New words here: **pragma**, **schedule**, **reduction**, **shared/private**,
 > **barrier** — see [GLOSSARY.md](GLOSSARY.md).
@@ -153,7 +153,9 @@ roughly half speed. The other four finish and sit at the barrier waiting for it.
 
 `guided` fixes it completely (7.06 ms at 5 threads, faster than 4). Slow cores
 simply request fewer chunks. That is why the shipped kernel uses `guided`, and
-why the comment in `lj_kernels.cpp` says so with the numbers attached.
+why the comment in `lj_kernels.cpp` says so with the numbers attached. (Those
+numbers come from a different machine with more efficiency cores, so they do not
+match this table; the 4-to-5-thread slowdown under `static` is the same.)
 
 The general lesson is not "always use guided" — `static` is free and `guided`
 is not, and on homogeneous cores with uniform work `static` wins. The lesson is

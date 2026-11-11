@@ -1,0 +1,22 @@
+# Conda environment for the MLIP training agent.
+#
+#   mamba env create -f agent/environment.yml
+#   conda activate mlip-agent
+#
+# Versions are the ones the first run used (2026-11-07, Apple M4, CPU only).
+name: mlip-agent
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pytorch=2.12.1
+  - openmm=8.5.2
+  - openmm-torch
+  - openmm-ml=1.7
+  - ollama             # the Ollama server that runs the local LLM
+  - pip
+  - pip:
+      - mace-torch==0.3.17
+      - ase==3.29.0
+      - ollama==0.6.3      # the Python client for a local LLM
+      - anthropic==2.6.0   # only for a Claude model (needs your own API key)

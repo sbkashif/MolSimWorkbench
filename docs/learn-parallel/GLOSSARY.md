@@ -325,7 +325,8 @@ Anything declared inside the loop is automatically private, which is why the
 kernel's running totals are safe.
 
 **Performance cores / efficiency cores (P-cores / E-cores)**
-Your Mac has 4 fast cores and 4 slow, power-saving ones. The computer reports
+The Apple Silicon machine used in these lessons has 4 fast cores and 4 slow,
+power-saving ones. The computer reports
 "8 cores" and does not mention that half of them are slower. With `static`
 scheduling this made a 5-worker run *slower* than a 4-worker run. Lesson 7.
 

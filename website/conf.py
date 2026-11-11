@@ -46,7 +46,7 @@ html_theme_options = {
 # so the Markdown sources hold no HTML.
 html_static_path = ["_static"]
 html_js_files = ["lj_explorer.js", "engine_run.js", "sidebar_toggle_fix.js"]
-html_css_files = ["lj_explorer.css", "engine_run.css", "detour.css"]
+html_css_files = ["lj_explorer.css", "engine_run.css", "detour.css", "code_compare.css"]
 
 from docutils import nodes as _nodes
 from docutils.parsers.rst import Directive as _Directive

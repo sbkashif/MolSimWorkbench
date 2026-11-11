@@ -135,7 +135,7 @@ how noisy the machine is, report the spread separately.
 backend               ms/call    vs ref           energy      max|df|      max rel
 reference              34.891     1.00x -20105.493949019            -            -
 serial-triangular      16.142     2.16x -20105.493949019    1.137e-13    1.490e-11
-openmp                  6.571     5.31x -20105.493949019    1.137e-13    1.490e-11
+openmp-gather           6.571     5.31x -20105.493949019    1.137e-13    1.490e-11
 ```
 
 An infinitely fast kernel that returns the wrong forces is worth nothing, and

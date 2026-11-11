@@ -1,5 +1,11 @@
 # About the parallel module: CPU cores
 
+:::{admonition} Draft
+:class: warning
+This module is being revised. The measurements are real runs on one laptop,
+but the text may still change.
+:::
+
 [Reading the engine](../engine/reading_the_engine.md) ended at the pair
 loop, which visits every pair of atoms on every step and runs on one core of
 the processor. A computer today has several cores, each able to run its own

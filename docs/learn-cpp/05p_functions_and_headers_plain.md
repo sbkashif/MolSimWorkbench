@@ -168,7 +168,7 @@ written into, by `&`.
 | 1 | "a pinch of salt, unless you say otherwise" | default argument | `double factor = 2.5` |
 | 2 | calling for the sub-recipe without it uses the default | | `scaledCutoff(1.0)` → `2.5` |
 | 3 | calling for it with a value overrides the default | | `scaledCutoff(1.0, 3.0)` → `3` |
-| 4 | the default is written **on the summary card only**, not again in the full sub-recipe | default in the declaration | `molecular_dynamics.h:67` has `alpha = 90.0`; `.cpp:28` does not |
+| 4 | the default is written **on the summary card only**, not again in the full sub-recipe | default in the declaration | `molecular_dynamics.h:84` has `alpha = 90.0`; `.cpp:30` does not |
 | 5 | no "salt=…" by name: ingredients are handed in strictly in order | arguments match by position only | |
 
 ---
@@ -203,10 +203,10 @@ written into, by `&`.
 
 | # | Kitchen | C++ | Example |
 |---|---|---|---|
-| 1 | the real force loop calls the same three recipes the same way | lines 291, 328-330 | `auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);` |
-| 2 | the mixing recipe first checks the card box has both cards, and hands back an empty tray if not | `.find(…) == .end()`, lines 336-339 | `return {0.0, 0.0};` |
-| 3 | after that check, `[]` cannot write a blank card | lines 341-342 | |
-| 4 | the force recipe takes the same six ingredients, the same three ways | lines 370-373 | |
+| 1 | the real force loop calls the same three recipes the same way | lines 299, 336-338 | `auto [epsilon, sigma] = getMixedParameters(atoms[i], atoms[j]);` |
+| 2 | the mixing recipe first checks the card box has both cards, and hands back an empty tray if not | `.find(…) == .end()`, lines 344-347 | `return {0.0, 0.0};` |
+| 3 | after that check, `[]` cannot write a blank card | lines 349-350 | |
+| 4 | the force recipe takes the same six ingredients, the same three ways | lines 378-381 | |
 | 5 | one difference: every recipe name has a prefix, and the mixing recipe is **not handed the card box** | `LJPotential::getMixedParameters(type1, type2)` | the card box lives inside the LJ station itself — chapter 6 |
 
 ---

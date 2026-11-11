@@ -82,17 +82,18 @@ So it is not that we chose to leave it out of the kernel — it is not *allowed*
 in the kernel:
 
 ```cpp
-double LJPotential::calculateEnergy(const Geometry& geometry) {
+double LJPotential::calculateForcesAndEnergy(const Geometry& geometry, ...) {
     ...
-    return ljComputeGather(view, backend, numThreads)
-         + tailCorrectionEnergy(geometry);       // energy: yes
-}
-
-void LJPotential::calculateForces(const Geometry& geometry, ...) {
-    ...
-    ljComputeGather(view, backend, numThreads);  // forces: nothing added. Ever.
+    const double energy = ljComputeGather(view, backend, numThreads);
+    for (std::size_t i = 0; i < n; ++i) {
+        forces[i] = {sfx[i], sfy[i], sfz[i]};    // forces: nothing added. Ever.
+    }
+    return energy + tailCorrectionEnergy(geometry);   // energy: yes
 }
 ```
+
+(`calculateForces` just calls this, and `calculateEnergy` adds the same term
+to its own kernel call.)
 
 And the test asserts it *bitwise*, not approximately:
 

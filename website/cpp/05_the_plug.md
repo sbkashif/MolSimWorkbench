@@ -227,13 +227,17 @@ the line in the socket it fails to match.
 ## Where the engine uses it
 
 The engine's socket is `Potential`, declared next to `ForceCalculator`. Its
-pure virtual functions are the two questions of the architecture page:
+pure virtual functions are the two questions of
+[A simple molecular dynamics loop](../molsim/architecture.md#the-energy-function-is-a-plug):
 
 - `calculateEnergy(const Geometry& geometry)`, the total energy of all atoms;
 - `calculateForces(const Geometry& geometry, std::vector<std::array<double, 3>>& forces)`,
   the force on every atom;
 
-plus `getName()` and a virtual destructor. `LJPotential` and `DFTPotential`
+plus `getName()` and a virtual destructor. A third function,
+`calculateForcesAndEnergy`, is virtual but not pure: it has a default body
+that calls the other two, and `LJPotential` replaces it to get both from one
+pass over the pairs. `LJPotential` and `DFTPotential`
 both inherit from it with `: public Potential` and mark their versions
 `override`. `ForceCalculator` keeps its plugs in a
 `std::vector<std::shared_ptr<Potential>>`, adds them with `addPotential`,
@@ -268,7 +272,7 @@ of σ the LJ wall dwarfs everything else.
 
 ## Next
 
-`plug.cpp` is one file of 93 lines, and the engine is many thousands. The
-next chapter splits a program across several files, the way the engine is
+`plug.cpp` is one file of 93 lines, and the engine's `src/` folder holds about
+4,700. The next chapter, [Several files](06_several_files.md), splits a program across several files, the way the engine is
 organised: declarations in headers, code in source files, joined by the
 linker.

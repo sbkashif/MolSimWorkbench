@@ -524,43 +524,43 @@ Open it. Lines 12-33 are the class, and every line is now readable:
 
 ### `src/engine/potentials/lj_potential.h`
 
-This header is 105 lines now, because the parallel work (`docs/learn-parallel/`) added backends and
+This header is 107 lines now, because the parallel work (`docs/learn-parallel/`) added backends and
 scratch buffers. The parts that are this chapter's — skip the `: public Potential`, `override` and
 `~LJPotential` for now; they are chapter 7 and 8:
 
 ```cpp
 16      LJPotential();
 ...
-26      void addAtomParameters(const std::string& atomType, double epsilon, double sigma);
-27      void setCutoff(double cutoff) { this->cutoff = cutoff; tablesDirty = true; }
-28      void setMixingRule(const std::string& rule) { this->mixingRule = rule; tablesDirty = true; }
+28      void addAtomParameters(const std::string& atomType, double epsilon, double sigma);
+29      void setCutoff(double cutoff) { this->cutoff = cutoff; tablesDirty = true; }
+30      void setMixingRule(const std::string& rule) { this->mixingRule = rule; tablesDirty = true; }
 ...
-63  private:
-64      // Atom parameters
-65      struct AtomParameters {
-66          double epsilon;
-67          double sigma;
-68      };
-69
-70      std::map<std::string, AtomParameters> atomParameters;
-71      double cutoff = 10.0;  // Default cutoff
-72      std::string mixingRule = "geometric";  // Default mixing rule
+65  private:
+66      // Atom parameters
+67      struct AtomParameters {
+68          double epsilon;
+69          double sigma;
+70      };
+71
+72      std::map<std::string, AtomParameters> atomParameters;
+73      double cutoff = 10.0;  // Default cutoff
+74      std::string mixingRule = "geometric";  // Default mixing rule
 ...
-80      bool tablesDirty = true;
+82      bool tablesDirty = true;
 ...
-97      std::pair<double, double> getMixedParameters(const std::string& type1, const std::string& type2);
-98      double calculatePairEnergy(double epsilon, double sigma, double distance);
-99      void calculatePairForce(double epsilon, double sigma, double distance,
+99      std::pair<double, double> getMixedParameters(const std::string& type1, const std::string& type2);
+100     double calculatePairEnergy(double epsilon, double sigma, double distance);
+101     void calculatePairForce(double epsilon, double sigma, double distance,
 ```
 
-Lines 63-72 and 97-99 are mini_lj's private section, member for member. Line 72 adds a second
+Lines 65-74 and 99-101 are mini_lj's private section, member for member. Line 74 adds a second
 default member initializer, `mixingRule`, which the repo's `getMixedParameters` reads to choose
-geometric or arithmetic mixing (`lj_potential.cpp:346-351`).
+geometric or arithmetic mixing (`lj_potential.cpp:354-359`).
 
-Lines 27-28 show **what `private` buys**. `setCutoff` does not only store the cutoff. It also sets
+Lines 29-30 show **what `private` buys**. `setCutoff` does not only store the cutoff. It also sets
 `tablesDirty = true`. The fast kernels precompute tables from the parameters and the cutoff, and
-`tablesDirty` (line 80) records that those tables are out of date. `addAtomParameters` does the same
-(`lj_potential.cpp:42-45`), and `buildView` rebuilds the tables when the flag is set
+`tablesDirty` (line 82) records that those tables are out of date. `addAtomParameters` does the same
+(`lj_potential.cpp:43-46`), and `buildView` rebuilds the tables when the flag is set
 (`lj_potential.cpp:92`: `if (tablesDirty) rebuildTables();`). Because `cutoff` is private, *every*
 change goes through a setter, so the tables can never silently go stale. If `cutoff` were public, one
 `lj.cutoff = 3.0` anywhere would break that rule with no error.
@@ -572,7 +572,7 @@ potential. In the repo it is not, and that is honest. `LJPotential::calculateEne
 (`lj_potential.cpp:147-157`) calls `buildView`, which may rebuild the tables and **fills member
 vectors** `sx`, `sy`, `sz`, … with the positions on every call (`lj_potential.cpp:99-106`). Those are
 scratch buffers kept as members so a long MD run allocates them once (the comment at
-`lj_potential.h:86-89` says so). Writing to members means the method is not `const`. The cost: you
+`lj_potential.h:88-91` says so). Writing to members means the method is not `const`. The cost: you
 cannot call `calculateEnergy` on a `const LJPotential`. That is also why the base class `Potential`,
 which you will meet in chapter 7, does not declare it `const`.
 

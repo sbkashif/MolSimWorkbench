@@ -22,7 +22,7 @@ Two documents sit outside that main line:
 
 | File | What it covers |
 |------|---------------|
-| [00_cpp_primer.md](00_cpp_primer.md) | C++ syntax, taught by walking one 48-line file (`lj_potential.h`) top to bottom — every keyword explained where it first appears |
+| [00_cpp_primer.md](00_cpp_primer.md) | C++ syntax, taught by walking one 48-line file (the original `lj_potential.h`) top to bottom — every keyword explained where it first appears |
 | [01_architecture.md](01_architecture.md) | The big picture — what the layers are and how they connect |
 | [02_lj_implementation.md](02_lj_implementation.md) | How the LJ equation lives in the code — energy, forces, cutoff, PBC |
 | [03_integrator_and_md.md](03_integrator_and_md.md) | Velocity Verlet, Maxwell-Boltzmann init, the MD loop |

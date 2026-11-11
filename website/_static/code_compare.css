@@ -1,0 +1,76 @@
+/* Level 2 beside level 3 on the agent page: a two-column table, one row per
+   piece of code, coloured by what happens to it (blue: replaced by the LLM's
+   choice; orange: the fixed step that becomes "run what was chosen"; green:
+   new). Written as a {raw} html block in agent/02_the_agent.md. */
+html {
+  --cd-ask: rgba(37, 99, 235, 0.13);
+  --cd-ask-edge: #2563eb;
+  --cd-run: rgba(217, 119, 6, 0.15);
+  --cd-run-edge: #d97706;
+  --cd-new: rgba(22, 163, 74, 0.14);
+  --cd-new-edge: #16a34a;
+}
+html[data-theme="dark"] {
+  --cd-ask: rgba(96, 165, 250, 0.22);
+  --cd-ask-edge: #60a5fa;
+  --cd-run: rgba(251, 191, 36, 0.2);
+  --cd-run-edge: #fbbf24;
+  --cd-new: rgba(74, 222, 128, 0.18);
+  --cd-new-edge: #4ade80;
+}
+.code-diff-wrap {
+  overflow-x: auto;          /* phones: scroll the table, keep rows aligned */
+  margin: 1em 0 0.4em;
+}
+table.code-diff {
+  border-collapse: separate;
+  border-spacing: 0 3px;
+  width: 100%;
+  min-width: 34em;
+  font-size: 0.82em;
+}
+table.code-diff th {
+  text-align: left;
+  font-weight: 600;
+  padding: 0 0.6em 0.3em;
+  border: none;
+  background: none;
+}
+table.code-diff td {
+  vertical-align: top;
+  width: 50%;
+  padding: 0.25em 0.6em;
+  border: none;
+}
+table.code-diff code {
+  white-space: pre;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 1em;
+  color: inherit;
+}
+table.code-diff tr.cd-same td { background: var(--pst-color-surface, rgba(127,127,127,0.08)); }
+table.code-diff tr.cd-ask td { background: var(--cd-ask); }
+table.code-diff tr.cd-run td { background: var(--cd-run); }
+table.code-diff tr.cd-new td:last-child { background: var(--cd-new); }
+table.code-diff tr.cd-ask td:first-child { border-left: 3px solid var(--cd-ask-edge); }
+table.code-diff tr.cd-run td:first-child { border-left: 3px solid var(--cd-run-edge); }
+table.code-diff tr.cd-new td:last-child { border-left: 3px solid var(--cd-new-edge); }
+table.code-diff tr.cd-new td:first-child { background: none; }
+.code-diff-key {
+  font-size: 0.85em;
+  white-space: pre-line;
+  line-height: 1.7;
+}
+.cd-chip {
+  display: inline-block;
+  min-width: 4.2em;
+  padding: 0 0.4em;
+  margin-right: 0.3em;
+  border-radius: 3px;
+  text-align: center;
+}
+.cd-chip.cd-ask { background: var(--cd-ask); border-left: 3px solid var(--cd-ask-edge); }
+.cd-chip.cd-run { background: var(--cd-run); border-left: 3px solid var(--cd-run-edge); }
+.cd-chip.cd-new { background: var(--cd-new); border-left: 3px solid var(--cd-new-edge); }

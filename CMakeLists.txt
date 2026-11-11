@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(MolSimWorkbench)
+project(MolSimWorkbench VERSION 0.7.2)
 
 # Default to an optimised build. Without this, a plain `cmake -B build -S .`
 # compiles with no optimisation, and every timing in docs/learn-parallel/ is
@@ -97,6 +97,13 @@ target_include_directories(BuilderLib PUBLIC
 add_library(EngineLib STATIC
     src/engine/force_calculator.cpp
     src/engine/molecular_dynamics.cpp
+    src/engine/md_state.cpp
+    src/engine/integrators/integrator.cpp
+    src/engine/integrators/velocity_verlet_integrator.cpp
+    src/engine/integrators/leapfrog_integrator.cpp
+    src/engine/thermostats/thermostat.cpp
+    src/engine/thermostats/velocity_rescale_thermostat.cpp
+    src/engine/thermostats/langevin_thermostat.cpp
     src/engine/potentials/lj_potential.cpp
     src/engine/potentials/lj_kernels.cpp
     src/engine/potentials/dft_potential.cpp
@@ -116,6 +123,7 @@ pybind11_add_module(_molsim
 )
 target_link_libraries(_molsim PRIVATE BuilderLib EngineLib)
 target_include_directories(_molsim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(_molsim PRIVATE MOLSIM_VERSION="${PROJECT_VERSION}")
 
 # Copy Python YAML parser to build directory
 configure_file(

@@ -31,15 +31,15 @@ Path B: Molecule (e.g. water)
 $$L = \left(\frac{N}{\rho}\right)^{1/3}$$
 
 ```cpp
-double volume = numParticles / density;
-double L      = std::cbrt(volume);
+double volume = static_cast<double>(numParticles) / density;
+return std::cbrt(volume);
 ```
 
-With the default config (`N=125`, `rho=0.8`), this gives $L \approx 5.37$ in reduced units.
+With the default config (`N=125`, `rho=0.8`), this gives $L \approx 5.39$ in reduced units.
 
 ### Cubic lattice placement
 
-Particles per dimension: $n = \lceil N^{1/3} \rceil$. Lattice spacing: $a = L / n$.
+Particles per dimension: the smallest $n$ with $n^3 \ge N$, so every particle gets a site (for $N = 130$, $n = 6$ and the last 86 sites stay empty). Lattice spacing: $a = L / n$.
 
 Each particle is placed at:
 
@@ -74,9 +74,6 @@ simulation:
   system_mode: "lj_particle_box"
   timestep: 0.001
   temperature: 1.0
-  equilibration_steps: 1000
-  production_steps: 5000
-  energy_drift_tolerance: 0.01
   random_seed: 42
 
   lj_box:
@@ -95,7 +92,7 @@ potential_config_files:
 
 The `system_mode` key is what tells the parser which builder to invoke. The `potential_config_files` list lets you compose multiple potentials (e.g. LJ + electrostatics) though only LJ is active now.
 
-> **Which keys actually do something:** `system_mode`, `timestep`, `temperature`, `lj_box.*`, and `potential_config_files` are honored. The run length is `totalTime / timestep`, **not** `equilibration_steps + production_steps` — those two, plus `output.frequency` and `output.energy`, are parsed into structs but never read by the loop (see doc 03). So the trajectory is written every step and no energy file is produced; energy only goes to stdout.
+> **Which keys actually do something:** `system_mode`, `timestep`, `temperature`, `random_seed`, `lj_box.*`, and `potential_config_files` are honored. The run length is `totalTime / timestep` (or `total_steps`), unless `equilibration_steps` / `production_steps` are set under `simulation:` (see doc 03; this file sets neither, `data/lj_nve_simulation.yaml` does). `lj_box.equilibration_steps` / `production_steps`, `output.frequency` and `output.energy` are never read by the loop. So the trajectory is written every step and no energy file is produced; energy only goes to stdout.
 
 ### 2. Potential config — `data/potentials/lj_bulk.yaml`
 
@@ -111,7 +108,7 @@ components:
     shift_potential: false
 ```
 
-This is parsed into `LJPotential::addAtomParameters("LJ", 1.0, 1.0)` and `LJPotential::setCutoff(2.5)`.
+This is parsed into `LJPotential::addAtomParameters("LJ", 1.0, 1.0)`, `setCutoff(2.5)`, `setMixingRule("geometric")` and `setTailCorrection(false)`. `shift_potential` and the neighbor-list keys in other files are not read.
 
 ### 3. Geometry config — `data/geometry/water.yaml` (Path B only)
 
@@ -121,13 +118,13 @@ Used only for explicit molecule simulations (not for the LJ-bulk path which gene
 
 ## YAMLParser
 
-`src/utils/yaml_parser.h/.cpp` wraps the `nlohmann/json` library (fetched via CMake FetchContent as `json-src` in `build/_deps/`). It reads YAML/JSON, validates required keys, and populates the C++ parameter structs.
+`src/utils/yaml_parser.h/.cpp` wraps the `nlohmann/json` library (fetched via CMake FetchContent as `json-src` in `build/_deps/`). It runs `yaml_parser.py` with `python` to turn the YAML into JSON, parses that, and populates the C++ parameter structs.
 
 ---
 
 ## Minimizers (pre-MD relaxation)
 
-`MolecularDynamics` can optionally run an energy minimisation before the MD loop. Three methods are available:
+`MolecularDynamics` can optionally run an energy minimisation before the MD loop. Three methods are named, but only steepest descent is implemented; `CONJUGATE_GRADIENT` and `LBFGS` print "not yet implemented" and run steepest descent:
 
 | `MinimizationMethod` | Description |
 |---|---|
@@ -145,7 +142,7 @@ minimization:
   force_tolerance: 1e-4
 ```
 
-For LJ-bulk NVE, minimisation is typically skipped (`useMinimization: false`) because the point is to start from a lattice and watch it melt into a liquid.
+For LJ-bulk NVE, minimisation is typically skipped (`useMinimization` is false unless `type: "minimization"`) because the point is to start from a lattice and watch it melt into a liquid.
 
 ---
 

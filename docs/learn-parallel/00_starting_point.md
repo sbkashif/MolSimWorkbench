@@ -19,12 +19,14 @@
 Every MD step in this repo funnels through one place:
 
 ```
-MolecularDynamics::run()                    src/engine/molecular_dynamics.cpp
-  └─ ForceCalculator::calculateForces()     src/engine/force_calculator.cpp
-       └─ LJPotential::calculateForces()    src/engine/potentials/lj_potential.cpp  ← HERE
+MolecularDynamics::runSimulation()                     src/engine/molecular_dynamics.cpp
+  └─ Integrator::step() → MDState::computeForces()     src/engine/integrators/, src/engine/md_state.cpp
+       └─ ForceCalculator::calculateForcesAndEnergy()  src/engine/force_calculator.cpp
+            └─ LJPotential::calculateForcesAndEnergy() src/engine/potentials/lj_potential.cpp  ← HERE
 ```
 
-A 5000-step run calls that innermost function 5000 times. At N=4096 it was
+Forces and energy come out of the same pass, so a 5000-step run calls that
+innermost function 5000 times. At N=4096 it was
 taking 34.9 ms per call, so ~3 minutes of a 3-minute simulation was spent
 inside one double loop. That is the whole reason this course exists: there is
 exactly one hot spot, and it is 30 lines long.
@@ -386,7 +388,7 @@ Not into the code above. That code stays exactly as it is, forever, as the
 correctness baseline. The new path is a sibling:
 
 ```
-LJPotential::calculateForces(geometry, forces)
+LJPotential::calculateForcesAndEnergy(geometry, forces)
     │
     ├─ buildView()              atom-at-a-time + text names
     │                             →  three flat coordinate lists + integer ids
@@ -438,18 +440,13 @@ LJPotential::LJPotential() {
 }
 ```
 
-Three ways to ask:
+Two ways to ask (there is no YAML key or Python binding for it yet):
 
 ```cpp
 lj.setBackend(LJBackend::OpenMP);
 ```
 ```bash
 MOLSIM_LJ_BACKEND=openmp ./build/run_simulation data/lj_bulk_simulation.yaml
-```
-```yaml
-simulation:
-  parallel:
-    backend: openmp
 ```
 
 ## Try it now
@@ -469,7 +466,7 @@ rather than the average. Everything that follows explains that table.
 
 ## Summary
 
-- One loop, `LJPotential::calculateForces`, is essentially the entire runtime.
+- One loop, inside `LJPotential::calculateForcesAndEnergy`, is essentially the entire runtime.
 - Of 8,386,560 pairs, only 113,910 (1.36%) are close enough to matter — but the
   code must measure every one to find that out. Work before the cutoff test is
   paid 74× more often than work after it.

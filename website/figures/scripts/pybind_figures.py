@@ -8,6 +8,7 @@ from cpp_figures import CPP
 
 PYB = "#d9822b"           # pybind11 module colour, as on the cover
 PY = "#4a5260"            # Python (dark grey; blue is C++)
+JS = "#5a8a3a"            # JavaScript, the browser side (green)
 
 
 def box(ax, x, y, w, h, title, lines=(), ec=EDGE, title_color=INK, mono=True):
@@ -114,7 +115,46 @@ def fig_pybind_shared():
     save(fig, "pybind_shared.svg")
 
 
+def fig_browser_layers():
+    """What Run on a page goes through: two JavaScript layers in the browser,
+    then the same Python -> pybind11 -> C++ layers as on a computer."""
+    W, H = 1100, 470
+    fig, ax = canvas(W, H)
+    rows = [
+        ("the page: engine_run.js", "takes the two YAML files, posts them to a worker", JS, "JavaScript"),
+        ("a Web Worker: engine_worker.js", "loads Pyodide, writes the files into /run, runs the script", JS, "JavaScript"),
+        ("Pyodide running run.py and molsimworkbench.py", "CPython 3.12, compiled to WebAssembly", PY, "Python"),
+        ("_molsim.cpython-312-wasm32-emscripten.so", "the same PYBIND11_MODULE, compiled for WebAssembly", PYB, "pybind11"),
+        ("the engine", "Geometry, LJPotential, ForceCalculator, MolecularDynamics", CPP, "C++"),
+    ]
+    for k, (name, what, color, lang) in enumerate(rows):
+        y = 20 + k * 88
+        ax.add_patch(FancyBboxPatch((140, y), 760, 66,
+                                    boxstyle="round,pad=0,rounding_size=10",
+                                    fc="white", ec=color, lw=1.8))
+        ax.text(160, y + 22, name, va="center", fontsize=13.5, family=MONO,
+                weight="bold", color=color)
+        ax.text(160, y + 47, what, va="center", fontsize=12, color=INK)
+        ax.text(120, y + 33, lang, ha="right", va="center", fontsize=12.5,
+                weight="bold", color=color)
+        if k < len(rows) - 1:
+            arrow(ax, (520, y + 67), (520, y + 87), color=EDGE)
+    # Bracket: rows 3-5 are the layers of the previous page.
+    top, bottom = 20 + 2 * 88, 20 + 4 * 88 + 66
+    ax.plot([915, 925, 925, 915], [top, top, bottom, bottom], color=MUTED, lw=1.5)
+    for k, line in enumerate(["the same layers", "as on your", "computer"]):
+        ax.text(940, (top + bottom) / 2 - 26 + k * 26, line, va="center",
+                fontsize=12, color=MUTED)
+    top2, bottom2 = 20, 20 + 88 + 66
+    ax.plot([915, 925, 925, 915], [top2, top2, bottom2, bottom2], color=JS, lw=1.5)
+    for k, line in enumerate(["only in the", "browser"]):
+        ax.text(940, (top2 + bottom2) / 2 - 13 + k * 26, line, va="center",
+                fontsize=12, color=JS)
+    save(fig, "pybind_browser_layers.svg")
+
+
 if __name__ == "__main__":
     fig_pybind_call()
     fig_pybind_layers()
     fig_pybind_shared()
+    fig_browser_layers()

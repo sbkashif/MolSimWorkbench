@@ -18,7 +18,8 @@ std::mt19937 gen(rd());
 
 MolecularDynamics::MolecularDynamics() 
     : currentEnergy(0.0), currentStep(0), trajectoryWriter(nullptr) {
-    // Initialize default parameters
+    // Default plugs, named by the default SimulationParameters
+    setSimulationParameters(params);
 }
 
 MolecularDynamics::~MolecularDynamics() {
@@ -34,7 +35,7 @@ void MolecularDynamics::setBox(double a, double b, double c, double alpha, doubl
     if (alpha != 90.0 || beta != 90.0 || gamma != 90.0) {
         std::cout << " with angles " << alpha << ", " << beta << ", " << gamma;
     }
-    std::cout << " Å" << std::endl;
+    std::cout << std::endl;
     
     // If trajectory writer exists, update its box information
     if (trajectoryWriter) {
@@ -137,7 +138,7 @@ void MolecularDynamics::initializeVelocities(double temperature) {
     }
     
     // Assign random velocities from the distribution
-    std::cout << "Initializing velocities for temperature: " << temperature << " K" << std::endl;
+    std::cout << "Initializing velocities for temperature: " << temperature << std::endl;
     for (size_t i = 0; i < numAtoms; ++i) {
         for (int d = 0; d < 3; ++d) {
             velocities[i][d] = dist(gen);
@@ -175,7 +176,7 @@ void MolecularDynamics::initializeVelocities(double temperature) {
     double currentTemp = 2.0 * kineticEnergy / (3 * numAtoms);
     double scaleFactor = std::sqrt(temperature / currentTemp);
     
-    std::cout << "Initial temperature before scaling: " << currentTemp << " K" << std::endl;
+    std::cout << "Initial temperature before scaling: " << currentTemp << std::endl;
     
     for (auto& v : velocities) {
         v[0] *= scaleFactor;
@@ -191,7 +192,7 @@ void MolecularDynamics::initializeVelocities(double temperature) {
     kineticEnergy *= 0.5;
     
     double finalTemp = 2.0 * kineticEnergy / (3 * numAtoms);
-    std::cout << "Initial temperature after scaling: " << finalTemp << " K" << std::endl;
+    std::cout << "Initial temperature after scaling: " << finalTemp << std::endl;
     std::cout << "Initial kinetic energy: " << kineticEnergy << std::endl;
 }
 
@@ -210,11 +211,37 @@ void MolecularDynamics::setForceCalculator(std::shared_ptr<ForceCalculator> forc
 
 void MolecularDynamics::setSimulationParameters(const SimulationParameters& params) {
     this->params = params;
+
+    // Pick the plugs by name, unless the caller plugged one in directly.
+    // Unknown names throw here, before any work is done.
+    if (!integratorSetByUser) {
+        integrator = makeIntegrator(params.integrator);
+    }
+    if (!thermostatSetByUser) {
+        // The thermostat's random stream is offset from the one that draws the
+        // initial velocities, so the two are not the same numbers.
+        const unsigned int thermostatSeed = params.randomSeed != 0 ? params.randomSeed + 1u : 0u;
+        thermostat = makeThermostat(params.thermostat, params.thermostatTau,
+                                    params.langevinFriction, thermostatSeed);
+    }
     
     // If PBC is enabled, ensure that trajectory writer knows about the box
     if (params.usePBC && trajectoryWriter) {
         trajectoryWriter->setBox(params.box);
     }
+}
+
+void MolecularDynamics::setIntegrator(std::shared_ptr<Integrator> newIntegrator) {
+    if (!newIntegrator) {
+        throw std::invalid_argument("Integrator must not be null");
+    }
+    integrator = std::move(newIntegrator);
+    integratorSetByUser = true;
+}
+
+void MolecularDynamics::setThermostat(std::shared_ptr<Thermostat> newThermostat) {
+    thermostat = std::move(newThermostat);  // null = no temperature control
+    thermostatSetByUser = true;
 }
 
 void MolecularDynamics::initialize() {
@@ -242,6 +269,10 @@ void MolecularDynamics::initialize() {
 }
 
 void MolecularDynamics::runSimulation() {
+    if (!forceCalculator) {
+        throw std::runtime_error("Force calculator not set before runSimulation");
+    }
+    
     // Perform energy minimization if requested
     if (params.useMinimization) {
         bool converged = minimizeEnergy();
@@ -270,26 +301,29 @@ void MolecularDynamics::runSimulation() {
     double referenceEnergy = 0.0;
     double maxEnergyDeviation = 0.0;
     
+    // The view the plugs work on: this object's positions, velocities and forces
+    MDState state{geometry, velocities, forces, potentialEnergy, *forceCalculator,
+                  params.usePBC, params.box};
+    
     for (currentStep = 0; currentStep < totalSteps; ++currentStep) {
         const bool inProduction = usePhases && currentStep >= equilibrationSteps;
+        // Temperature is held except in NVE production
+        Thermostat* activeThermostat = inProduction ? nullptr : thermostat.get();
         
-        // Integrate equations of motion using velocity Verlet
-        integrateVelocityVerlet();
-        
-        // Apply temperature control, except in NVE production
-        if (!inProduction) {
-            applyTemperatureControl();
+        if (activeThermostat) {
+            activeThermostat->beforeStep(state, params.timeStep, params.temperature);
         }
         
-        // Potential energy at the new positions, computed alongside the forces
-        // inside integrateVelocityVerlet (the thermostat only rescales velocities)
+        // Advance one step with the plugged-in integrator; it leaves the forces
+        // and potential energy at the new positions
+        integrator->step(state, params.timeStep);
         
-        // Calculate kinetic energy
-        double kineticEnergy = 0.0;
-        for (const auto& v : velocities) {
-            kineticEnergy += v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+        if (activeThermostat) {
+            activeThermostat->afterStep(state, params.timeStep, params.temperature);
         }
-        kineticEnergy *= 0.5;  // Assuming mass = 1 for all atoms
+        
+        // Kinetic energy after the thermostat
+        double kineticEnergy = state.kineticEnergy();
         
         // Total energy = potential + kinetic
         currentEnergy = potentialEnergy + kineticEnergy;
@@ -475,115 +509,6 @@ bool MolecularDynamics::minimizeLBFGS() {
     // Placeholder for L-BFGS method
     std::cout << "L-BFGS minimization not yet implemented. Using steepest descent instead." << std::endl;
     return minimizeSteepestDescent();
-}
-
-void MolecularDynamics::integrateVelocityVerlet() {
-    // Velocity Verlet integration
-    double dt = params.timeStep;
-    double dtSquaredHalf = 0.5 * dt * dt;
-    
-    // First half of velocity Verlet
-    for (size_t i = 0; i < geometry.getNumberOfAtoms(); ++i) {
-        // Update positions: r(t+dt) = r(t) + v(t)*dt + 0.5*f(t)*dt^2
-        std::array<double, 3> pos = geometry.getCoordinates(i);
-        std::array<double, 3> newPos = {
-            pos[0] + velocities[i][0] * dt + forces[i][0] * dtSquaredHalf,
-            pos[1] + velocities[i][1] * dt + forces[i][1] * dtSquaredHalf,
-            pos[2] + velocities[i][2] * dt + forces[i][2] * dtSquaredHalf
-        };
-        geometry.setCoordinates(i, newPos);
-        
-        // Half-update velocities: v(t+dt/2) = v(t) + 0.5*f(t)*dt
-        velocities[i][0] += forces[i][0] * 0.5 * dt;
-        velocities[i][1] += forces[i][1] * 0.5 * dt;
-        velocities[i][2] += forces[i][2] * 0.5 * dt;
-    }
-    
-    // Apply periodic boundary conditions if needed
-    if (params.usePBC) {
-        applyPeriodicBoundaryConditions();
-    }
-    
-    // Calculate forces at new positions
-    calculateForces();
-    
-    // Second half of velocity Verlet
-    for (size_t i = 0; i < geometry.getNumberOfAtoms(); ++i) {
-        // Complete velocity update: v(t+dt) = v(t+dt/2) + 0.5*f(t+dt)*dt
-        velocities[i][0] += forces[i][0] * 0.5 * dt;
-        velocities[i][1] += forces[i][1] * 0.5 * dt;
-        velocities[i][2] += forces[i][2] * 0.5 * dt;
-    }
-}
-
-// Apply periodic boundary conditions to keep all atoms within the simulation box
-void MolecularDynamics::applyPeriodicBoundaryConditions() {
-    // Only apply if PBC is enabled
-    if (!params.usePBC) return;
-    
-    // For now, we only implement simple PBC for orthorhombic boxes (90° angles)
-    // More complex triclinic boxes would require matrix transformations
-    
-    // Process each atom
-    for (size_t i = 0; i < geometry.getNumberOfAtoms(); ++i) {
-        std::array<double, 3> pos = geometry.getCoordinates(i);
-        bool changed = false;
-        
-        // Apply PBC in each dimension
-        if (pos[0] < 0) {
-            pos[0] += params.box.a;
-            changed = true;
-        } else if (pos[0] >= params.box.a) {
-            pos[0] -= params.box.a;
-            changed = true;
-        }
-        
-        if (pos[1] < 0) {
-            pos[1] += params.box.b;
-            changed = true;
-        } else if (pos[1] >= params.box.b) {
-            pos[1] -= params.box.b;
-            changed = true;
-        }
-        
-        if (pos[2] < 0) {
-            pos[2] += params.box.c;
-            changed = true;
-        } else if (pos[2] >= params.box.c) {
-            pos[2] -= params.box.c;
-            changed = true;
-        }
-        
-        // Update position if needed
-        if (changed) {
-            geometry.setCoordinates(i, pos);
-        }
-    }
-}
-
-void MolecularDynamics::applyTemperatureControl() {
-    // Simple velocity scaling for temperature control
-    // More sophisticated methods like Nose-Hoover thermostat could be implemented
-    
-    // Calculate current kinetic energy
-    double kineticEnergy = 0.0;
-    for (const auto& v : velocities) {
-        kineticEnergy += v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
-    }
-    kineticEnergy *= 0.5;  // Assuming mass = 1 for all atoms
-    
-    // Calculate current temperature (kB = 1 in reduced units)
-    double currentTemp = 2.0 * kineticEnergy / (3 * geometry.getNumberOfAtoms());
-    
-    // Scale velocities to match target temperature
-    if (currentTemp > 1e-10) {  // Avoid division by zero
-        double scaleFactor = std::sqrt(params.temperature / currentTemp);
-        for (auto& v : velocities) {
-            v[0] *= scaleFactor;
-            v[1] *= scaleFactor;
-            v[2] *= scaleFactor;
-        }
-    }
 }
 
 bool MolecularDynamics::exportToPDB(const std::string& filename) const {

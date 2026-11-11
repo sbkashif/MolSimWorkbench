@@ -9,7 +9,8 @@
 >
 > Nothing crashes. You get a number that looks completely reasonable and is
 > quietly wrong. In this chapter, 2% of atoms came out wrong while the total
-> energy and every other summary check looked perfect — and the broken version
+> energy looked perfect and the net force was off by a few parts in 100,000 —
+> and the broken version
 > was the **fastest** one, because skipping safety is fast.
 >
 > Then we fix it three ways and compare what each costs.
@@ -22,7 +23,7 @@
 ## Learning Objectives
 
 - Produce a real data race and observe what it does to physical results
-- Explain why aggregate checks (energy, net force) fail to detect it
+- Explain why aggregate checks (energy, net force) mostly fail to detect it
 - Compare the three standard fixes on cost, memory, and portability
 - Understand why `schedule(dynamic)` can make correct code non-reproducible
 
@@ -37,14 +38,14 @@ the serial scatter as ground truth.
 ## The experiment
 
 Take the triangular kernel, put `#pragma omp parallel for` on the outer loop,
-and change nothing else — the `f[j] +=` write is left unprotected:
+and change nothing else — neither force write is protected:
 
 ```cpp
 #pragma omp parallel for schedule(dynamic,16) num_threads(8)
 for (long i = 0; i < n; ++i)
     for (long j = i+1; j < n; ++j) {
         ...
-        f.x[i] -= fo*dx;   // safe: i belongs to this thread
+        f.x[i] -= fo*dx;   // RACE too: this i is another thread's j
         f.x[j] += fo*dx;   // RACE: j belongs to nobody
     }
 ```
@@ -76,23 +77,29 @@ Here is the part that should worry you:
 total |error| / total |force| = 0.000
 ```
 
-**97.9% of atoms are exactly right.** Every update to `f[i]` was safe, and most
-updates to `f[j]` happened not to collide. Only the unlucky 2% got corrupted.
+**97.9% of atoms are exactly right.** Both writes can collide. A thread owns
+*row* `i`, but atom `i` is also written as `f[j]` by every thread working on a
+row below it. Most of the time the writes happen not to overlap; only the
+unlucky 2% got corrupted.
 
 And because the errors are individually small in absolute terms and scattered in
 sign, the *aggregate* error is indistinguishable from zero. Which means:
 
 - **Total potential energy: looks correct.** The energy accumulator is not the
   thing that raced.
-- **Net force ΣF = 0: passes.** Lost contributions come in ± pairs and cancel.
+- **Net force ΣF = 0: looks fine by eye.** A lost update drops one half of a
+  ± pair and keeps the other, so ΣF is no longer zero. But measured, it was off
+  by only 10⁻⁶ to 10⁻⁵ of the summed force magnitude. A test at rounding level
+  (the repo's `NetForceIsZero` allows 10⁻¹²) does catch it; a loose "is it
+  roughly zero?" check does not, and neither tells you which atoms are wrong.
 - **The trajectory: looks physical.** Atoms move, the box stays filled, nothing
   blows up.
 - **Energy conservation in NVE: drifts** — but slowly, and drift has a dozen
   innocent explanations (timestep too large, cutoff too short, thermostat
   coupling). You would blame the physics for weeks.
 
-The only check that catches this is a **per-atom comparison against a known-good
-implementation.** That is exactly what
+The check that catches this *and shows where* is a **per-atom comparison against
+a known-good implementation.** That is exactly what
 `tests/unit/test_lj_kernels.cpp::AllBackendsMatchReferenceForces` does, and it
 is why the original implementation was kept in the repo rather than deleted.
 
@@ -204,7 +211,8 @@ unacceptable. `reduction(+:)` has exactly the same property (lesson 6).
 
 ## Common Pitfalls
 
-- **Testing only aggregates.** Energy and ΣF both pass here. Compare per-atom.
+- **Testing only aggregates.** Energy passes here, and ΣF passes unless you test
+  it at rounding level. Compare per-atom.
 - **Trusting a fast result.** The broken kernel was the fastest one.
 - **Assuming races are rare because the answer looked fine.** 2.1% of atoms were
   wrong on a run that produced a physically plausible trajectory.

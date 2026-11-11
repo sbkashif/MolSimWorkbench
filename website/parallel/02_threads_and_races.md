@@ -1,5 +1,11 @@
 # Threads and races
 
+:::{admonition} Draft
+:class: warning
+This module is being revised. The measurements are real runs on one laptop,
+but the text may still change.
+:::
+
 [Measure first](01_measure_first.md) found that nearly all of a step is the
 pair loop. This chapter splits that loop across threads. There are two ways
 to write the loop, and they behave very differently once several threads run
@@ -20,8 +26,8 @@ What each thread writes depends on how the pair loop is written.
 ## Two ways to write the pair loop
 
 **Scatter.** Visit each pair once, with `j > i`, and apply its force to both
-atoms: by Newton's third law, the force on `j` is minus the force on `i`. The
-engine's serial kernel `computeTriangular` works this way. Each pair is
+atoms: by Newton's third law, the force on `j` is minus the force on `i`. One of
+the engine's serial kernels, `computeTriangular`, works this way. Each pair is
 computed once, but a pair writes two forces, `f[i]` and `f[j]`.
 
 **Gather.** For each atom `i`, visit every other atom `j` and add up the

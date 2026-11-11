@@ -5,7 +5,7 @@
 #include <vector>
 #include "geometry.h"
 
-// The interface every potential promises. Same as `class Potential` in src/engine/force_calculator.h.
+// The interface every potential promises. Same as `class Potential` in src/engine/force_calculator.h, minus calculateForcesAndEnergy.
 class Potential {
 public:
     virtual ~Potential() = default;

@@ -69,8 +69,9 @@ Here is the common type. `examples/07/potential.h:9-16`:
 16  };
 ```
 
-It is word for word the `Potential` class in the repo, `src/engine/force_calculator.h:35-48`, with
-`Vec3` for `std::array<double, 3>`.
+It is word for word the `Potential` class in the repo, `src/engine/force_calculator.h:39-60`, with
+`Vec3` for `std::array<double, 3>` and one method left out: the repo adds `calculateForcesAndEnergy`,
+which is `virtual` but not `= 0` (§7.13).
 
 | Piece | Meaning |
 |---|---|
@@ -259,7 +260,7 @@ base_view.cpp:8:8: error: no member named 'setCutoff' in 'Potential'
 That is why `main` sets up `lj` through its own concrete type first (lines 14-16), and only then puts its
 address in the `Potential*` list. The repo's YAML parser does the same: it creates an `LJPotential`,
 calls `setCutoff` and `addAtomParameters` on it, and only then returns it as a `Potential`
-(`src/utils/yaml_parser.cpp:301-321`).
+(`src/utils/yaml_parser.cpp:339-359`).
 
 ---
 
@@ -293,9 +294,9 @@ important for this error.)
 The repo has a real example. `src/engine/potentials/machine_learning_potential.h:6` declares
 `class MachineLearningPotential {` — with no `: public Potential`. It has a `calculateForces`, but with
 different parameters, and it is not a `Potential`, so it could never be put into a `ForceCalculator`.
-It is also not listed in `CMakeLists.txt` (the `EngineLib` sources at lines 82-88 are
-`force_calculator.cpp`, `molecular_dynamics.cpp`, `lj_potential.cpp`, `lj_kernels.cpp` and
-`dft_potential.cpp`), so it is never compiled at all. It is a placeholder.
+It is also not listed in `CMakeLists.txt` (the `EngineLib` sources at lines 97-110 are
+`force_calculator.cpp`, `molecular_dynamics.cpp`, `md_state.cpp`, the integrator and thermostat files,
+`lj_potential.cpp`, `lj_kernels.cpp` and `dft_potential.cpp`), so it is never compiled at all. It is a placeholder.
 
 ---
 
@@ -442,7 +443,7 @@ parentheses, only a member can stand, so the first `k` is the member. That is wh
 |---|---|---|
 | when the member gets its value | as it is created | created first (a `double` with garbage), then overwritten |
 | works for `const` members and reference members | yes | no — those cannot be assigned after creation |
-| works for a base class | yes: `: Potential()` (§7.12 shows a real one) | no |
+| works for a base class | yes: `: Potential()` | no |
 
 For a single `double` the difference is invisible, but the initializer list is the C++ habit, and the
 repo's constructors use it (§7.12).
@@ -559,90 +560,129 @@ sizeof(WithVirtual) = 16
 important for speed — the compiler cannot paste the function body into the caller (**inlining**),
 because it does not know which body will run. For one call per potential per MD step, this is nothing.
 Inside a loop over 8 million pairs, it would matter. That is why the repo calls a virtual method
-**once** per potential (`calculateEnergy`) and keeps the pair loop inside it free of virtual calls —
+**once** per potential (`calculateForcesAndEnergy`, once per MD step) and keeps the pair loop inside it free of virtual calls —
 the same shape as mini_lj. A vtable lookup is a fixed array index, not a search by name.
 
 ---
 
-## 7.12 A second hierarchy in the repo: integrators (skip if you only care about potentials)
+## 7.12 Two more hierarchies in the repo: integrators and thermostats (skip if you only care about potentials)
 
-`Potential` is the hierarchy you need for the parallel course. The repo has one more,
-`MDIntegrator`, and it shows three things `Potential` does not. `src/engine/integrators/md_integrator.h`:
+`Potential` is the hierarchy you need for the parallel course. The repo has two more with the same
+shape: `Integrator` (moves the atoms one time step) and `Thermostat` (holds the temperature).
+`MolecularDynamics` holds one of each through a `std::shared_ptr` and calls them without knowing
+which kind it holds, exactly as `ForceCalculator` does with potentials. `src/engine/integrators/integrator.h:14-23`:
 
 ```cpp
-14  class MDIntegrator {
+14  class Integrator {
 15  public:
-16      MDIntegrator(const MDParameters& params = MDParameters())
-17          : params(params), stepCount(0), time(0.0), energy(0.0),
-18            geometry(nullptr), forceCalculator(nullptr) {}
-...
-124      virtual void step() = 0;
-...
-127      virtual void run() {
-...
-135          for (int i = 0; i < params.maxSteps; ++i) {
-136              // Take a step
-137              step();
-...
-184  protected:
-185      MDParameters params;
-186      int stepCount;
+16      virtual ~Integrator() = default;
+17
+18      // Advance positions and velocities by one time step dt.
+19      virtual void step(MDState& state, double dt) = 0;
+20
+21      // Name used in YAML and in Python, e.g. "velocity_verlet".
+22      virtual std::string getName() const = 0;
+23  };
 ```
 
-and `src/engine/integrators/velocity_verlet_integrator.h:9-15`:
+The thermostat shows one thing `Potential` does not. `src/engine/thermostats/thermostat.h:15-29`:
 
 ```cpp
- 9  class VelocityVerletIntegrator : public MDIntegrator {
-10  public:
-11      VelocityVerletIntegrator(const MDParameters& params = MDParameters())
-12          : MDIntegrator(params) {}
-13
-14      // Implement the Velocity Verlet integration step
-15      void step() override {
+15  class Thermostat {
+16  public:
+17      virtual ~Thermostat() = default;
+18
+19      // Called just before the integrator step. Default: nothing.
+20      virtual void beforeStep(MDState& state, double dt, double targetTemperature) {
+21          (void)state; (void)dt; (void)targetTemperature;
+22      }
+23
+24      // Called just after the integrator step.
+25      virtual void afterStep(MDState& state, double dt, double targetTemperature) = 0;
+...
+29  };
+```
+
+and two derived classes, `src/engine/thermostats/velocity_rescale_thermostat.h:18-22` and
+`langevin_thermostat.h:24-30`:
+
+```cpp
+18  class VelocityRescaleThermostat : public Thermostat {
+19  public:
+20      explicit VelocityRescaleThermostat(double tau = 0.0);
+21
+22      void afterStep(MDState& state, double dt, double targetTemperature) override;
+```
+```cpp
+24  class LangevinThermostat : public Thermostat {
+25  public:
+...
+27      explicit LangevinThermostat(double friction = 1.0, unsigned int seed = 0);
+28
+29      void beforeStep(MDState& state, double dt, double targetTemperature) override;
+30      void afterStep(MDState& state, double dt, double targetTemperature) override;
 ```
 
 | Line | What it shows |
 |---|---|
-| `md_integrator.h:16-18` | an initializer list with six members, and a default argument (chapter 5 §5.8) |
-| `md_integrator.h:127` | a virtual method **with** a body: derived classes *may* replace `run`, but need not |
-| `md_integrator.h:137` | the base class's `run` calls the pure virtual `step()`. The loop is written once in the base; each derived class supplies only the step. (This shape is called the **template method pattern**; it has nothing to do with C++ templates) |
-| `md_integrator.h:184` | **`protected:`** — like `private`, but derived classes may use these members too. `VelocityVerletIntegrator::step` reads `geometry`, `forces`, `params` directly |
-| `velocity_verlet_integrator.h:12` | the derived constructor's initializer list calls the **base class constructor**, `: MDIntegrator(params)`. The base part of an object is built first |
+| `thermostat.h:20-22` | a virtual method **with** a body: derived classes *may* replace `beforeStep`, but need not. `(void)state;` tells the compiler the unused parameter is unused on purpose |
+| `velocity_rescale_thermostat.h:22` | `VelocityRescaleThermostat` overrides only `afterStep`, so it gets the base class's do-nothing `beforeStep` |
+| `langevin_thermostat.h:29-30` | `LangevinThermostat` overrides both: it acts before and after each integrator step |
+| `velocity_rescale_thermostat.h:20` | an `explicit` constructor with a default argument (chapter 5 §5.8); the `.cpp` (line 6) initializes the member with `: tau(tau)` |
+| `integrator.h:27`, `thermostat.h:37` | `makeIntegrator` and `makeThermostat` take a name from the YAML file and return a `std::shared_ptr` to the base class. `makeThermostat("none", ...)` returns `nullptr`, and the loop skips a null thermostat |
 
-These integrator classes are not used by `run_simulation` today — `MolecularDynamics` has its own
-loop, `runSimulation` and `integrateVelocityVerlet` (`src/engine/molecular_dynamics.cpp:237`, `:440`) —
-but they are a clean, small example of a base class doing real work.
+The loop is written once, in `MolecularDynamics::runSimulation`. It calls
+`integrator->step(state, params.timeStep)` (`src/engine/molecular_dynamics.cpp:319`), with the
+thermostat's `beforeStep` and `afterStep` on either side; each plug supplies only its part.
+
+Two more features of base classes are not in these plugs. Both appear in the minimizer headers under
+`src/engine/minimizers/`, which are not compiled (chapter 1 calls them dead code), but read fine as examples:
+
+| Line | What it shows |
+|---|---|
+| `energy_minimizer.h:98` | **`protected:`**: like `private`, but derived classes may use these members too |
+| `conjugate_gradient_minimizer.h:9-10` | the derived constructor's initializer list calls the **base class constructor**, `: EnergyMinimizer(params)`. The base part of an object is built first |
 
 ---
 
 ## 7.13 In the real code
 
-### The contract: `src/engine/force_calculator.h:34-48`
+### The contract: `src/engine/force_calculator.h:38-60`
 
 ```cpp
-34  // Base class for all interaction potentials
-35  class Potential {
-36  public:
-37      virtual ~Potential() = default;
-38
-39      // Calculate energy for a given geometry
-40      virtual double calculateEnergy(const Geometry& geometry) = 0;
-41
-42      // Calculate forces for a given geometry
-43      virtual void calculateForces(const Geometry& geometry,
-44                                  std::vector<std::array<double, 3>>& forces) = 0;
+38  // Base class for all interaction potentials
+39  class Potential {
+40  public:
+41      virtual ~Potential() = default;
+42
+43      // Calculate energy for a given geometry
+44      virtual double calculateEnergy(const Geometry& geometry) = 0;
 45
-46      // Get the name of the potential
-47      virtual std::string getName() const = 0;
-48  };
+46      // Calculate forces for a given geometry
+47      virtual void calculateForces(const Geometry& geometry,
+48                                  std::vector<std::array<double, 3>>& forces) = 0;
+49
+50      // Forces and energy together. The default makes two calls; a potential whose
+51      // kernel yields both in one pass (LJ) overrides this to halve the cost.
+52      virtual double calculateForcesAndEnergy(const Geometry& geometry,
+53                                              std::vector<std::array<double, 3>>& forces) {
+54          calculateForces(geometry, forces);
+55          return calculateEnergy(geometry);
+56      }
+57
+58      // Get the name of the potential
+59      virtual std::string getName() const = 0;
+60  };
 ```
 
-Every line is now §7.1. Note that it lives in `force_calculator.h`, not its own header. Line 11 of the
+Every line is now §7.1, except lines 52-56: a virtual method **with** a body, like the thermostat's
+`beforeStep` in §7.12. A derived class may replace it, but need not. Note that it lives in
+`force_calculator.h`, not its own header. Line 11 of the
 same file, `class Potential;`, is a **forward declaration**: "a class called `Potential` exists". It is
-enough for line 31 to declare a vector of pointers to one before the class is fully described, because
+enough for line 35 to declare a vector of pointers to one before the class is fully described, because
 a pointer's size does not depend on what it points at.
 
-### Two signers: `lj_potential.h:14-23` and `dft_potential.h:10-17`
+### Two signers: `lj_potential.h:14-25` and `dft_potential.h:10-17`
 
 ```cpp
 14  class LJPotential : public Potential {
@@ -652,7 +692,9 @@ a pointer's size does not depend on what it points at.
 ...
 21      double calculateEnergy(const Geometry& geometry) override;
 22      void calculateForces(const Geometry& geometry, std::vector<std::array<double, 3>>& forces) override;
-23      std::string getName() const override { return "Lennard-Jones"; }
+23      double calculateForcesAndEnergy(const Geometry& geometry,
+24                                      std::vector<std::array<double, 3>>& forces) override;
+25      std::string getName() const override { return "Lennard-Jones"; }
 ```
 
 ```cpp
@@ -666,7 +708,8 @@ a pointer's size does not depend on what it points at.
 17      std::string getName() const override { return "DFT"; }
 ```
 
-Same three methods, same `override`s. Line 17 of `lj_potential.h` and line 13 of `dft_potential.h`
+Same three methods, same `override`s. `LJPotential` also overrides `calculateForcesAndEnergy` (lines
+23-24), because its kernel gives both in one pass; `DFTPotential` keeps the base class's default. Line 17 of `lj_potential.h` and line 13 of `dft_potential.h`
 declare destructors with `override`: they confirm that `Potential`'s destructor is virtual (chapter 8
 covers destructors). `DFTPotential`'s constructor takes the parameter file, so a DFT potential cannot
 exist without one; it is the not-`explicit` constructor from §7.8.
@@ -687,12 +730,12 @@ base class's contract.
 19  }
 ```
 
-This is mini_lj's loop. `potentials` is the member declared at `force_calculator.h:31`,
+This is mini_lj's loop. `potentials` is the member declared at `force_calculator.h:35`,
 `std::vector<std::shared_ptr<Potential>>` — a vector of chapter 8's smart pointers instead of raw
 `Potential*`, but `->` and the dispatch work the same way. Line 16 is a virtual call: it runs
 `LJPotential::calculateEnergy` or `DFTPotential::calculateEnergy`, whichever the element holds.
-`calculateForces` (lines 21-45) does the same for forces, summing each potential's forces into one
-vector.
+`calculateForcesAndEnergy` (lines 26-53) does the same for forces and energy together, summing each
+potential's forces into one vector; `calculateForces` (lines 21-24) just calls it.
 
 This is what the project's `CLAUDE.md` means by "the seam where new potential types plug in". A **seam**
 is a joint designed so one side can change without editing the other (see

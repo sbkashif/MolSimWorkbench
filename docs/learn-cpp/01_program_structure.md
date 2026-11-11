@@ -56,7 +56,7 @@ c++ -std=c++17 hello.cpp -o out/hello
 Hello from C++
 ```
 
-`-std=c++17` picks the language version this repo uses (`CMakeLists.txt:5`). `-o out/hello` names the
+`-std=c++17` picks the language version this repo uses (`CMakeLists.txt:13`). `-o out/hello` names the
 output file.
 
 ### Why it matters: when you find out about a mistake
@@ -134,7 +134,7 @@ exit=0
 ## 1.2 Our line: the entry point of `run_simulation`
 
 Open `src/tools/run_simulation.cpp`. It has the same shape as `hello.cpp`, plus command-line arguments
-and error handling. Here are lines 10–17 and 74–78:
+and error handling. Here are lines 10–17 and 73–77:
 
 ```cpp
 10  int main(int argc, char* argv[]) {
@@ -146,11 +146,11 @@ and error handling. Here are lines 10–17 and 74–78:
 16      const std::string configPath = argv[1];
 17      const std::string trajectoryOutput = (argc >= 3) ? argv[2] : "trajectory.xyz";
     ...
-74      } catch (const std::exception& error) {
-75          std::cerr << "Simulation failed: " << error.what() << std::endl;
-76          return 1;
-77      }
-78  }
+73      } catch (const std::exception& error) {
+74          std::cerr << "Simulation failed: " << error.what() << std::endl;
+75          return 1;
+76      }
+77  }
 ```
 
 | Line | C++ | What it does |
@@ -162,8 +162,8 @@ and error handling. Here are lines 10–17 and 74–78:
 | 13 | `return 1;` | leave `main` with a failure status |
 | 16 | `const std::string configPath = argv[1];` | a **typed** variable; `const` means it can never be reassigned, and the compiler enforces that |
 | 17 | `cond ? a : b` | the **conditional operator**: `a` if `cond` is true, else `b` |
-| 74 | `catch (const std::exception& error)` | catch any standard exception thrown inside the `try` block |
-| 75 | `error.what()` | the exception's message |
+| 73 | `catch (const std::exception& error)` | catch any standard exception thrown inside the `try` block |
+| 74 | `error.what()` | the exception's message |
 
 `argv[0]` is the program's own name, so one user argument means `argc == 2`.
 `examples/01/args.cpp` is this same skeleton cut down to 13 lines. Run it both ways:
@@ -194,7 +194,7 @@ Simulation failed: Failed to parse YAML file: [json.exception.parse_error.101] p
 From the repo root (the second argument keeps the trajectory file inside the git-ignored `build/`):
 
 ```bash
-cd ~/codes/MolSimWorkbench
+# from the repo root
 ./build/run_simulation;  echo "exit=$?"
 ./build/run_simulation data/lj_bulk_simulation.yaml build/trajectory.xyz
 ```
@@ -204,12 +204,13 @@ exit=1
 Starting to parse simulation config: data/lj_bulk_simulation.yaml
 ...
 Simulation complete.
-Final energy: -461.986
+Final energy: -458.604
 Trajectory written to: build/trajectory.xyz
 ```
 
 The first run takes line 13's exit: no config named, so `return 1`. The second gets past it and runs a whole
-simulation. The final energy changes from run to run, because the starting velocities are random.
+simulation. The final energy is the same on every run, because the config sets `random_seed: 42` for the
+starting velocities.
 
 Leave `char* argv[]` (a pointer to text) and `const std::exception&` (a reference) as unexplained shapes for
 now. Chapter 3 is about exactly those two symbols, `*` and `&`.
@@ -553,10 +554,10 @@ file that includes it is recompiled.
 | Case | Example | Why |
 |---|---|---|
 | `.cpp` with no `.h` | `src/tools/run_simulation.cpp`, `src/bindings/molsim_bindings.cpp` | no other file calls their functions, so nobody needs the promise. `main` is called by the operating system, never by your code |
-| `.h` with no `.cpp`, on purpose | `class Potential` in `src/engine/force_calculator.h` | its functions are all `= 0` ("no body here; every subclass must supply one"), so there is nothing to compile. Chapter 7 |
+| `.h` with no `.cpp`, on purpose | `class Potential` in `src/engine/force_calculator.h` | its functions are `= 0` ("no body here; every subclass must supply one"), apart from one short default written inside the class, so there is nothing to compile. Chapter 7 |
 | body inside a `.h`, on purpose | the getters in `src/builder/geometry.h`, e.g. `getAtoms() const { return atomTypes; }` | a body written inside a class is automatically `inline`: "identical everywhere, keep any one copy", so the linker does not complain. Chapter 5 shows `inline` beside `twice` |
 | `.h` with no `.cpp`, on purpose | templates, e.g. chapter 9's `timing.h` | a template is a recipe with a blank; the compiler must see the whole body wherever the blank is filled in. Chapter 9 |
-| `.h` with no `.cpp`, by accident | `src/engine/integrators/*.h`, `src/engine/minimizers/*.h` | promises nobody keeps. Nothing includes them, so they never cause a link error. Dead code |
+| `.h` with no `.cpp`, by accident | `src/engine/minimizers/*.h` | promises nobody keeps. Nothing includes them, so they never cause a link error. Dead code |
 
 **Rule of thumb:** if other files call your functions, give them a `.h` with the promises and a `.cpp` with
 the one copy of the bodies. A file nobody calls into (`main`) needs no `.h`. Things that are only shape,
@@ -567,7 +568,7 @@ the one copy of the bodies. A file nobody calls into (`main`) needs no `.h`. Thi
 ## 1.4 Our build: what `CMakeLists.txt` is saying (skip if you never edit the build)
 
 Nobody types those `c++ -c` commands for a real project. `CMakeLists.txt` lists the files, and CMake
-generates the commands. Read it with §1.3 in mind (`CMakeLists.txt:68-102`, shortened):
+generates the commands. Read it with §1.3 in mind (`CMakeLists.txt:79-119`, shortened):
 
 ```cmake
 add_library(BuilderLib STATIC                     # compile these .cpp files, bundle the .o files
@@ -578,6 +579,7 @@ add_library(BuilderLib STATIC                     # compile these .cpp files, bu
 add_library(EngineLib STATIC
     src/engine/force_calculator.cpp
     src/engine/molecular_dynamics.cpp
+    ...
     src/engine/potentials/lj_potential.cpp
     ...
 )

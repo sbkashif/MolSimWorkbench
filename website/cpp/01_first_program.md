@@ -1,8 +1,8 @@
 # A first program
 
-[A simple molecular dynamics loop](../molsim/architecture.md) drove the engine from Python,
-but every number it printed was computed by C++ code behind `sim.run()`.
-This chapter writes the first piece of such code: one small C++ program
+The [module introduction](index.md) set out one running example that grows
+by a few lines per chapter until it has the shape of the engine. This chapter
+writes its first version: one small C++ program
 that computes the Lennard-Jones energy of two atoms 1.5σ apart. On the way
 it introduces the three things every C++ program has: a source file, a
 compiler, and a `main` function.
@@ -378,5 +378,5 @@ points at line 5, and makes no executable, as for the type error above.
 ## Next
 
 The program computes one energy for one distance written into the source.
-The next chapter turns the formula into a **function**, so the same lines can
-compute the energy at any distance.
+The next chapter, [Functions](02_functions.md), turns the formula into a
+**function**, so the same lines can compute the energy at any distance.

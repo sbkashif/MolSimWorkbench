@@ -231,7 +231,7 @@ the set of fields is fixed, and the fields sit side by side in memory: a `Params
 
 Don't forget the `;` after the closing `}` — a `struct` declaration is a statement. Chapter 6 shows that
 `struct` and `class` are nearly the same thing, and adds functions to them. The repo's own version of
-`Params` is `LJPotential::AtomParameters`, `src/engine/potentials/lj_potential.h:65-68` — the same two
+`Params` is `LJPotential::AtomParameters`, `src/engine/potentials/lj_potential.h:67-70` — the same two
 fields.
 
 ---
@@ -488,7 +488,7 @@ with every backend (the project must be built first; see `CLAUDE.md`):
 build/benchmarks/bench_lj 4096 3          # from the repo root
 ```
 ```
-Creating LJ particle box: N=4096, rho=0.8, L=17.2355 Å
+Creating LJ particle box: N=4096, rho=0.8, L=17.2355
 Placed 4096 particles on cubic lattice
 
 N = 4096   rho = 0.80   L = 17.235   cutoff = 2.5   reps = 3
@@ -523,7 +523,7 @@ the other rows are the parallel course's faster versions of it.
 mini_lj's `types`, `positions` and `box` — except that the box is three lengths (x, y, z) instead of one,
 so it is a `std::array<double, 3>`, given a value at creation as chapter 2 recommends. Line 31 is the AoS
 layout from §4.3. Lines 19–20 of the same header hand these out as `const std::vector<…>&` — chapter 3's
-"read it, do not copy it" — which is what `lj_potential.cpp:272-274` received with `const auto&`.
+"read it, do not copy it" — which is what `lj_potential.cpp:280-282` received with `const auto&`.
 
 ### The lattice: `createCubicLattice`
 
@@ -563,42 +563,42 @@ layout from §4.3. Lines 19–20 of the same header hand these out as `const std
 
 ### The map lookup, guarded
 
-`src/engine/potentials/lj_potential.cpp:335-342`, the repo's version of mini_lj's lines 60–61:
+`src/engine/potentials/lj_potential.cpp:343-350`, the repo's version of mini_lj's lines 60–61:
 
 ```cpp
-335  std::pair<double, double> LJPotential::getMixedParameters(const std::string& type1, const std::string& type2) {
-336      if (atomParameters.find(type1) == atomParameters.end() ||
-337          atomParameters.find(type2) == atomParameters.end()) {
-338          return {0.0, 0.0};  // Return zero parameters if missing
-339      }
-340
-341      const auto& params1 = atomParameters[type1];
-342      const auto& params2 = atomParameters[type2];
+343  std::pair<double, double> LJPotential::getMixedParameters(const std::string& type1, const std::string& type2) {
+344      if (atomParameters.find(type1) == atomParameters.end() ||
+345          atomParameters.find(type2) == atomParameters.end()) {
+346          return {0.0, 0.0};  // Return zero parameters if missing
+347      }
+348
+349      const auto& params1 = atomParameters[type1];
+350      const auto& params2 = atomParameters[type2];
 ```
 
-Lines 336–337 are §4.6's `.find(k) == .end()` test, done *first*, so the `[]` on lines 341–342 can never
+Lines 344–345 are §4.6's `.find(k) == .end()` test, done *first*, so the `[]` on lines 349–350 can never
 insert. (`||` is logical "or".) The function returns two numbers as a `std::pair` — chapter 5. The map
-itself is declared at `lj_potential.h:70`: `std::map<std::string, AtomParameters> atomParameters;`. The
-comment above `calculateEnergyReference` in the header (`lj_potential.h:57`) calls this lookup out:
+itself is declared at `lj_potential.h:72`: `std::map<std::string, AtomParameters> atomParameters;`. The
+comment above `calculateEnergyReference` in the header (`lj_potential.h:59`) calls this lookup out:
 "it does a std::map<std::string> lookup per pair".
 
 ### Preparing an output vector
 
-`src/engine/potentials/lj_potential.cpp:301-307`, at the top of the reference force calculation:
+`src/engine/potentials/lj_potential.cpp:309-315`, at the top of the reference force calculation:
 
 ```cpp
-301      if (forces.size() != geometry.getAtoms().size()) {
-302          forces.resize(geometry.getAtoms().size(), {0.0, 0.0, 0.0});
-303      } else {
-304          for (auto& force : forces) {
-305              force = {0.0, 0.0, 0.0};
-306          }
-307      }
+309      if (forces.size() != geometry.getAtoms().size()) {
+310          forces.resize(geometry.getAtoms().size(), {0.0, 0.0, 0.0});
+311      } else {
+312          for (auto& force : forces) {
+313              force = {0.0, 0.0, 0.0};
+314          }
+315      }
 ```
 
 `forces` is the out-parameter from chapter 3 (`std::vector<std::array<double, 3>>& forces`). If the
-caller's vector has the wrong length, line 302 resizes it, filling new entries with zero forces. Otherwise
-lines 304–306 zero every entry in place — range-for with `auto&` (not `const`, not a copy), because the
+caller's vector has the wrong length, line 310 resizes it, filling new entries with zero forces. Otherwise
+lines 312–314 zero every entry in place — range-for with `auto&` (not `const`, not a copy), because the
 loop's job is to change the elements. Then the pair loop adds into `forces[i]` and `forces[j]`.
 
 ---

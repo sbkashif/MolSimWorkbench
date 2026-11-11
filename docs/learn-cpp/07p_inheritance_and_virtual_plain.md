@@ -60,7 +60,7 @@ version.
 | 4 | no machine can be built to **be** the job description itself | abstract class: no objects | `Potential p;` → `variable type 'Potential' is an abstract class` |
 | 5 | a machine that skips one duty cannot be built either | still abstract | `Unfinished u;` → `unimplemented pure virtual method 'calculateForces'` |
 | 6 | the translator refuses before the book is made, not while the robot is cooking | a compile-time error | |
-| 7 | the real job description is word for word the same | `src/engine/force_calculator.h:35-48` | |
+| 7 | the real job description is word for word the same, plus one duty with default instructions (below) | `src/engine/force_calculator.h:39-60` | |
 
 ---
 
@@ -96,7 +96,7 @@ version.
 | 1 | through a station card, the book may only ask for duties in the job description | only base methods through a base pointer | |
 | 2 | "station 1: set your cutoff" is refused: that is not on the job description | compile error | `no member named 'setCutoff' in 'Potential'` |
 | 3 | so set up the LJ machine **by name** first, then add its station card to the list | configure through the concrete type | `lj.setCutoff(2.5);` then `{&lj, …}` |
-| 4 | the real YAML reader does the same | `yaml_parser.cpp:301-321` | |
+| 4 | the real YAML reader does the same | `yaml_parser.cpp:339-359` | |
 
 ---
 
@@ -179,15 +179,15 @@ section and is omitted here.
 
 ---
 
-## 7.12 A second hierarchy in the repo: integrators (skip if you only care about potentials)
+## 7.12 Two more hierarchies in the repo: integrators and thermostats (skip if you only care about potentials)
 
 | # | Kitchen | C++ | Example |
 |---|---|---|---|
-| 1 | a second job description, for the machine that moves atoms forward in time | `class MDIntegrator` | `md_integrator.h:14` |
-| 2 | one duty with no instructions: "take one step" | `virtual void step() = 0;` | line 124 |
-| 3 | one duty **with** default instructions: "run = take a step, many times" | a virtual with a body | `run()`, lines 127-137 |
-| 4 | a drawer that machines built for this job may open, but outsiders may not | `protected:` | line 184 |
-| 5 | the Velocity Verlet machine's stamping step first stamps out the job-description part | base constructor in the initializer list | `: MDIntegrator(params)` |
+| 1 | two more job descriptions: one for the machine that moves atoms forward in time, one for the machine that holds the temperature | `class Integrator`, `class Thermostat` | `integrator.h:14`, `thermostat.h:15` |
+| 2 | one duty with no instructions: "take one step" | `virtual void step(MDState&, double) = 0;` | `integrator.h:19` |
+| 3 | one duty **with** default instructions: "before the step, do nothing" | a virtual with a body | `Thermostat::beforeStep`, `thermostat.h:20-22` |
+| 4 | the rescaling machine keeps the default; the Langevin machine brings its own | `override` on `afterStep` only, or on both | `velocity_rescale_thermostat.h:22`, `langevin_thermostat.h:29-30` |
+| 5 | a clerk who reads the machine's name off the order card and fetches that machine; "none" means an empty station | `makeThermostat(name, …)` returns `nullptr` for `"none"` | `thermostat.h:37` |
 
 ---
 
@@ -195,9 +195,9 @@ section and is omitted here.
 
 | # | Kitchen | C++ | Example |
 |---|---|---|---|
-| 1 | the real job description | `class Potential`, `force_calculator.h:35-48` | |
+| 1 | the real job description, with one duty that has default instructions: "forces and energy together" | `class Potential`, `force_calculator.h:39-60` | `calculateForcesAndEnergy`, a virtual with a body |
 | 2 | a note "a station job called Potential exists" before its full text | forward declaration | `class Potential;` (line 11) |
-| 3 | two machines built for it | `lj_potential.h:14-23`, `dft_potential.h:10-17` | same three duties, same `override`s |
+| 3 | two machines built for it | `lj_potential.h:14-25`, `dft_potential.h:10-17` | same three duties, same `override`s; the LJ machine also brings its own "forces and energy together" |
 | 4 | the DFT machine cannot be stamped out without a parameter file | constructor with a parameter | `DFTPotential(const std::string& parametersFile)` |
 | 5 | the real loop: "every station: calculateEnergy", add it up | `force_calculator.cpp:13-19` | `totalEnergy += potential->calculateEnergy(geometry);` |
 | 6 | a new kind of machine means installing it at a new station, not rewriting the loop | the **seam** | [GLOSSARY: Seam](../learn-parallel/GLOSSARY.md#design-vocabulary) |

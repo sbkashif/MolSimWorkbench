@@ -188,10 +188,10 @@ def fig_engine_loop():
     fig, ax = canvas(W, H)
     cx, cy, Rx, Ry = W / 2, H / 2 + 5, 320, 185
     steps = [  # angle (deg, clockwise from top), title, function
-        (0, "move every atom", "integrateVelocityVerlet()"),
-        (90, "forces at the\nnew positions", "calculateForces()"),
-        (180, "finish the velocities", "integrateVelocityVerlet()"),
-        (270, "hold the temperature", "applyTemperatureControl()"),
+        (0, "move every atom", "integrator->step()"),
+        (90, "forces at the\nnew positions", "computeForces()"),
+        (180, "finish the velocities", "integrator->step()"),
+        (270, "hold the temperature", "thermostat->afterStep()"),
     ]
     pos = []
     for ang, title, fn in steps:

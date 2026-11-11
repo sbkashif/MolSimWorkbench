@@ -170,8 +170,8 @@ output, open the technical version.
 | 1 | the real geometry cutter | `src/builder/geometry.h:12-33` | |
 | 2 | its hatch: add an atom, count atoms, view the jars, look up one atom, move one atom, set and view the box | public methods | `setCoordinates` is the one way to move an atom |
 | 3 | its drawer: the same three jars as mini_lj | lines 30-32 | |
-| 4 | the real LJ cutter's drawer has mini_lj's jars, plus a mixing-rule jar | `lj_potential.h:63-72` | `std::string mixingRule = "geometric";` |
-| 5 | changing the cutoff also flips a "tables out of date" flag, so the fast force loops rebuild their tables | `setCutoff` sets `tablesDirty = true` (line 27) | |
+| 4 | the real LJ cutter's drawer has mini_lj's jars, plus a mixing-rule jar | `lj_potential.h:65-74` | `std::string mixingRule = "geometric";` |
+| 5 | changing the cutoff also flips a "tables out of date" flag, so the fast force loops rebuild their tables | `setCutoff` sets `tablesDirty = true` (line 29) | |
 | 6 | that only works because nobody can reach into the drawer and change the cutoff directly | `private` | `lj.cutoff = 3.0` would skip the flag |
 | 7 | the primer's walk through `lj_potential.h` should now read as review (its line numbers are from an older, shorter version) | [`docs/explainer/00_cpp_primer.md`](../explainer/00_cpp_primer.md) | |
 

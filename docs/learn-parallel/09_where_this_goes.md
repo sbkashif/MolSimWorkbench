@@ -21,7 +21,8 @@
 > **Where we are.** Lessons 0–8 took one CPU loop from 34.85 ms to 3.77 ms and showed which parts of that were serial, parallel, and physics. This lesson widens out: what the same kernel looks like on a GPU, and where it sits in production MD codes.
 
 > **Read-only.** Nothing in this lesson is built and nothing needs installing.
-> There is no CUDA toolkit on this machine and the course does not require one.
+> Every number in lessons 0–8 was measured on a CPU, with no GPU; this lesson
+> needs no CUDA toolkit either.
 > The point is to show that the work you have already done is most of the port,
 > and to place your toy kernel on the map of how production MD is actually built.
 

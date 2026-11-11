@@ -91,7 +91,7 @@ When you switch the robot on, you can hand it an order slip with a few words wri
 | 4 | hand back the slip saying "failed" | `return 1;` (line 13) |
 | 5 | copy the dish name onto a card that can never be rewritten | `const std::string configPath = argv[1];` (line 16) |
 | 6 | "take word 2 if there is one, otherwise use the house default" | `(argc >= 3) ? argv[2] : "trajectory.xyz"` (line 17) |
-| 7 | if anything burns during cooking, catch it and write what burned on the error board | `catch (const std::exception& error)` (line 74) |
+| 7 | if anything burns during cooking, catch it and write what burned on the error board | `catch (const std::exception& error)` (line 73) |
 
 Try it: `./out/args` prints `Usage: args <name>` and hands back `1`. `./out/args Salman` prints `argc = 2`
 then `Hello, Salman` and hands back `0`.
@@ -100,7 +100,7 @@ then `Hello, Salman` and hands back `0`.
 `examples/01/`. Its order slip names a file by a path that only makes sense from there:
 
 ```bash
-cd ~/codes/MolSimWorkbench
+# from the repo root
 ./build/run_simulation;  echo "exit=$?"
 ./build/run_simulation data/lj_bulk_simulation.yaml build/trajectory.xyz
 ```
@@ -241,10 +241,10 @@ When the pair is **not** needed:
 | # | Kitchen | C++ | Example |
 |---|---|---|---|
 | 1 | the start-here page: nobody else ever asks for it, so it needs no card | a `.cpp` with no `.h` | `run_simulation.cpp`, `molsim_bindings.cpp` |
-| 2 | a job description with no steps of its own ("whoever stands here must be able to calculateEnergy") | a class whose functions are all `= 0` | `class Potential` in `force_calculator.h` (chapter 7) |
+| 2 | a job description with no steps of its own ("whoever stands here must be able to calculateEnergy") | a class whose functions are `= 0`, apart from one short default written on the card | `class Potential` in `force_calculator.h` (chapter 7) |
 | 3 | a one-line sub-recipe written right on the card, marked "identical everywhere, keep any one copy" | a body inside a class is automatically `inline` | getters in `geometry.h` |
 | 4 | a recipe with a blank ("___ cake"): it must be seen in full wherever the blank gets filled in | templates live in headers | chapter 9's `timing.h` |
-| 5 | cards for sub-recipes nobody ever wrote, and nobody uses | dead headers | `src/engine/integrators/*.h`, `src/engine/minimizers/*.h` |
+| 5 | cards for sub-recipes nobody ever wrote, and nobody uses | dead headers | `src/engine/minimizers/*.h` |
 
 **Rule of thumb:** if other recipes call for your sub-recipe, give it a summary card (`.h`) and write it out
 once in full (`.cpp`). The start-here page needs no card. Short, identical-everywhere sub-recipes and recipes

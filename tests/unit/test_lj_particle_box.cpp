@@ -156,3 +156,37 @@ TEST_F(LJParticleBoxTest, ParticleInitialization) {
         EXPECT_LT(pos[2], boxSize[2]/2 + 1.0);
     }
 }
+
+// Every requested particle gets a lattice site, including N that are not
+// perfect cubes and whose cube root rounds down (130 -> 5.07, 256 -> 6.35).
+TEST_F(LJParticleBoxTest, PlacesEveryParticleForNonCubeN) {
+    for (std::size_t n : {100u, 125u, 128u, 130u, 256u, 400u}) {
+        boxConfig.numParticles = n;
+        std::array<double, 3> boxSize;
+        Geometry geometry = LJParticleBoxBuilder::createCubicLattice(boxConfig, boxSize);
+        EXPECT_EQ(geometry.getNumberOfAtoms(), n) << "N = " << n;
+    }
+}
+
+// "arithmetic" is Lorentz-Berthelot: sigma averaged, epsilon geometric.
+TEST(LJMixingRule, ArithmeticIsLorentzBerthelot) {
+    const double epsA = 1.0, sigA = 1.0, epsB = 4.0, sigB = 2.0;
+    const double eps = std::sqrt(epsA * epsB);   // 2.0, not the mean 2.5
+    const double sig = 0.5 * (sigA + sigB);      // 1.5
+    const double r = 2.0;
+
+    Geometry geometry;
+    geometry.setBoxDimensions({20.0, 20.0, 20.0});
+    geometry.addAtom("A", {0.0, 0.0, 0.0});
+    geometry.addAtom("B", {r, 0.0, 0.0});
+
+    LJPotential lj;
+    lj.addAtomParameters("A", epsA, sigA);
+    lj.addAtomParameters("B", epsB, sigB);
+    lj.setCutoff(5.0);
+    lj.setMixingRule("arithmetic");
+
+    const double sr6 = std::pow(sig / r, 6);
+    const double expected = 4.0 * eps * (sr6 * sr6 - sr6);
+    EXPECT_NEAR(lj.calculateEnergy(geometry), expected, 1e-12);
+}

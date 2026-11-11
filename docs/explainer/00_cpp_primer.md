@@ -7,7 +7,7 @@
 > Open `src/engine/potentials/lj_potential.h` beside this document and follow along.
 
 > **Note.** This primer walks the 48-line `lj_potential.h` as it was before the parallel LJ work, and
-> quotes it in full below, so it reads on its own. Today's file is longer (about 105 lines): the
+> quotes it in full below, so it reads on its own. Today's file is longer (107 lines): the
 > additions are the backend switches, tail correction and kernel tables described in
 > [`docs/implementation/parallel_lj.md`](../implementation/parallel_lj.md). Line numbers below refer to
 > the quoted listing, not to the current file.
@@ -90,13 +90,13 @@ You can watch it happen. `-E` means "preprocess only, then stop":
 
 ```bash
 $ wc -l src/engine/potentials/lj_potential.cpp
-     175
+     394
 
 $ g++ -std=c++17 -E -Isrc src/engine/potentials/lj_potential.cpp | wc -l
-   74955
+   76006
 ```
 
-175 lines become **74,955** before the compiler sees a single token. That growth is entirely `#include` pasting other files in.
+394 lines become **76,006** before the compiler sees a single token. That growth is entirely `#include` pasting other files in.
 
 ### The three directives
 
@@ -261,6 +261,8 @@ public:
 };
 ```
 
+(Today's base also has a fourth method, `calculateForcesAndEnergy`. It is `virtual` but not `= 0`: it has a default body, so it adds no obligation.)
+
 Decoding it:
 
 - **`virtual`** — "a derived class is allowed to replace this method, and when someone calls it through a base-class handle, the **derived** version runs." Without `virtual` the base version would run instead: the bug that makes polymorphism silently not work.
@@ -331,7 +333,7 @@ Its job is to release whatever the object was holding — file handles, memory, 
 
 ### What this one actually does: nothing
 
-Open `lj_potential.cpp:9`:
+Open `lj_potential.cpp:39`:
 
 ```cpp
 LJPotential::~LJPotential() {
@@ -575,7 +577,7 @@ Read outside-in: **a growable list, of fixed 3-element arrays of double** — i.
 
 ### `= 10.0` — default member initializers
 
-Lines 36–37 give starting values right in the declaration. If the constructor doesn't set them, these apply — so a freshly built `LJPotential` has a 10 Å cutoff and geometric mixing without anyone specifying either. Line 35 has no `= ...` because a `std::map` starts empty on its own.
+Lines 36–37 give starting values right in the declaration. If the constructor doesn't set them, these apply — so a freshly built `LJPotential` has a cutoff of 10.0 and geometric mixing without anyone specifying either. Line 35 has no `= ...` because a `std::map` starts empty on its own.
 
 ---
 
@@ -629,7 +631,7 @@ Two things from the header do **not** get repeated here: `virtual`/`override` (d
 
 ## The worked example, line by line
 
-`LJPotential::calculateEnergy`, `src/engine/potentials/lj_potential.cpp:17`. Everything you need is now in hand:
+`LJPotential::calculateEnergy` as it was before the parallel LJ work. Today the same loop is `LJPotential::calculateEnergyReference`, `src/engine/potentials/lj_potential.cpp:277`. Everything you need is now in hand:
 
 ```cpp
 double LJPotential::calculateEnergy(const Geometry& geometry) {
@@ -758,8 +760,8 @@ Nowhere near it. Line 10 of the header pastes in `geometry.h` — the promises �
 ```bash
 $ g++ -std=c++17 -E -Isrc src/engine/potentials/lj_potential.cpp > expanded.txt
 
-$ grep -n "void addAtom" expanded.txt          # the DECLARATION, from geometry.h
-69056:    void addAtom(const std::string& atomType, const std::array<double,3>& coordinates);
+$ grep -n "void addAtom(" expanded.txt         # the DECLARATION, from geometry.h
+69702:    void addAtom(const std::string& atomType, const std::array<double, 3>& coordinates);
 
 $ grep -c "Geometry::addAtom" expanded.txt     # the BODY, from geometry.cpp
 0
@@ -796,11 +798,11 @@ Headers flow *down into* many lanes; sources stay in their own lane. Your build 
 
 ```bash
 $ nm build/CMakeFiles/EngineLib.dir/src/engine/force_calculator.cpp.o | c++filt
-000000000000014c T ForceCalculator::calculateEnergy(Geometry const&)
+000000000000033c T ForceCalculator::calculateEnergy(Geometry const&)
                  U Geometry::getNumberOfAtoms() const        ← a hole
 
 $ nm build/CMakeFiles/BuilderLib.dir/src/builder/geometry.cpp.o | c++filt
-00000000000001e4 T Geometry::getNumberOfAtoms() const        ← the body
+00000000000001c0 T Geometry::getNumberOfAtoms() const        ← the body
 ```
 
 The compiler emitted a call instruction with a **blank where the address goes**, plus a note saying "someone fill this in." It had `geometry.h`, so it knew the call was legal; it had no body, so it couldn't generate one.
@@ -812,7 +814,7 @@ The compiler emitted a call instruction with a **blank where the address goes**,
 | `undefined symbol: Geometry::getNumberOfAtoms()` | a `U` with **no** matching `T` — body never written, or the `.cpp` isn't in `CMakeLists.txt` |
 | `duplicate symbol: Thing2::square(double)` | a `U` with **two** matching `T`s — a function body was put in a header and two `.cpp` files pasted it |
 
-That second one is the hard constraint: a declaration may repeat freely, but a **body may exist exactly once in the program** (the One Definition Rule). Fourteen files in this repo include `geometry.h`. If `addAtom`'s body lived there, all fourteen would carry a copy and the link would fail. Putting it in `geometry.cpp` — compiled once — is what makes fourteen includes legal.
+That second one is the hard constraint: a declaration may repeat freely, but a **body may exist exactly once in the program** (the One Definition Rule). Sixteen files in this repo include `geometry.h`. If `addAtom`'s body lived there, all sixteen would carry a copy and the link would fail. Putting it in `geometry.cpp` — compiled once — is what makes sixteen includes legal.
 
 The other payoff is build time: edit a `.cpp` and **one** file recompiles; edit a `.h` and everything that pastes it does. Hence "keep headers small, put the bulk in the `.cpp`."
 
@@ -837,7 +839,15 @@ add_library(BuilderLib STATIC
 add_library(EngineLib STATIC
     src/engine/force_calculator.cpp
     src/engine/molecular_dynamics.cpp
+    src/engine/md_state.cpp
+    src/engine/integrators/integrator.cpp
+    src/engine/integrators/velocity_verlet_integrator.cpp
+    src/engine/integrators/leapfrog_integrator.cpp
+    src/engine/thermostats/thermostat.cpp
+    src/engine/thermostats/velocity_rescale_thermostat.cpp
+    src/engine/thermostats/langevin_thermostat.cpp
     src/engine/potentials/lj_potential.cpp
+    src/engine/potentials/lj_kernels.cpp
     src/engine/potentials/dft_potential.cpp
 )
 target_link_libraries(EngineLib PUBLIC BuilderLib)
@@ -857,11 +867,11 @@ Note the direction: **`BuilderLib` knows nothing about `EngineLib`.** Engine →
 **A `.cpp` not listed here does not exist as far as the program is concerned.** Two files in this repo are in that position:
 
 ```bash
-$ find src -name '*.cpp' | wc -l                                    # 13 on disk
-$ grep -o 'src/[a-z_/]*\.cpp' CMakeLists.txt | sort -u | wc -l      # 11 actually built
+$ find src -name '*.cpp' | wc -l                                    # 21 on disk
+$ grep -o 'src/[a-z_/]*\.cpp' CMakeLists.txt | sort -u | wc -l      # 19 actually built
 ```
 
-The unbuilt two are `src/engine/potentials/machine_learning_potential.cpp` and `src/utils/file_reader.cpp`. No `.o` is ever produced for them, so a call into `MachineLearningPotential` would fail at **link** time with `undefined symbol`, not at compile time. Worth knowing before you go looking for the ML potential and wonder why it never runs. (`src/engine/integrators/` and `src/engine/minimizers/` are dead for a related reason — headers with no `.cpp` at all, and nothing includes them.)
+The unbuilt two are `src/engine/potentials/machine_learning_potential.cpp` and `src/utils/file_reader.cpp`. No `.o` is ever produced for them, so a call into `MachineLearningPotential` would fail at **link** time with `undefined symbol`, not at compile time. Worth knowing before you go looking for the ML potential and wonder why it never runs. (`src/engine/minimizers/` is dead for a related reason — headers with no `.cpp` at all, and nothing includes them.)
 
 ---
 

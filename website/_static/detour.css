@@ -24,3 +24,13 @@ div.admonition.detour > .admonition-title::after {
   color: var(--detour);
   content: "\f277"; /* Font Awesome: signs-post */
 }
+
+/* The same look for a detour that starts closed (sphinx-design dropdown):
+   {dropdown} with :class-container: detour-dropdown */
+.sd-dropdown.detour-dropdown {
+  border-color: var(--detour);
+}
+.sd-dropdown.detour-dropdown > summary.sd-summary-title {
+  background-color: var(--detour-bg);
+  color: var(--detour);
+}

@@ -1,6 +1,6 @@
 # Several files: headers, source files and linking
 
-Every program so far is one file. The engine's `src/` folder holds 32: mostly
+Every program so far is one file. The engine's `src/` folder holds 33 files: mostly
 one header and one source file per class, plus the command-line tool and
 the Python bindings. This chapter splits the
 `LJPotential` of [Classes](04_classes.md) into a header, a source file and a
