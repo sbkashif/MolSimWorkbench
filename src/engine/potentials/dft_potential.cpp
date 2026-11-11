@@ -40,6 +40,13 @@ void DFTPotential::loadParameters(const std::string& parametersFile) {
         std::cout << "  Functional: " << functional << std::endl;
         std::cout << "  Basis Set: " << basisSet << std::endl;
         std::cout << "  SCF Convergence: " << scfConvergence << std::endl;
+
+        // Only these three have atomic-energy tables in calculateElectronicEnergy;
+        // any other name (PW91, PBE0, ...) is computed with the B3LYP values.
+        if (functional != "B3LYP" && functional != "PBE" && functional != "HF") {
+            std::cerr << "Warning: functional \"" << functional
+                      << "\" has no atomic-energy table; using B3LYP values" << std::endl;
+        }
         
     } catch (const std::exception& e) {
         std::cerr << "Error loading DFT parameters: " << e.what() << std::endl;
@@ -102,7 +109,7 @@ double DFTPotential::calculateElectronicEnergy(const Geometry& geometry) {
             {"O", -74.810}    // HF oxygen
         };
     } else {
-        // Default to B3LYP values
+        // No table of its own (warned about at load): use the B3LYP values
         atomicEnergies = {
             {"H", -0.502}, {"C", -37.845}, {"N", -54.583}, {"O", -75.064}
         };

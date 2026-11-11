@@ -9,7 +9,8 @@ components:
     
     # Global LJ parameters
     mixing_rule: "geometric"  # Options: "geometric", "arithmetic", "none"
-    tail_correction: true     # Apply analytic tail correction for energy
+    tail_correction: false    # Off: it assumes a uniform fluid beyond the cutoff,
+                              # and this is one molecule in an empty box
     shift_potential: false    # Whether to shift the potential to zero at cutoff
     
     # Computational settings

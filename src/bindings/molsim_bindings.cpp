@@ -112,6 +112,8 @@ PYBIND11_MODULE(_molsim, module) {
         .def("addAtomParameters", &LJPotential::addAtomParameters)
         .def("setCutoff", &LJPotential::setCutoff)
         .def("setMixingRule", &LJPotential::setMixingRule)
+        .def("setTailCorrection", &LJPotential::setTailCorrection)
+        .def("getTailCorrection", &LJPotential::getTailCorrection)
         .def("calculateEnergy", &LJPotential::calculateEnergy)
         .def("getName", &LJPotential::getName);
 

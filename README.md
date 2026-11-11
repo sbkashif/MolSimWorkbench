@@ -194,7 +194,7 @@ MolSimWorkbench/
 
 - Pair loop is O(N^2) — neighbor list not yet implemented (config stubs exist)
 - Potential is not shifted to zero at cutoff (`shift_potential: false`)
-- Long-range tail corrections not applied (`tail_correction: false`)
+- Long-range tail correction implemented but off by default (`tail_correction: false`)
 - Particle mass is fixed at 1.0 (reduced units); per-atom masses not yet supported
 
 ---

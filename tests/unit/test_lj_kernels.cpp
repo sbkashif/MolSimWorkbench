@@ -21,6 +21,7 @@
 
 #include "builder/lj_particle_box_builder.h"
 #include "engine/potentials/lj_potential.h"
+#include "utils/yaml_parser.h"
 
 namespace {
 
@@ -280,4 +281,29 @@ TEST(LJTailCorrection, OffByDefaultAndNeedsABox) {
     noBox.addAtom("LJ", {1.1, 0.0, 0.0});
     fx.lj.setTailCorrection(true);
     EXPECT_DOUBLE_EQ(fx.lj.tailCorrectionEnergy(noBox), 0.0);
+}
+
+// The `tail_correction:` key in a potential YAML file reaches the potential.
+// The loader hook stands in for the YAML file, so no Python is needed.
+TEST(LJTailCorrection, YamlKeyTurnsItOnAndOff) {
+    auto parseWith = [](const std::string& tailLine) {
+        YAMLParser::setLoader([tailLine](const std::string&) {
+            return std::string(R"({"potential_type": "classical", "components": [{)"
+                               R"("type": "lennard_jones", "cutoff": 2.5,)"
+                               R"("atom_parameters": {"LJ": {"epsilon": 1.0, "sigma": 1.0}})")
+                   + tailLine + "}]}";
+        });
+        YAMLParser parser;
+        auto lj = std::dynamic_pointer_cast<LJPotential>(parser.parsePotential("test.yaml"));
+        YAMLParser::setLoader(nullptr);
+        return lj;
+    };
+
+    auto on = parseWith(R"(, "tail_correction": true)");
+    auto off = parseWith(R"(, "tail_correction": false)");
+    auto absent = parseWith("");
+    ASSERT_TRUE(on && off && absent);
+    EXPECT_TRUE(on->getTailCorrection());
+    EXPECT_FALSE(off->getTailCorrection());
+    EXPECT_FALSE(absent->getTailCorrection());
 }

@@ -4,6 +4,7 @@ add_executable(MolSimTests
     test_lj_particle_box.cpp
     test_lj_kernels.cpp
     test_integrators_thermostats.cpp
+    test_dft_potential.cpp
     # Add more test files here as needed
 )
 

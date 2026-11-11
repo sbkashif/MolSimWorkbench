@@ -355,6 +355,12 @@ std::shared_ptr<Potential> YAMLParser::parseClassicalPotential(const nlohmann::j
             if (component.contains("mixing_rule")) {
                 ljPotential->setMixingRule(component["mixing_rule"]);
             }
+
+            // Long-range dispersion correction (energy and pressure only;
+            // it adds no force). Off unless the file asks for it.
+            if (component.contains("tail_correction")) {
+                ljPotential->setTailCorrection(component["tail_correction"].get<bool>());
+            }
             
             return ljPotential;
         }

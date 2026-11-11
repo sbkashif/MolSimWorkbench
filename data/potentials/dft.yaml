@@ -9,7 +9,9 @@ parameters:
   grid_quality: "fine"             # DFT integration grid quality
   exchange_correlation_grid: "SG1" # Grid for XC integration
   
-# Supported functionals and their properties
+# Functionals and their properties. Only B3LYP, PBE and HF have their own
+# atomic-energy tables in dft_potential.cpp; PW91 and PBE0 are accepted but
+# computed with the B3LYP values (the engine prints a warning).
 functionals:
   B3LYP:
     type: "hybrid"

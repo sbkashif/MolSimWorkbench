@@ -5,6 +5,22 @@ documentation edits are not listed here. Versions follow [Semantic Versioning](h
 before 1.0.0 a minor version may change the API. Dates are commit dates.
 Versions before 0.7.0 were numbered afterwards, from the history.
 
+## 0.7.2 — 2026-11-11
+
+### Added
+- `LJPotential.setTailCorrection` / `getTailCorrection` in the Python module.
+
+### Fixed
+- The `tail_correction:` key in a Lennard-Jones potential YAML file is now read
+  (it was ignored, so the correction could only be turned on from C++). `data/potentials/lj_only.yaml`, used by the water example, set it to
+  `true`; it is now `false`, because the correction assumes a uniform fluid
+  beyond the cutoff and that file describes one molecule in an empty box. No
+  shipped run changes.
+- A DFT functional without its own atomic-energy table (anything but B3LYP,
+  PBE and HF, including PW91 and PBE0, which `dft.yaml` lists) now prints a
+  warning when loaded. It was computed with the B3LYP values without notice;
+  the numbers are unchanged.
+
 ## 0.7.1 — 2026-11-10
 
 ### Fixed
