@@ -1,0 +1,18 @@
+# Read the Docs builds the learning website (website/) from this file.
+# The in-browser engine, website/_static/engine/_molsim.wasm, is committed, so
+# the build needs only Sphinx and its extensions: no C++ compiler, no Emscripten.
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.12"
+
+sphinx:
+  configuration: website/conf.py
+  # Same rule as the `website` CI job: a warning fails the build.
+  fail_on_warning: true
+
+python:
+  install:
+    - requirements: website/requirements.txt
