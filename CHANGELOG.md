@@ -7,6 +7,13 @@ Versions before 0.7.0 were numbered afterwards, from the history.
 
 ## 0.7.2 — 2026-11-11
 
+### Changed
+- `DFTPotential` now raises a not-implemented error when built
+  (`std::runtime_error`, a `RuntimeError` from Python). It performed no DFT
+  calculation: the functional name picked one of three tables of per-atom
+  energies, and results were not physical. The code stays as a placeholder for
+  a real backend. The DFT example is no longer run by `scripts/ci/run_all.sh`.
+
 ### Added
 - `LJPotential.setTailCorrection` / `getTailCorrection` in the Python module.
 
@@ -16,10 +23,6 @@ Versions before 0.7.0 were numbered afterwards, from the history.
   `true`; it is now `false`, because the correction assumes a uniform fluid
   beyond the cutoff and that file describes one molecule in an empty box. No
   shipped run changes.
-- A DFT functional name other than B3LYP, PBE and HF is now an error when
-  loaded: `std::invalid_argument`, a `ValueError`
-  from Python. It used to be computed with the B3LYP values without notice.
-  PW91 and PBE0 are removed from the descriptive list in `dft.yaml`.
 
 ## 0.7.1 — 2026-11-10
 

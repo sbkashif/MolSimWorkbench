@@ -43,6 +43,5 @@ cmake --build build --parallel
 )
 
 "$PYTHON_BIN" examples/lj/water_lj_sim.py
-"$PYTHON_BIN" examples/dft/run_dft_example.py
 
 echo "All checks passed on ${OS_NAME}."

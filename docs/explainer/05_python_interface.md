@@ -18,7 +18,7 @@ Every major class in the C++ stack has a Python counterpart in `_molsim`:
 |---|---|---|
 | `_molsim.Geometry` | `Geometry` | atoms + positions + box |
 | `_molsim.LJPotential` | `LJPotential` | LJ energy + forces |
-| `_molsim.DFTPotential` | `DFTPotential` | DFT energy + forces |
+| `_molsim.DFTPotential` | `DFTPotential` | not implemented; raises an error when built |
 | `_molsim.ForceCalculator` | `ForceCalculator` | potential aggregator |
 | `_molsim.MolecularDynamics` | `MolecularDynamics` | the MD driver |
 | `_molsim.SimulationParameters` | `SimulationParameters` | config struct |
@@ -164,7 +164,6 @@ make -j$(nproc)
 Tests:
 ```bash
 python tests/test_python_api.py
-python test_dft_module.py
 ```
 
 ---

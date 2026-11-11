@@ -1,4 +1,7 @@
 # DFT (Density Functional Theory) potential configuration
+#
+# Not implemented: DFTPotential raises an error when built, so a run that
+# loads this file stops there. Kept for when a real DFT backend exists.
 potential_type: "quantum"
 method: "dft"
 parameters:

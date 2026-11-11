@@ -477,7 +477,7 @@ Each part of {numref}`md-loop-figure` is one C++ class in the engine:
 | --- | --- |
 | System (positions, box) | `Geometry` |
 | Force step | `ForceCalculator`, which holds a list of energy functions and adds up their forces |
-| Energy function (the plug) | `Potential`; the LJ plug is `LJPotential`. `DFTPotential` fits the same socket, but it is a simplified backend, not a full DFT calculation |
+| Energy function (the plug) | `Potential`; the LJ plug is `LJPotential`. `DFTPotential` fits the same socket, but it is not implemented yet: building one raises an error |
 | Integrator | `Integrator`; the default plug is `VelocityVerletIntegrator`, the other is `LeapfrogIntegrator` |
 | Thermostat | `Thermostat`; the default plug is `VelocityRescaleThermostat` (Berendsen when given a time constant), the other is `LangevinThermostat` |
 

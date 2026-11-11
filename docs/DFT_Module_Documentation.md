@@ -1,8 +1,14 @@
-# Enhanced DFT Module Documentation
+# DFT Module Documentation
+
+> **Not implemented.** `DFTPotential` performs no DFT calculation, and
+> constructing one raises an error. The code is kept as a placeholder showing
+> where a quantum backend plugs into the `Potential` interface. What follows
+> describes that placeholder: per-atom energy tables, a basis-set scaling
+> factor, a bond correction and nuclear repulsion. It is not DFT.
 
 ## Overview
 
-The DFT (Density Functional Theory) module in MolSimWorkbench has been enhanced with realistic basis sets, functionals, and energy calculations. This module provides a simplified but physically meaningful implementation of DFT energy calculations for molecular systems.
+The placeholder below has the shape of a DFT backend (functional and basis-set settings, energies and forces) without the calculation. It was a first step toward a real backend.
 
 ## Features
 

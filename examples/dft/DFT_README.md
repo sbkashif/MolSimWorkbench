@@ -1,5 +1,9 @@
 # DFT Examples README
 
+> **Not implemented.** `DFTPotential` raises a not-implemented error when
+> built, so this example stops at that error. It is kept for when a real DFT
+> backend exists.
+
 This directory contains a config-driven example demonstrating DFT (Density Functional Theory) calculations using MolSimWorkbench.
 
 ## Config-Driven Approach

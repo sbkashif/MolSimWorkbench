@@ -5,8 +5,14 @@
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 
-DFTPotential::DFTPotential(const std::string& parametersFile) {
-    loadParameters(parametersFile);
+// Not implemented: this class performs no DFT calculation. Building one is an
+// error, so no run can use it by mistake. The placeholder below (per-atom energy
+// tables, a bond correction, nuclear repulsion, finite-difference forces) is kept
+// only to show where a quantum backend plugs into the Potential interface.
+DFTPotential::DFTPotential(const std::string& /*parametersFile*/) {
+    throw std::runtime_error(
+        "DFTPotential is not implemented yet: it performs no DFT calculation. "
+        "The class is kept as a placeholder for where a quantum backend will plug in.");
 }
 
 double DFTPotential::calculateEnergy(const Geometry& geometry) {

@@ -10,7 +10,7 @@ The engine is written in C++17 and exposed to Python through a pybind11 native m
 - **LJ Bulk Box**: Automatic cubic-lattice initialization from density — no geometry file needed
 - **Swappable integrator and thermostat**: Velocity Verlet (default) or leapfrog; velocity rescale (default), Berendsen, Langevin or none. Chosen by name in the YAML. Maxwell-Boltzmann velocity initialization
 - **Energy Minimization**: Steepest descent, conjugate gradient, and L-BFGS minimizers for pre-MD relaxation
-- **Pluggable Potentials**: `LJPotential` and `DFTPotential` share the same `Potential` interface; multiple potentials can be stacked in one `ForceCalculator` (`MachineLearningPotential` is an unbuilt stub that does not yet implement it)
+- **Pluggable Potentials**: every energy function implements the `Potential` interface, and a `ForceCalculator` sums several of them. `LJPotential` is the one implemented today; `DFTPotential` is a placeholder that raises a not-implemented error when built, and `MachineLearningPotential` is an unbuilt stub that does not yet implement the interface
 - **Molecule Builder**: Build explicit molecules (e.g. water) from YAML geometry files
 - **YAML Configuration**: One file drives geometry, potential parameters, integrator settings, and output
 - **Python API**: High-level `System.from_yaml()` and low-level direct object API
@@ -100,9 +100,6 @@ python examples/lj/water_lj_sim.py
 
 # LJ bulk box (125 particles, rho=0.8, NVE)
 python examples/lj_bulk_box/run_lj_bulk_sim.py
-
-# DFT water example
-python examples/dft/run_dft_example.py
 ```
 
 ### Run Tests
@@ -131,7 +128,7 @@ MolSimWorkbench/
 │   ├── engine/
 │   │   ├── potentials/
 │   │   │   ├── lj_potential.h/.cpp          # LJ energy + forces
-│   │   │   ├── dft_potential.h/.cpp         # DFT interface
+│   │   │   ├── dft_potential.h/.cpp         # DFT placeholder (not implemented)
 │   │   │   └── machine_learning_potential.h/.cpp
 │   │   ├── integrators/
 │   │   │   ├── integrator.h/.cpp            # Integrator base + makeIntegrator()
@@ -169,7 +166,7 @@ MolSimWorkbench/
 ├── examples/
 │   ├── lj/                                  # LJ water example
 │   ├── lj_bulk_box/                         # LJ bulk box example
-│   └── dft/                                 # DFT example
+│   └── dft/                                 # DFT example (raises not-implemented)
 ├── tests/
 │   ├── unit/                                # C++ GoogleTest suite
 │   └── test_python_api.py
@@ -187,7 +184,7 @@ MolSimWorkbench/
 | Potential | Status | Notes |
 |---|---|---|
 | `LJPotential` | **Active** | Full energy + forces, PBC, cutoff, mixing rules |
-| `DFTPotential` | Integration stub | Interface wired; DFT backend pluggable |
+| `DFTPotential` | Not implemented | Placeholder on the `Potential` interface; constructing it raises an error. No DFT calculation is performed |
 | `MachineLearningPotential` | Stub | Placeholder for ML force fields; not built, does not derive from `Potential` |
 
 ## Current Limitations / Planned Work

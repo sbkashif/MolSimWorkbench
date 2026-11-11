@@ -4,7 +4,7 @@
 
 ## What this repo is
 
-MolSimWorkbench is a C++ molecular simulation engine with a Python interface bolted on through pybind11. You write a YAML config file (or a few lines of Python), and it runs Lennard-Jones (or DFT, or ML-potential) molecular dynamics for you.
+MolSimWorkbench is a C++ molecular simulation engine with a Python interface bolted on through pybind11. You write a YAML config file (or a few lines of Python), and it runs Lennard-Jones molecular dynamics for you. (DFT and ML potentials have placeholders, not implementations.)
 
 The code is layered. Each layer has one job and talks to the layer below it through clean interfaces.
 
@@ -49,7 +49,7 @@ Two ways to produce a `Geometry` object from scratch:
 **Potentials** (`src/engine/potentials/`)  
 Three concrete potential classes, all inheriting from the abstract `Potential` base:
 - `LJPotential` — the workhorse for this repo right now.
-- `DFTPotential` — stub/integration point for DFT energy.
+- `DFTPotential` — placeholder for a DFT backend. Not implemented: constructing it raises an error.
 - `MachineLearningPotential` — stub for ML force fields. Not built, and it does not derive from `Potential` yet.
 
 Each potential can compute an energy scalar **and** the force vector on every atom.

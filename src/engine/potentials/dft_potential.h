@@ -7,9 +7,12 @@
 #include <array>
 #include "../force_calculator.h"
 
+// Not implemented yet: the constructor throws std::runtime_error. The class
+// shows where a quantum backend plugs into the Potential interface; its methods
+// are a table-based placeholder, not a DFT calculation.
 class DFTPotential : public Potential {
 public:
-    DFTPotential(const std::string& parametersFile);
+    explicit DFTPotential(const std::string& parametersFile);
     ~DFTPotential() override = default;
 
     double calculateEnergy(const Geometry& geometry) override;
