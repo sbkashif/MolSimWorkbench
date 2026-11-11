@@ -308,15 +308,17 @@ research projects have had little room for new and advanced concepts, such as
 agentic workflows, at the *rigor* needed for publication. So I built this
 *workbench* to learn such concepts hands-on, and used AI heavily to reduce the
 logistical friction: first to build working end-to-end applications, then to
-learn the basics interactively, and to write the webpages. After reading the
-code and the pages, I had the assistant quiz me on them; some of those
-questions became the "Check yourself" sections.
+learn the basics interactively, and to write the webpages. I read the code
+and the pages, had the assistant quiz me on them (some of those questions
+became the "Check yourself" sections), and revised the pages several times
+until they matched my own understanding, presentation style and language.
 
-What you read here is still my own understanding, written down with AI help.
-Not all of it has been vetted by hand yet: some pages, including those marked
-*Draft*, have not had my own line-by-line review. Before release, every page was also checked against the
-engine's code by AI reviewers, and the errors they found were fixed, but that
-is not a substitute for a careful human read. So the pages may still contain
+What you read here is my own understanding, written down with AI help. I have
+read most of it and revised it more than once, but not all of it has been
+vetted line by line: some pages, including those marked *Draft*, have not had
+that careful check yet. Before release, every page was also checked against
+the engine's code by AI reviewers, and the errors they found were fixed, but
+that is not a substitute for a careful human read. So the pages may still contain
 mistakes. If you find one, please open an issue on the
 [repository](https://github.com/sbkashif/MolSimWorkbench).
 :::
