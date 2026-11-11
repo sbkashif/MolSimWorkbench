@@ -1,21 +1,36 @@
 # MolSimWorkbench
 
-A molecular simulation workbench for educational purposes that enables experimentation with different potential types.
+A small but real molecular dynamics engine, and a course built around it.
 
-The engine is written in C++17 and exposed to Python through a pybind11 native module (`_molsim`). Simulations are configured via YAML files or driven fully programmatically from Python.
+Molecular simulations are a routine part of materials discovery, but they are
+often used as a black box. This project takes one apart: the engine is written
+in C++17, exposed to Python through a pybind11 module (`_molsim`), and the
+[`website/`](website/) course walks through it piece by piece, from the physics
+to the C++, the Python binding, parallel loops and an AI agent that drives a
+simulation workflow. The same engine, compiled to WebAssembly, runs in the
+reader's browser.
+
+Version 0.7.2 ([changelog](CHANGELOG.md)) · MIT license ([`LICENSE`](LICENSE))
 
 ## Features
 
-- **Lennard-Jones MD**: Full NVE/NVT molecular dynamics with periodic boundary conditions, minimum-image convention, configurable cutoff, and geometric/arithmetic mixing rules
-- **LJ Bulk Box**: Automatic cubic-lattice initialization from density — no geometry file needed
-- **Swappable integrator and thermostat**: Velocity Verlet (default) or leapfrog; velocity rescale (default), Berendsen, Langevin or none. Chosen by name in the YAML. Maxwell-Boltzmann velocity initialization
-- **Energy Minimization**: Steepest descent, conjugate gradient, and L-BFGS minimizers for pre-MD relaxation
-- **Pluggable Potentials**: every energy function implements the `Potential` interface, and a `ForceCalculator` sums several of them. `LJPotential` is the one implemented today; `DFTPotential` is a placeholder that raises a not-implemented error when built, and `MachineLearningPotential` is an unbuilt stub that does not yet implement the interface
-- **Molecule Builder**: Build explicit molecules (e.g. water) from YAML geometry files
-- **YAML Configuration**: One file drives geometry, potential parameters, integrator settings, and output
-- **Python API**: High-level `System.from_yaml()` and low-level direct object API
-- **C++ Unit Tests**: GoogleTest suite with CTest integration
-- **Cross-platform CI**: GitHub Actions matrix on `ubuntu-latest` and `macos-latest`
+**Engine**
+- **Lennard-Jones MD**: NVE/NVT molecular dynamics with periodic boundary conditions, minimum-image convention, configurable cutoff, geometric or Lorentz–Berthelot (`arithmetic`) mixing, and an opt-in tail correction
+- **LJ bulk box**: cubic-lattice initialization from a target density, no geometry file needed
+- **Swappable integrator and thermostat**: velocity Verlet (default) or leapfrog; velocity rescale (default), Berendsen, Langevin or none, chosen by name in the YAML. Maxwell–Boltzmann velocity initialization with an optional fixed seed
+- **Energy minimization** before MD: steepest descent (conjugate gradient and L-BFGS are named in the config but fall back to it)
+- **Parallel LJ kernels** (`lj_kernels.cpp`): serial gather by default, with opt-in `std::thread` and OpenMP backends, each tested against a reference loop
+- **Pluggable potentials**: every energy function implements the `Potential` interface, and a `ForceCalculator` sums several of them. `LJPotential` is the one implemented today; `DFTPotential` is a placeholder that raises a not-implemented error when built, and `MachineLearningPotential` is an unbuilt stub that does not yet implement the interface
+- **Molecule builder**: explicit molecules (e.g. water) from YAML geometry files
+- **YAML configuration**: a simulation file points at separate potential and geometry files
+- **Python API**: high-level `System.from_yaml()` and the low-level object API
+
+**Around the engine**
+- **Learning website** ([`website/`](website/), Sphinx): seven modules: molecular simulation, C++, pybind11, the engine in code, parallel programming on CPU cores, GPU programming, and agentic AI in a simulation workflow
+- **In-browser engine**: `_molsim` compiled to WebAssembly and run through Pyodide, so the simulator on the website is this C++ engine ([`scripts/wasm/`](scripts/wasm/))
+- **MLIP training agent** ([`agent/`](agent/README.md)): an LLM chooses the next step of a machine-learned-potential training loop; tools do the work and a harness enforces the limits
+- **Parallelization course** with exercises ([`exercises/`](exercises/)), a final project ([`project/`](project/README.md)) and benchmarks ([`benchmarks/`](benchmarks/))
+- **Tests and CI**: GoogleTest suite through CTest, Python API test, and a GitHub Actions matrix on `ubuntu-latest` and `macos-latest` that also builds the website with warnings as errors
 
 ## Quick Start
 
@@ -30,10 +45,11 @@ make -j$(nproc)          # macOS: make -j$(sysctl -n hw.ncpu)
 cd ..
 ```
 
-You need a C++17 compiler, CMake 3.15 or newer, and Python 3.7 or newer. The first
-`cmake` run downloads the other dependencies, so it needs network access. Python
-scripts are run from the top folder of the repository; nothing needs to be
-`pip install`ed.
+You need a C++17 compiler, CMake 3.15 or newer, and Python 3 (CI uses 3.11). The first
+`cmake` run downloads the other dependencies, so it needs network access. The
+engine reads its YAML files through Python, so install PyYAML
+(`python -m pip install pyyaml`). Python scripts are run from the top folder of
+the repository; the project itself is not `pip install`ed.
 
 This produces:
 - `build/run_simulation` — CLI binary
@@ -62,7 +78,7 @@ import _molsim
 
 geo = _molsim.Geometry()
 geo.addAtom("LJ", [0.0, 0.0, 0.0])
-geo.addAtom("LJ", [1.2, 0.0, 0.0])
+geo.addAtom("LJ", [1.1, 0.0, 0.0])
 geo.setBoxDimensions([5.0, 5.0, 5.0])
 
 lj = _molsim.LJPotential()
@@ -74,8 +90,14 @@ fc.addPotential(lj)
 
 params = _molsim.SimulationParameters()
 params.timeStep = 0.001
-params.temperature = 1.0
+params.temperature = 0.1        # low enough that the pair stays bound
+params.totalTime = 1.0
 params.usePBC = True
+box = _molsim.SimulationBox()
+box.a = box.b = box.c = 5.0
+params.box = box
+params.useMinimization = False  # on by default; skip it to see raw dynamics
+params.randomSeed = 42          # same velocities every run
 
 md = _molsim.MolecularDynamics()
 md.setGeometry(geo)
@@ -85,6 +107,19 @@ md.setTrajectoryOutput("traj.xyz", _molsim.TrajectoryFormat.XYZ, 10)
 md.initialize()
 md.runSimulation()
 ```
+
+The pair vibrates around the LJ minimum while the thermostat holds the kinetic
+energy at 0.3:
+
+```
+Step 0, Potential Energy: -0.983345, Kinetic Energy: 0.3, Total Energy: -0.683345, Temperature: 0.1
+Step 100, Potential Energy: -0.999179, Kinetic Energy: 0.3, Total Energy: -0.699179, Temperature: 0.1
+Step 300, Potential Energy: -0.947841, Kinetic Energy: 0.3, Total Energy: -0.647841, Temperature: 0.1
+```
+
+Run it from the repository root with `PYTHONPATH=build`, or add `build/` to
+`sys.path` first. [`docs/explainer/05_python_interface.md`](docs/explainer/05_python_interface.md)
+explains each setting.
 
 ### Run the CLI
 
@@ -127,7 +162,8 @@ MolSimWorkbench/
 ├── src/
 │   ├── engine/
 │   │   ├── potentials/
-│   │   │   ├── lj_potential.h/.cpp          # LJ energy + forces
+│   │   │   ├── lj_potential.h/.cpp          # LJ energy + forces; reference loops
+│   │   │   ├── lj_kernels.h/.cpp            # pair-loop kernels: serial, threads, OpenMP
 │   │   │   ├── dft_potential.h/.cpp         # DFT placeholder (not implemented)
 │   │   │   └── machine_learning_potential.h/.cpp
 │   │   ├── integrators/
@@ -170,9 +206,13 @@ MolSimWorkbench/
 ├── tests/
 │   ├── unit/                                # C++ GoogleTest suite
 │   └── test_python_api.py
-├── docs/
-│   ├── explainer/                           # layer-by-layer code walkthrough
-│   └── ai_assistance/                       # implementation logs
+├── website/                                 # the course (Sphinx); _static/engine holds the wasm
+├── docs/                                    # full notes: explainer, learn-cpp, learn-parallel
+├── exercises/                               # parallelization course exercises 01–09
+├── project/                                 # parallelization course final project
+├── benchmarks/                              # LJ kernel benchmarks
+├── agent/                                   # MLIP training agent
+├── scripts/                                 # ci/run_all.sh, wasm/build_pyodide.sh, website/build.sh
 ├── molsimworkbench.py                       # high-level Python API
 └── CMakeLists.txt
 ```
@@ -198,19 +238,19 @@ MolSimWorkbench/
 
 ## Trajectory Visualization
 
-Output XYZ trajectory files can be loaded in [VMD](https://www.ks.uiuc.edu/Research/vmd/) using the provided VMD script:
+The LJ examples write an XYZ trajectory and a [VMD](https://www.ks.uiuc.edu/Research/vmd/) script that loads it into their `output/` folder. After running `examples/lj/water_lj_sim.py`:
 
 ```bash
-vmd -e examples/output/load_trajectory.vmd
+vmd -e examples/lj/output/load_trajectory.vmd
 ```
 
 ---
 
 ## Requirements
 
-- C++17 compatible compiler (GCC 9+, Clang 10+, MSVC 2019+)
+- C++17 compiler: GCC or Clang. CI builds on Ubuntu and macOS; Windows is not tested
 - CMake 3.15+
-- Python 3.7+
+- Python 3 (CI uses 3.11; the browser engine uses Pyodide's 3.12) with PyYAML
 - Dependencies fetched automatically by CMake: pybind11, nlohmann/json, GoogleTest
 - Optional: OpenMP for the parallel LJ backends (macOS: `brew install libomp`)
 
