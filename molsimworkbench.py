@@ -41,7 +41,17 @@ class System:
         parser = _molsim.YAMLParser()
         config = parser.parseSimulationConfig(str(config_path))
 
-        geometry = parser.parseGeometry(config.geometryFile)
+        # Handle geometry based on system mode
+        if config.systemMode == "lj_particle_box":
+            # LJ bulk box: build geometry using LJParticleBoxBuilder
+            geometry = _molsim.LJParticleBoxBuilder.createCubicLattice(config.ljBoxConfig)
+            # Update simulation box dimensions
+            box_dims = geometry.getBoxDimensions()
+            config.simulationParams.box = _molsim.SimulationBox(box_dims[0], box_dims[1], box_dims[2])
+        else:
+            # Explicit geometry file mode
+            geometry = parser.parseGeometry(config.geometryFile)
+        
         force_calculator = _molsim.ForceCalculator()
         for potential_file in config.potentialConfigFiles:
             force_calculator.addPotential(parser.parsePotential(potential_file))

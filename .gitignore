@@ -1,5 +1,7 @@
 # Build directories
 build/
+build-learn/
+build-tsan/
 bin/
 lib/
 obj/
@@ -98,3 +100,5 @@ venv/
 
 # External AI-assistance docs (managed in separate repo via symlink)
 docs/ai_assistance
+/CLAUDE.md
+/docs/claude

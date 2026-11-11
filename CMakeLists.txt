@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 3.15)
 
 project(MolSimWorkbench)
 
+# Default to an optimised build. Without this, a plain `cmake -B build -S .`
+# compiles with no optimisation, and every timing in docs/learn-parallel/ is
+# meaningless (mini_lj runs ~12x slower at -O0). Pass -DCMAKE_BUILD_TYPE=Debug
+# explicitly when you want a debug build.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -37,6 +45,33 @@ FetchContent_MakeAvailable(json googletest pybind11)
 # Make gtest_discover_tests() available to subdirectories
 include(GoogleTest)
 
+
+# ---------------------------------------------------------------------------
+# OpenMP (optional) - powers the opt-in parallel LJ backend.
+#
+# Apple Clang does not ship an OpenMP runtime, so on macOS we point CMake at
+# Homebrew's libomp. If it is not found the build still succeeds; the OpenMP
+# backend simply falls back to the serial kernel at runtime.
+# ---------------------------------------------------------------------------
+if(APPLE AND NOT DEFINED OpenMP_ROOT)
+    execute_process(
+        COMMAND brew --prefix libomp
+        OUTPUT_VARIABLE _brew_libomp
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(_brew_libomp AND EXISTS "${_brew_libomp}")
+        set(OpenMP_ROOT "${_brew_libomp}")
+    endif()
+endif()
+
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    message(STATUS "OpenMP ${OpenMP_CXX_VERSION} found - parallel LJ backend available (opt-in)")
+else()
+    message(STATUS "OpenMP not found - LJ OpenMP backend will fall back to serial")
+endif()
+
 # Create a library for the builder components
 add_library(BuilderLib STATIC
     src/builder/geometry.cpp
@@ -56,9 +91,13 @@ add_library(EngineLib STATIC
     src/engine/force_calculator.cpp
     src/engine/molecular_dynamics.cpp
     src/engine/potentials/lj_potential.cpp
+    src/engine/potentials/lj_kernels.cpp
     src/engine/potentials/dft_potential.cpp
 )
 target_link_libraries(EngineLib PUBLIC BuilderLib)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(EngineLib PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 add_executable(run_simulation
     src/tools/run_simulation.cpp
@@ -97,6 +136,26 @@ configure_file(
     ${CMAKE_CURRENT_BINARY_DIR}/data/geometry/water.yaml
     COPYONLY
 )
+
+# Benchmarks (parallelization curriculum)
+add_subdirectory(benchmarks)
+
+# ---------------------------------------------------------------------------
+# Parallelization curriculum (docs/learn-parallel/).
+#
+# OFF by default: the exercise tests are DESIGNED to fail until the learner
+# implements the stubs, so building them into the default `ctest` run would
+# make CI permanently red. Turn on explicitly:
+#
+#   cmake -B build -S . -DMOLSIM_BUILD_LEARN=ON
+#   cd build && ctest -L learn --output-on-failure
+# ---------------------------------------------------------------------------
+option(MOLSIM_BUILD_LEARN "Build the parallelization curriculum exercises and capstone" OFF)
+if(MOLSIM_BUILD_LEARN)
+    message(STATUS "Parallelization curriculum ENABLED (ctest -L learn)")
+    add_subdirectory(exercises)
+    add_subdirectory(project)
+endif()
 
 # Unit tests
 add_subdirectory(tests/unit)
