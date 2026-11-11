@@ -100,7 +100,7 @@ then `Hello, Salman` and hands back `0`.
 `examples/01/`. Its order slip names a file by a path that only makes sense from there:
 
 ```bash
-cd ~/codes/MolSimWorkbench
+# from the repo root
 ./build/run_simulation;  echo "exit=$?"
 ./build/run_simulation data/lj_bulk_simulation.yaml build/trajectory.xyz
 ```

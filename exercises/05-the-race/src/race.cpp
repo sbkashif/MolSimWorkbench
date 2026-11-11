@@ -22,7 +22,7 @@ double racyScatter(const std::vector<double>& x,
     //             #pragma omp parallel for schedule(dynamic,16) \
     //                     reduction(+:energy) num_threads(numThreads)
     //          on the OUTER loop, and BOTH scatter writes left unguarded:
-    //             fx[i] -= fo*dx;   // safe:  i is this thread's
+    //             fx[i] -= fo*dx;   // RACE too: this i is another thread's j
     //             fx[j] += fo*dx;   // RACE:  j belongs to nobody
     //
     //          Use a signed loop index (std::ptrdiff_t) -- OpenMP requires it.

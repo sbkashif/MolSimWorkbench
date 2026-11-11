@@ -194,7 +194,7 @@ Simulation failed: Failed to parse YAML file: [json.exception.parse_error.101] p
 From the repo root (the second argument keeps the trajectory file inside the git-ignored `build/`):
 
 ```bash
-cd ~/codes/MolSimWorkbench
+# from the repo root
 ./build/run_simulation;  echo "exit=$?"
 ./build/run_simulation data/lj_bulk_simulation.yaml build/trajectory.xyz
 ```

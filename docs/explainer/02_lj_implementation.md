@@ -145,14 +145,71 @@ For the LJ-bulk simulation there is only one atom type (`"LJ"`) with $\varepsilo
 
 ---
 
+## What a real run calls — `lj_kernels.cpp`
+
+Everything above is the *reference* code: `calculateEnergyReference()` and
+`calculateForcesReference()` loop over pairs and call the two pair functions.
+They are kept because they read line by line like the equation, and because
+`tests/unit/test_lj_kernels.cpp` checks every faster version against them.
+
+An MD step does not call them. `calculateForcesAndEnergy()` copies positions
+into flat arrays and hands them to `ljComputeGather()` in
+[src/engine/potentials/lj_kernels.cpp](../../src/engine/potentials/lj_kernels.cpp).
+With the default backend (`LJBackend::Serial`) the work is done by
+`computeRange()`, and its inner loop is the same pair force written differently:
+
+```cpp
+const double r2 = dx * dx + dy * dy + dz * dz;
+if (r2 > v.cutoff2 || r2 < 1e-20) continue;     // cutoff test in r^2
+
+const double eps4 = eps4row[tj];                // 4*eps_ij, pre-mixed
+const double sig2 = sig2row[tj];                // sigma_ij^2, pre-mixed
+
+const double sr2  = sig2 / r2;
+const double sr6  = sr2 * sr2 * sr2;            // no std::pow
+const double sr12 = sr6 * sr6;
+
+ei += eps4 * (sr12 - sr6);
+const double fOverR = 6.0 * eps4 * (2.0 * sr12 - sr6) / r2;
+fxi -= fOverR * dx;                             // F/r times the displacement:
+                                                // no unit vector, no sqrt
+```
+
+Three things changed from the reference, none of them physics:
+
+| Reference | Kernel | Why |
+|---|---|---|
+| `distance = sqrt(r2)`, then `sigma / distance` | stays in $r^2$ throughout | $E$ and $\mathbf{F}$ both depend only on $r^2$, so the square root and divisions go away |
+| `std::pow(sigma_r, 6)` | two multiplies | same number, cheaper (the compiler often does this already) |
+| `std::map` lookup by type name, mixing per pair | flat `eps4` / `sigma2` tables, mixed once in `buildView()` | an array index instead of a string lookup |
+
+The kernel also does *not* use Newton's third law: each atom `i` loops over
+every `j` and writes only its own force (the "gather" form). That doubles the
+arithmetic but means no two atoms ever write the same slot, which is what lets
+the `Threads` and `OpenMP` backends split the atoms across cores. The energy is
+counted twice and halved by the caller.
+
+How much each change buys, and why gather vs. scatter matters, is measured in
+[learn-parallel lesson 02](../learn-parallel/02_serial_refactor.md) (the $r^2$
+change alone is 2.5×). The backends, call path and tests are listed in
+[implementation/parallel_lj.md](../implementation/parallel_lj.md).
+
+---
+
 ## What is NOT yet implemented
 
 Looking at the YAML config and the code comments:
-- **Tail corrections** — long-range correction integral beyond cutoff (`tail_correction: false`; the YAML key is not read, though `LJPotential::setTailCorrection()` exists in C++, off by default)
 - **Neighbor lists** — the config mentions `neighbor_list_radius` and `update_frequency` but the code still uses an $O(N^2)$ pair loop
 - **Potential shift** — `shift_potential: false`; adding this would eliminate the energy discontinuity at cutoff
 
 These are the natural next performance/accuracy improvements flagged in the codebase.
+
+The **tail correction** (the energy of all pairs beyond the cutoff, assuming a
+uniform fluid out there) *is* implemented, and off by default. Turn it on with
+`tail_correction: true` in the potential YAML or `LJPotential.setTailCorrection(True)`.
+It changes the energy and the pressure but adds no force, so trajectories are
+unchanged; [learn-parallel lesson 08](../learn-parallel/08_not_the_hot_loop.md)
+derives it.
 
 ---
 
@@ -161,7 +218,8 @@ These are the natural next performance/accuracy improvements flagged in the code
 | File | Role |
 |------|------|
 | [src/engine/potentials/lj_potential.h](../../src/engine/potentials/lj_potential.h) | Class declaration, public API |
-| [src/engine/potentials/lj_potential.cpp](../../src/engine/potentials/lj_potential.cpp) | Full implementation |
+| [src/engine/potentials/lj_potential.cpp](../../src/engine/potentials/lj_potential.cpp) | Pair functions, reference loops, mixing tables, tail correction |
+| [src/engine/potentials/lj_kernels.cpp](../../src/engine/potentials/lj_kernels.cpp) | The kernels a real run calls, and the parallel backends |
 | [src/engine/force_calculator.h](../../src/engine/force_calculator.h) | `Potential` base class |
 | [data/potentials/lj_bulk.yaml](../../data/potentials/lj_bulk.yaml) | LJ params for bulk run |
 

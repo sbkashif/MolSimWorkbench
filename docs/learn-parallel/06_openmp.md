@@ -11,9 +11,9 @@
 > something you copy.
 >
 > The interesting part of this chapter is what happens when your cores are not
-> all the same speed. Your Mac has 4 fast cores and 4 slow ones, and the
-> straightforward way of dividing up the work makes a **5-worker run slower
-> than a 4-worker run**. One line fixes it.
+> all the same speed. The machine these numbers come from (Apple Silicon) has
+> 4 fast cores and 4 slow ones, and the straightforward way of dividing up the
+> work makes a **5-worker run slower than a 4-worker run**. One line fixes it.
 >
 > New words here: **pragma**, **schedule**, **reduction**, **shared/private**,
 > **barrier** — see [GLOSSARY.md](GLOSSARY.md).

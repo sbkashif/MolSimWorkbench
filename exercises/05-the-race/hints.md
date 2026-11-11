@@ -41,8 +41,9 @@ for (std::size_t i = 0; i < n; ++i) {
 <details><summary>Hint 3 — what you should see in the demo</summary>
 
 At N=4096 on 8 threads, roughly 2% of atoms come out wrong, the maximum relative
-error is enormous (100× or more on individual components), the total energy and
-the net force both look fine, and the racy version is the **fastest** of the lot.
+error is enormous (100× or more on individual components), the total energy
+looks fine, the net force is off by only ~10⁻⁵ of the total, and the racy
+version is the **fastest** of the lot.
 
 If your race produces *no* errors, raise N or the thread count — the collision
 probability has to be high enough to bite.

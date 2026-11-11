@@ -9,9 +9,10 @@ The DFT (Density Functional Theory) module in MolSimWorkbench has been enhanced 
 ### 1. Realistic Functionals
 - **B3LYP**: Becke 3-parameter Lee-Yang-Parr hybrid functional (20% exact exchange)
 - **PBE**: Perdew-Burke-Ernzerhof generalized gradient approximation
-- **PW91**: Perdew-Wang 91 functional
 - **HF**: Hartree-Fock method (100% exact exchange)
-- **PBE0**: PBE0 hybrid functional (25% exact exchange)
+- **PW91**, **PBE0**: accepted, but they have no atomic-energy table of their
+  own, so the engine prints a warning and uses the B3LYP values. Their results
+  are B3LYP results.
 
 ### 2. Multiple Basis Sets
 - **STO-3G**: Minimal basis set (fast but low quality)

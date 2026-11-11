@@ -127,12 +127,13 @@ Kept as a record, because finding them was the most useful reading you did.
 9. **"f[i] is safe" in the racy triangular loop.** Lesson 05 (code comment +
    "Every update to f[i] was safe") and the chat teaching both said so. Wrong:
    a thread owns *rows*, not boxes — box k is also written as f[j] by every
-   thread holding a row < k. Both writes race. (Found 2026-10-14; lesson text
-   not yet fixed.)
+   thread holding a row < k. Both writes race. (Found 2026-10-14; fixed in lessons 03,
+   05, exercise stub and hints 2026-11-10.)
 10. **(Suspected, unverified) "Net force ΣF = 0 passes" under the race.** Lesson
    05 says lost contributions "come in ± pairs and cancel". A lost +push on j
    leaves its −push on i, so ΣF ≠ 0; the strict `NetForceIsZero` test (1e-12
-   relative) would probably fail. Not yet measured.
+   relative) would probably fail. Measured 2026-11-10: racy ×8 net Fx off by
+   1.6e-6 to 8e-5 of Σ|F| (serial 3e-17); claim fixed in lesson 05 + hints.
 
 ## Lesson 05 — in progress (2026-10-14)
 

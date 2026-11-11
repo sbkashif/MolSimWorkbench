@@ -97,8 +97,10 @@ The correct answer was 8.0. You got 7.0. **Nothing crashed, nothing warned, and
 the result looks entirely plausible.** This is a data race, and in C++ it is
 undefined behaviour, not merely a wrong number.
 
-`i` is safe — each thread owns its own `i` — so exactly half of each update is
-correct. That is what makes the bug so slippery: the forces are *mostly* right.
+`i` *looks* safe — each thread owns its own rows — but atom `i` is also the
+`j` of every row below it, which other threads own. So both writes can race.
+Collisions are rare, though, which is what makes the bug so slippery: the
+forces are *mostly* right.
 Lesson 5 turns this on deliberately.
 
 ### Gather: change who does the writing

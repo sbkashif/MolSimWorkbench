@@ -108,7 +108,7 @@ components:
     shift_potential: false
 ```
 
-This is parsed into `LJPotential::addAtomParameters("LJ", 1.0, 1.0)` and `LJPotential::setCutoff(2.5)`.
+This is parsed into `LJPotential::addAtomParameters("LJ", 1.0, 1.0)`, `setCutoff(2.5)`, `setMixingRule("geometric")` and `setTailCorrection(false)`. `shift_potential` and the neighbor-list keys in other files are not read.
 
 ### 3. Geometry config — `data/geometry/water.yaml` (Path B only)
 
