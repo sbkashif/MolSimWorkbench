@@ -2,6 +2,7 @@
 #include "../../utils/yaml_parser.h"
 #include <iostream>
 #include <cmath>
+#include <stdexcept>
 #include <nlohmann/json.hpp>
 
 DFTPotential::DFTPotential(const std::string& parametersFile) {
@@ -40,13 +41,6 @@ void DFTPotential::loadParameters(const std::string& parametersFile) {
         std::cout << "  Functional: " << functional << std::endl;
         std::cout << "  Basis Set: " << basisSet << std::endl;
         std::cout << "  SCF Convergence: " << scfConvergence << std::endl;
-
-        // Only these three have atomic-energy tables in calculateElectronicEnergy;
-        // any other name (PW91, PBE0, ...) is computed with the B3LYP values.
-        if (functional != "B3LYP" && functional != "PBE" && functional != "HF") {
-            std::cerr << "Warning: functional \"" << functional
-                      << "\" has no atomic-energy table; using B3LYP values" << std::endl;
-        }
         
     } catch (const std::exception& e) {
         std::cerr << "Error loading DFT parameters: " << e.what() << std::endl;
@@ -56,6 +50,16 @@ void DFTPotential::loadParameters(const std::string& parametersFile) {
         scfConvergence = 1.0e-6;
         maxScfCycles = 100;
         gridQuality = "fine";
+    }
+
+    // This is a placeholder, not DFT: the functional name only selects one of
+    // three tables of per-atom energies in calculateElectronicEnergy. Checked
+    // outside the try block so the error is not swallowed above.
+    if (functional != "B3LYP" && functional != "PBE" && functional != "HF") {
+        throw std::invalid_argument(
+            "DFT functional \"" + functional + "\" is not recognised. The DFT "
+            "potential is a placeholder that performs no DFT calculation; it has "
+            "per-atom energy tables labelled B3LYP, PBE and HF only");
     }
 }
 
@@ -108,12 +112,8 @@ double DFTPotential::calculateElectronicEnergy(const Geometry& geometry) {
             {"N", -54.401},   // HF nitrogen
             {"O", -74.810}    // HF oxygen
         };
-    } else {
-        // No table of its own (warned about at load): use the B3LYP values
-        atomicEnergies = {
-            {"H", -0.502}, {"C", -37.845}, {"N", -54.583}, {"O", -75.064}
-        };
     }
+    // Any other functional was rejected in loadParameters.
     
     // Calculate atomic contributions
     for (size_t i = 0; i < numAtoms; ++i) {

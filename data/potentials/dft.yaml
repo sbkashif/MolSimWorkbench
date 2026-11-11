@@ -9,9 +9,10 @@ parameters:
   grid_quality: "fine"             # DFT integration grid quality
   exchange_correlation_grid: "SG1" # Grid for XC integration
   
-# Functionals and their properties. Only B3LYP, PBE and HF have their own
-# atomic-energy tables in dft_potential.cpp; PW91 and PBE0 are accepted but
-# computed with the B3LYP values (the engine prints a warning).
+# Placeholder: no DFT calculation is performed. The functional name only picks
+# one of three per-atom energy tables in dft_potential.cpp, labelled B3LYP, PBE
+# and HF; any other name is an error at load.
+# This list is descriptive; the engine reads only `parameters` above.
 functionals:
   B3LYP:
     type: "hybrid"
@@ -25,23 +26,12 @@ functionals:
     exact_exchange: 0.0
     applications: ["solids", "surfaces", "main_group"]
     
-  PW91:
-    type: "gga"
-    description: "Perdew-Wang 91 functional"
-    exact_exchange: 0.0
-    applications: ["solids", "bulk_properties"]
-    
   HF:
     type: "wavefunction"
     description: "Hartree-Fock method"
     exact_exchange: 1.0
     applications: ["reference", "small_molecules"]
     
-  PBE0:
-    type: "hybrid"
-    description: "PBE0 hybrid functional"
-    exact_exchange: 0.25
-    applications: ["thermochemistry", "band_gaps"]
 
 # Supported basis sets and their properties
 basis_sets:
@@ -124,11 +114,6 @@ recommendations:
     functional: "PBE"
     basis_set: "6-31G"
     description: "Faster computation for large systems"
-    
-  high_accuracy:
-    functional: "PBE0"
-    basis_set: "cc-pVDZ"
-    description: "High accuracy calculations"
     
   transition_metals:
     functional: "B3LYP"

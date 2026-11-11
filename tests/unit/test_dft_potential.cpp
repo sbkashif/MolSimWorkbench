@@ -1,7 +1,8 @@
-// The DFT backend has atomic-energy tables for B3LYP, PBE and HF only. Any
-// other functional name is computed with the B3LYP values; it must say so.
+// The DFT potential is a placeholder: the functional name selects one of three
+// per-atom energy tables (B3LYP, PBE, HF). Any other name is rejected at load.
 #include <gtest/gtest.h>
 
+#include <stdexcept>
 #include <string>
 
 #include "builder/geometry.h"
@@ -40,14 +41,20 @@ TEST(DFTFunctional, TabledFunctionalsLoadQuietly) {
     }
 }
 
-TEST(DFTFunctional, UntabledFunctionalWarnsAndUsesB3LYP) {
-    double b3lyp = 0.0, pw91 = 0.0, pbe0 = 0.0;
-    stderrWhenLoading("B3LYP", &b3lyp);
-    const std::string errPW91 = stderrWhenLoading("PW91", &pw91);
-    const std::string errPBE0 = stderrWhenLoading("PBE0", &pbe0);
-
-    EXPECT_NE(errPW91.find("\"PW91\" has no atomic-energy table"), std::string::npos) << errPW91;
-    EXPECT_NE(errPBE0.find("\"PBE0\" has no atomic-energy table"), std::string::npos) << errPBE0;
-    EXPECT_DOUBLE_EQ(pw91, b3lyp);
-    EXPECT_DOUBLE_EQ(pbe0, b3lyp);
+TEST(DFTFunctional, UnknownFunctionalIsAnError) {
+    for (const std::string name : {"PW91", "PBE0"}) {
+        YAMLParser::setLoader([name](const std::string&) {
+            return R"({"parameters": {"functional": ")" + name +
+                   R"(", "basis_set": "6-31G*", "scf_convergence": 1e-6,)"
+                   R"( "max_scf_cycles": 100, "grid_quality": "fine"}})";
+        });
+        try {
+            DFTPotential dft("dft.yaml");
+            ADD_FAILURE() << name << " loaded without an error";
+        } catch (const std::invalid_argument& err) {
+            EXPECT_NE(std::string(err.what()).find("is not recognised"), std::string::npos)
+                << err.what();
+        }
+        YAMLParser::setLoader(nullptr);
+    }
 }

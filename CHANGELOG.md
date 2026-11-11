@@ -16,10 +16,10 @@ Versions before 0.7.0 were numbered afterwards, from the history.
   `true`; it is now `false`, because the correction assumes a uniform fluid
   beyond the cutoff and that file describes one molecule in an empty box. No
   shipped run changes.
-- A DFT functional without its own atomic-energy table (anything but B3LYP,
-  PBE and HF, including PW91 and PBE0, which `dft.yaml` lists) now prints a
-  warning when loaded. It was computed with the B3LYP values without notice;
-  the numbers are unchanged.
+- A DFT functional name other than B3LYP, PBE and HF is now an error when
+  loaded: `std::invalid_argument`, a `ValueError`
+  from Python. It used to be computed with the B3LYP values without notice.
+  PW91 and PBE0 are removed from the descriptive list in `dft.yaml`.
 
 ## 0.7.1 — 2026-11-10
 
