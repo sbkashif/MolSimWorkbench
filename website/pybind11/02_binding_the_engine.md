@@ -281,7 +281,7 @@ run inside the one `runSimulation` call, in C++.
 
 ## Next
 
-Python's part ends at one call, `runSimulation`, and every step of the run
-happens inside it, in C++. [Reading the engine](../engine/reading_the_engine.md)
-opens that call: the objects `from_yaml` built, one class at a time, in the
-order a run uses them.
+On your computer, this path needs Python and the compiled module, yet the Run
+buttons on these pages need neither. [The same module, in your
+browser](03_in_your_browser.md) shows what runs them: these same layers, with
+two more on top.

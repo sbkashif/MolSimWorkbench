@@ -167,7 +167,8 @@ settings into files of the same kind (they use `lj_play_simulation.yaml`, a
 sparser box of 125 atoms, with this same potential file). **Run** does what
 `run.py` does, shows the lines the engine prints, and plays the XYZ trajectory
 as a movie, with every atom drawn at its diameter σ. The engine is compiled to run inside your browser, so it runs
-on your own computer and nothing is sent to a server. The first Run of a visit
+on your own computer and nothing is sent to a server
+([the pybind11 module](../pybind11/03_in_your_browser.md) shows how). The first Run of a visit
 downloads Python for the browser, which takes a few seconds. Your edits are
 gone when you reload the page.
 

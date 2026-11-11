@@ -2,13 +2,17 @@
 
 *Prepared by [Salman Bin Kashif](https://sbkashif.github.io/) as part of the [US-RSE Mentorship Program](https://us-rse.org/wg/mentorship-program), with mentorship from [Chris Neely](https://github.com/cjneely10), and with the help of an AI assistant (see the [AI usage statement](#ai-usage-statement)).*
 
-Molecular simulations have become a popular way to predict the properties of
-materials, and are a critical component of many materials discovery pipelines.
-But their inner workings are hard to understand without writing the code. In the same way, programming is hard to learn without an application in
-mind. So this website takes a hands-on approach to learning both: it helps
-you understand a basic simulation engine piece by piece, and teaches the
-C++ programming it needs along the way (I chose C++ because I wanted to learn
-it; a Python version for a broader audience will be available soon).
+Molecular simulations have become a routine part of materials discovery.
+However, they are often used as a black box. Without knowing what the
+critical parts of the engine do, users cannot be sure what a run has actually
+given them. Understanding those parts means reading and writing code, and
+programming has its own problem: it is hard to learn without something real
+to build.
+
+This website teaches both at once. You take apart a small but real
+simulation engine piece by piece, and learn the C++ it is written in along
+the way. I chose C++ because I wanted to learn it myself; a Python version
+for a broader audience is coming soon.
 
 :::::{admonition} Learning approach: read, play, take apart and code your own
 :class: tip
@@ -55,29 +59,22 @@ modelled well with a simple equation called the Lennard-Jones potential, which
 treats each atom as a soft sphere with two settings: how big it is and how
 sticky it is.
 
-A simulation of argon is a simple loop. It starts with a set of atoms at given
+A simulation of argon is a
+[simple loop](molsim/architecture.md). It starts with a set of atoms at given
 positions. From the positions, the Lennard-Jones potential gives the potential
 energy. Differentiating the energy gives the force on each atom, and
 integrating the forces over a short time step gives the new positions.
 Repeating this many times gives a trajectory: how the atoms move over time.
-The loop is drawn in detail [further down this page](#behind-simrun).
 
-The simulator below holds only 125 atoms: a small nanoscale block of the real
-liquid in a beaker, which would hold about 10²⁴ atoms. Yet 125 atoms
-are enough, because at the scale of a few atoms one small region of a liquid
-looks much like any other. So the properties calculated from how
-these atoms move, such as how close neighbours sit and how fast atoms diffuse,
-are the same ones measured on real liquid argon at the same temperature and
-density. Rahman compared his own results with experiment: the arrangement of
-neighbours with X-ray scattering on liquid argon, and the diffusion with
-measured values. Here, the simulator's results can be checked against his.
+The simulator below holds only 125 atoms, a nanoscale block of liquid argon;
+a beaker of the real liquid holds about 10²⁴. Yet 125 atoms are enough: one
+small region of a liquid looks much like any other, so the properties
+calculated from how these atoms move are the same ones measured on real liquid
+argon at the same temperature and density.
 
-Start by rerunning Rahman's liquid argon with the **Liquid argon at 94.4 K**
-button. The atoms start from a solid-like grid and settle into a liquid as the
-simulation equilibrates; the simulator then shows the two values, compared
-against those Rahman published. After that, play with the parameter space:
-change the temperature and density, or invent a material of your own by
-changing the size and stickiness of its atoms.
+Press **Liquid argon at 94.4 K** to rerun Rahman's liquid. The atoms start from
+a solid-like grid and settle into a liquid; the simulator then shows two
+values, compared against those Rahman published.
 
 ```{engine-play}
 ```
@@ -94,8 +91,14 @@ close to one value:
 - **Diffusion constant:** how quickly atoms wander away from where they were. The
   larger it is, the faster they spread.
 
+Rahman checked both against experiment: the arrangement of neighbours with
+X-ray scattering on liquid argon, and the diffusion with measured values. So
+the table checks your run against his, and through him against real argon.
+
 ## What to look for
 
+Now play with the parameter space: change the temperature and density, or
+invent a material of your own by changing the size and stickiness of its atoms.
 Try these six experiments in order.
 
 ### Change the temperature
@@ -344,6 +347,7 @@ cpp/06_several_files
 pybind11/index
 pybind11/01_a_first_binding
 pybind11/02_binding_the_engine
+pybind11/03_in_your_browser
 ```
 
 ```{toctree}

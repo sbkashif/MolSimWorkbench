@@ -1,8 +1,10 @@
 # Reading the engine
 
 [Binding the engine](../pybind11/02_binding_the_engine.md) followed
-`sim.run()` as far as the bridge: Python builds the engine's objects, then
-makes one call, `runSimulation`, and the whole run happens in C++. This page
+`sim.run()` as far as the bridge, and [the browser
+page](../pybind11/03_in_your_browser.md) showed the same path running on these
+pages: Python builds the engine's objects, then makes one call,
+`runSimulation`, and the whole run happens in C++. This page
 continues on the C++ side. It walks the real engine in the order a run uses
 it, one class at a time, matching each class to its part of the loop in
 [A simple molecular dynamics loop](../molsim/architecture.md), and
