@@ -88,5 +88,5 @@ print(f"\n  2. Edit {os.path.join(project_root, 'data/lj_bulk_simulation.yaml')}
 print(f"     - num_particles: system size")
 print(f"     - density: packing density")
 print(f"     - temperature: initial velocity distribution")
-print(f"     - equilibration_steps, production_steps: simulation duration")
+print(f"     - total_steps: simulation duration")
 print("=" * 80)

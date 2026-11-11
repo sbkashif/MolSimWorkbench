@@ -1,0 +1,7 @@
+# Compiled programs stay out of git; only sources are tracked.
+*
+!*/
+!*.cpp
+!*.h
+!*.py
+!.gitignore

@@ -1,0 +1,31 @@
+# The run behind the sliders on the website's home page: a sparse box, so that
+# the temperature, the attraction and the size of the atoms all visibly matter.
+
+simulation:
+  type: "dynamics"
+  system_mode: "lj_particle_box"
+  timestep: 0.004
+  total_steps: 2500
+  temperature: 1.0
+  random_seed: 42
+
+  lj_box:
+    num_particles: 125
+    density: 0.3
+    temperature: 1.0
+    initialization: "cubic_lattice"
+    random_seed: 42
+
+  minimization:
+    algorithm: "steepest_descent"
+    max_iterations: 100
+    energy_tolerance: 1e-6
+    force_tolerance: 1e-4
+
+  output:
+    frequency: 50
+    trajectory: true
+    energy: true
+
+potential_config_files:
+  - "potentials/lj_bulk.yaml"

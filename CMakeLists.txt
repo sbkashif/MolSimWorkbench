@@ -12,6 +12,9 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# The static libraries are linked into the Python module, a shared library;
+# on Linux that needs position-independent code (macOS builds it by default).
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Enable testing support
 enable_testing()
@@ -20,7 +23,7 @@ enable_testing()
 include(FetchContent)
 FetchContent_Declare(
     json
-    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
@@ -81,6 +84,10 @@ add_library(BuilderLib STATIC
     src/utils/trajectory_writer.cpp  # Add trajectory writer
 )
 target_link_libraries(BuilderLib PUBLIC nlohmann_json::nlohmann_json)
+# GCC 8 ships std::filesystem in a separate library.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.1)
+    target_link_libraries(BuilderLib PUBLIC stdc++fs)
+endif()
 target_include_directories(BuilderLib PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${nlohmann_json_SOURCE_DIR}/include

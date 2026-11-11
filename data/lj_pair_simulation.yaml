@@ -1,0 +1,22 @@
+# Two LJ atoms read from a geometry file, instead of a box built by the
+# engine (system_mode "lj_particle_box"). Reduced units throughout.
+simulation:
+  type: "dynamics"
+  timestep: 0.001
+  temperature: 1.0
+  total_steps: 20
+  random_seed: 42
+  minimization:
+    algorithm: "steepest_descent"
+    max_iterations: 100
+    energy_tolerance: 1e-6
+    force_tolerance: 1e-4
+  output:
+    frequency: 10
+    trajectory: true
+    energy: true
+
+potential_config_files:
+  - "potentials/lj_bulk.yaml"
+
+geometry_file: "geometry/lj_pair.yaml"

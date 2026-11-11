@@ -1,6 +1,7 @@
 #ifndef YAML_PARSER_H
 #define YAML_PARSER_H
 
+#include <functional>
 #include <string>
 #include <map>
 #include <vector>
@@ -23,8 +24,16 @@ struct SimulationConfig {
 
 class YAMLParser {
 public:
+    // Turns a YAML file into JSON text.
+    using Loader = std::function<std::string(const std::string&)>;
+
     YAMLParser();
     ~YAMLParser();
+
+    // Replaces the default loader, which starts a separate Python process.
+    // A web browser cannot start one, so the browser build sets a loader from
+    // the Python it is already running in.
+    static void setLoader(Loader loader);
     
     // Parse the main simulation configuration
     SimulationConfig parseSimulationConfig(const std::string& filename);
@@ -39,6 +48,8 @@ public:
     nlohmann::json parseYAMLFile(const std::string& filename);
     
 private:
+    static Loader loader;
+
     // Specialized parsers for different potential types
     std::shared_ptr<Potential> parseClassicalPotential(const nlohmann::json& json);
     std::shared_ptr<Potential> parseQuantumPotential(const nlohmann::json& json, const std::string& sourcePath);

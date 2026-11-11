@@ -2,6 +2,7 @@
 build/
 build-learn/
 build-tsan/
+build-wasm/
 bin/
 lib/
 obj/
@@ -102,3 +103,6 @@ venv/
 docs/ai_assistance
 /CLAUDE.md
 /docs/claude
+
+# Sphinx website build
+website/_build/

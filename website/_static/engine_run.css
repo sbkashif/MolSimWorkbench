@@ -1,0 +1,274 @@
+/* Settings files and Run button (engine_run.js). */
+.engine-run {
+  margin: 1.5em 0;
+  padding: 1em;
+  border: 1px solid var(--pst-color-border, #dadce0);
+  border-radius: 8px;
+}
+.engine-run-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+}
+.engine-run-files label {
+  flex: 1 1 280px;
+  min-width: 0;
+  margin: 0;
+}
+.engine-run-files label > span {
+  display: block;
+  margin-bottom: 0.3em;
+  font-family: var(--pst-font-family-monospace, monospace);
+  font-size: 0.85em;
+}
+/* Terminal look, the same in light and dark mode (One Dark colours). */
+.engine-code {
+  position: relative;
+  border-radius: 4px;
+  background: #282c34;
+}
+.engine-code pre,
+.engine-code textarea {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.5em;
+  border: 0;
+  border-radius: 4px;
+  font-family: var(--pst-font-family-monospace, monospace);
+  font-size: 0.8em;
+  line-height: 1.5;
+  tab-size: 8;
+  white-space: pre;
+}
+.engine-code pre {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: #abb2bf;
+  background: none;
+  pointer-events: none;
+}
+.engine-code textarea {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: auto;
+  resize: vertical;
+  color: transparent;
+  caret-color: #fff;
+  background: none;
+}
+.engine-code textarea::selection {
+  background: rgba(171, 178, 191, 0.3);
+}
+.engine-comment { color: #7f848e; }
+.engine-key { color: #e06c75; }
+.engine-string { color: #98c379; }
+.engine-number { color: #d19a66; }
+.engine-word { color: #c678dd; }
+.engine-error { color: #e06c75; font-weight: 600; }
+.engine-run-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 0.75em;
+}
+.engine-run-bar button {
+  padding: 0.25em 0.9em;
+  color: var(--pst-color-text-base, #222832);
+  background: var(--pst-color-surface, #f5f5f5);
+  border: 1px solid var(--pst-color-border, #dadce0);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.engine-run-bar button:first-child {
+  color: #fff;
+  background: #1a9e9a;
+  border-color: #1a9e9a;
+}
+.engine-states .engine-run-bar button,
+.engine-play-presets button {
+  color: #fff;
+  background: #1a9e9a;
+  border-color: #1a9e9a;
+}
+.engine-run-bar button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.engine-run-status {
+  font-size: 0.9em;
+  color: var(--pst-color-text-muted, #5f6368);
+}
+/* One row each, top to bottom: printed lines, then the movie or the plot. */
+.engine-run-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+  margin-top: 0.75em;
+}
+.engine-run-results .engine-run-output {
+  width: 100%;
+  max-height: 13em;
+  margin: 0;
+  padding: 0.6em;
+  overflow: auto;
+  border: 0;
+  border-radius: 4px;
+  font-size: 0.75em;
+  color: #abb2bf;
+  background: #282c34;
+}
+.engine-run-results img {
+  align-self: center;
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: 4px;
+}
+.engine-run-movie {
+  align-self: center;
+  width: 100%;
+  max-width: 360px;
+}
+.engine-run-movie canvas {
+  display: block;
+  max-width: 100%;
+}
+.engine-run-movie-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.85em;
+}
+.engine-run-movie-controls button {
+  padding: 0.1em 0.7em;
+  color: var(--pst-color-text-base, #222832);
+  background: var(--pst-color-surface, #f5f5f5);
+  border: 1px solid var(--pst-color-border, #dadce0);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.engine-run-movie-controls input {
+  flex: 1;
+  min-width: 0;
+  accent-color: #1a9e9a;
+}
+.engine-run-movie-controls output {
+  min-width: 5.5em;
+  text-align: right;
+  font-family: var(--pst-font-family-monospace, monospace);
+}
+
+/* The home page's sliders. */
+.engine-play {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  margin: 1.5em 0;
+  padding: 1em;
+  border: 1px solid var(--pst-color-border, #dadce0);
+  border-radius: 8px;
+}
+.engine-play .engine-run-movie {
+  align-self: center;
+  width: 100%;
+  max-width: 360px;
+}
+.engine-play-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  margin: 0.25em 0;
+}
+.engine-play-controls span {
+  min-width: 6em;
+  font-weight: 600;
+}
+.engine-play-controls input {
+  flex: 1;
+  min-width: 0;
+  accent-color: #1a9e9a;
+}
+.engine-play-controls output {
+  min-width: 7.5em;
+  text-align: right;
+  font-family: var(--pst-font-family-monospace, monospace);
+  font-size: 0.9em;
+}
+.engine-play-controls p {
+  margin: 0 0 0.6em;
+  font-size: 0.85em;
+  color: var(--pst-color-text-muted, #5f6368);
+}
+.engine-play-controls .engine-play-presets {
+  margin: 0.25em 0;
+}
+.engine-play-controls .engine-play-custom {
+  margin: 0.9em 0 0.25em;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--pst-color-text-base, #222832);
+}
+/* Movie and terminal: two equal panels, stacked on a narrow screen. */
+.engine-play-stage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1em;
+  align-items: start;
+}
+.engine-play-stage .engine-run-movie {
+  max-width: none;
+}
+.engine-play-stage .engine-run-movie canvas {
+  width: 100% !important;
+}
+.engine-play-stage .engine-run-output {
+  box-sizing: border-box;
+  height: 27.5em;
+  max-height: none;
+  margin: 0;
+  padding: 0.7em;
+  overflow: auto;
+  border: 0;
+  border-radius: 4px;
+  font-size: 0.75em;
+  line-height: 1.5;
+  color: #abb2bf;
+  background: #282c34;
+}
+/* Keep the movie's controls' space, so that the sliders do not jump after a run. */
+.engine-play-stage .engine-run-movie-controls[hidden] {
+  display: flex !important;
+  visibility: hidden;
+}
+@media (max-width: 720px) {
+  .engine-play-stage {
+    grid-template-columns: 1fr;
+  }
+  .engine-play-stage .engine-run-output {
+    height: 18em;
+  }
+}
+.engine-play-panel {
+  min-width: 0;
+}
+.engine-play-heading {
+  margin-bottom: 0.4em;
+  font-weight: 600;
+  text-align: center;
+}
+.engine-banner {
+  font-size: 0.9em;
+  line-height: 1.15;
+  color: #56b6c2;
+}
+.engine-press {
+  padding: 0.1em 0.2em;
+  border-radius: 3px;
+  font-weight: 600;
+  color: #fff;
+  background: #1a9e9a;
+  cursor: pointer;
+}

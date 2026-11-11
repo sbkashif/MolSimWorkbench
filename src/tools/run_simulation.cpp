@@ -62,7 +62,6 @@ int main(int argc, char* argv[]) {
             if (config.simulationParams.productionSteps > 0) {
                 std::cout << "Production phase: " << config.simulationParams.productionSteps << " steps" << std::endl;
             }
-            // TODO: Implement phase-aware runSimulation in Phase D
         }
         
         dynamics.runSimulation();

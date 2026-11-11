@@ -103,6 +103,7 @@ private:
     
     // Current state
     double currentEnergy;
+    double potentialEnergy = 0.0;  // set by calculateForces(), same positions as `forces`
     int currentStep;
     
     // Helper methods for minimization

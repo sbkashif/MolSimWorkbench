@@ -3,6 +3,7 @@
 #include <array>
 #include <vector>
 #include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include "../builder/geometry.h"
 #include "../builder/lj_particle_box_builder.h"
@@ -153,4 +154,6 @@ PYBIND11_MODULE(_molsim, module) {
         .def("parseSimulationConfig", &YAMLParser::parseSimulationConfig)
         .def("parseGeometry", &YAMLParser::parseGeometry)
         .def("parsePotential", &YAMLParser::parsePotential);
+
+    module.def("setYAMLLoader", &YAMLParser::setLoader);
 }

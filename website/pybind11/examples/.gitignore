@@ -1,0 +1,4 @@
+# Built extension modules stay out of git; only sources are tracked.
+*.so
+*.pyd
+__pycache__/

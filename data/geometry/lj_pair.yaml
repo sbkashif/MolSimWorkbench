@@ -1,0 +1,12 @@
+# Two LJ atoms 1.5 sigma apart, in reduced units: the pair of the C++
+# module's first program (website/cpp/examples/ch01/pair.cpp).
+molecule:
+  name: "LJ pair"
+  atoms:
+    - { type: "LJ", position: [0.0, 0.0, 0.0] }
+    - { type: "LJ", position: [1.5, 0.0, 0.0] }
+
+# Simulation box, in units of sigma.
+box:
+  type: "cubic"
+  dimensions: [10.0, 10.0, 10.0]

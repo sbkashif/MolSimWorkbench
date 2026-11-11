@@ -11,6 +11,12 @@
 #include "../engine/potentials/lj_potential.h"
 #include "../engine/potentials/dft_potential.h"
 
+YAMLParser::Loader YAMLParser::loader;
+
+void YAMLParser::setLoader(Loader newLoader) {
+    loader = std::move(newLoader);
+}
+
 YAMLParser::YAMLParser() {
     // Constructor
 }
@@ -29,6 +35,10 @@ double stringToDouble(const std::string& str) {
 }
 
 nlohmann::json YAMLParser::parseYAMLFile(const std::string& filename) {
+    if (loader) {
+        return nlohmann::json::parse(loader(resolvePath(filename)));
+    }
+
     // Get the absolute path to the Python script
     std::filesystem::path currentPath = std::filesystem::current_path();
     std::string scriptPath;
