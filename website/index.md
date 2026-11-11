@@ -313,9 +313,8 @@ code and the pages, I had the assistant quiz me on them; some of those
 questions became the "Check yourself" sections.
 
 What you read here is still my own understanding, written down with AI help.
-I am responsible for the content, but not all of it has been vetted by hand
-yet: some pages, including those marked *Draft*, have not had my own
-line-by-line review. Before release, every page was also checked against the
+Not all of it has been vetted by hand yet: some pages, including those marked
+*Draft*, have not had my own line-by-line review. Before release, every page was also checked against the
 engine's code by AI reviewers, and the errors they found were fixed, but that
 is not a substitute for a careful human read. So the pages may still contain
 mistakes. If you find one, please open an issue on the
