@@ -28,3 +28,22 @@ jobs:
 
       - name: Run cross-platform checks
         run: bash scripts/ci/run_all.sh --clean
+
+  website:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: website/requirements.txt
+
+      - name: Install website dependencies
+        run: python -m pip install -r website/requirements.txt
+
+      - name: Build website (warnings are errors)
+        run: python -m sphinx -E -W --keep-going -b html website website/_build/html
