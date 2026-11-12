@@ -392,4 +392,5 @@ agent/01_training_an_mlip
 agent/02_the_agent
 agent/03_first_run
 agent/04_the_code
+agent/05_the_graph
 ```
