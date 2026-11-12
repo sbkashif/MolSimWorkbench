@@ -107,7 +107,9 @@
 .home-half .concept-stack .sd-badge {
   position: static; display: inline-block; margin-top: 0.2em; font-size: 0.72em;
 }
-.home-half .concept-stack li p code { font-size: 0.85em; word-break: break-word; }
+.home-half .concept-stack li p code { font-size: 0.85em; overflow-wrap: anywhere; }
+/* The theme keeps code on one line; let long names wrap inside the narrow column. */
+.home-half .concept-stack li p code span.pre { white-space: normal; }
 /* The rows that repeat on every time step. */
 .home-half .concept-stack > ul > li > ul {
   position: relative;

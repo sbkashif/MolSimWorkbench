@@ -69,7 +69,7 @@ treats each atom as a soft sphere with two settings: how big it is and how
 sticky it is.
 
 A simulation of argon is a
-[simple loop](molsim/architecture.md). It starts with a set of atoms at given
+[simple loop](#behind-sim-run). It starts with a set of atoms at given
 positions. From the positions, the Lennard-Jones potential gives the potential
 energy. Differentiating the energy gives the force on each atom, and
 integrating the forces over a short time step gives the new positions.
@@ -90,10 +90,12 @@ values, compared against those Rahman published.
 
 ## Reading the Simulator panel
 
-The lines that scroll past are the engine reporting on each step of the run. You can
-ignore the energies for now: the next page explains them. A table appears when the
-run ends, showing two measurements. They wobble while the run is short, then stay
-close to one value:
+When you run the simulator, it prints the energies of the configuration at
+each step, and the Visualization panel shows the configuration itself. You can ignore the energies for now. What matters is what the
+configurations add up to: a property of the material is an average over many
+configurations, and the table at the end of the run reports two such
+properties, one structural and one dynamic. Each row averages over a longer
+stretch of the run than the one before, so the values settle as you read down:
 
 - **Nearest neighbours:** the distance at which atoms most often sit next to each
   other.
@@ -203,10 +205,8 @@ a liquid or a gas.
 
 ## Behind the buttons
 
-Each run writes your settings into the settings files, then runs this short
-Python script. The sliders use real units, with stickiness written as a temperature.
-The engine works in reduced units, so each setting goes in divided by argon's value:
-96 K becomes `temperature: 0.8`, which is the number you see in the Simulator panel.
+Each run writes your slider settings into the config files as config values,
+with some unit conversions, then runs this short Python script.
 
 ```python
 from molsimworkbench import System
@@ -255,14 +255,14 @@ click a call to see its code.
 - [`sim.run()`](pybind11/02_binding_the_engine.md#following-simrun)\
   Python calls into C++ through the compiled module
   [`_molsim`](pybind11/02_binding_the_engine.md#the-bridge-molsim_bindingscpp).
-  - [`MolecularDynamics::runSimulation()`](engine/reading_the_engine.md#the-loop-moleculardynamics)\
+  - [`MolecularDynamics::​runSimulation()`](engine/reading_the_engine.md#the-loop-moleculardynamics)\
     One pass of the simulation loop per time step.
-    - [`VelocityVerletIntegrator::step()`](engine/reading_the_engine.md#the-loop-moleculardynamics)\
+    - [`VelocityVerletIntegrator::​step()`](engine/reading_the_engine.md#the-loop-moleculardynamics)\
       Moves every atom by its velocity and force.
-      - [`ForceCalculator::calculateForcesAndEnergy()`](engine/reading_the_engine.md#the-force-step-forcecalculator)\
+      - [`ForceCalculator::​calculateForcesAndEnergy()`](engine/reading_the_engine.md#the-force-step-forcecalculator)\
         Adds up the forces of every
         energy function.
-        - [`LJPotential::calculateForcesAndEnergy()`](engine/reading_the_engine.md#the-socket-potential)\
+        - [`LJPotential::​calculateForcesAndEnergy()`](engine/reading_the_engine.md#the-socket-potential)\
           The energy function, here
           Lennard-Jones.
           - [`ljComputeGather(view, backend, numThreads)`](engine/reading_the_engine.md#the-pair-loop)\
@@ -286,15 +286,18 @@ system, a different integrator, a different energy function. For that, learn
 - **November 2026:** A new section,
   [agentic AI in a molecular simulation workflow](agent/01_training_an_mlip.md),
   hands the decisions in training a machine learning interatomic potential to
-  a language model. For the MD it uses OpenMM beside this simulator, because
-  OpenMM can already run such a potential.
-- **October 2026:** Grown into a molecular simulation workflow, with a Python
-  interface and settings files. It is built so that any part of a molecular
-  simulation, such as the energy function, the integrator or the thermostat,
-  can be swapped for a new one, so that a new concept can be learned by adding
-  it. The first addition, density functional
-  theory and ab initio MD, is still a work in progress.
-- **April 2025:** Rewritten in C++, as an application for learning basic C++
+  a language model. For now it runs its simulations in OpenMM, until our
+  simulator supports MLIPs.
+- **October 2026:** Turned into a website, with a built-in simulator to explore
+  the parameter space and detailed lessons on molecular simulation and
+  programming.
+- **September 2025:** Grown into a general molecular simulation workflow, with
+  a Python interface and config files. It is built so that any part of a
+  molecular simulation, such as the energy function, the integrator or the
+  thermostat, can be swapped for a new one, so that a new concept can be
+  learned by adding it.
+- **April 2025:** Rewritten in C++ with AI agents, as an application for
+  learning basic C++
   ([repository](https://github.com/sbkashif/lennard-jones-cpp)).
 - **March 2018:** The code started as a class project, a Lennard-Jones simulation
   in Python for a course on multiscale modelling at Clemson University, taught
@@ -312,22 +315,19 @@ Anthropic). However, both the code and the pages were revised substantially
 after the AI's first drafts, as the commit history shows.
 
 My aim in building this simulator and website is to learn new skills from the
-ground up, hands-on, by building applications related to my field. My own
-research projects have had little room for new and advanced concepts, such as
-agentic workflows, at the *rigor* needed for publication. So I built this
+ground up, by building applications related to my field. My own research
+projects have had little room for new and advanced concepts, such as agentic
+workflows, given the time a rigorous study needs. So I built this
 *workbench* to learn such concepts hands-on, and used AI heavily to reduce the
 logistical friction: first to build working end-to-end applications, then to
 learn the basics interactively, and to write the webpages. I read the code
-and the pages, had the assistant quiz me on them (some of those questions
-became the "Check yourself" sections), and revised the pages several times
-until they matched my own understanding, presentation style and language.
+and the pages, had the assistant quiz me on them, and revised the pages
+several times until they matched my own understanding, presentation style and
+language. What you read here is my own understanding, written down with AI
+help.
 
-What you read here is my own understanding, written down with AI help. I have
-read most of it and revised it more than once, but not all of it has been
-vetted line by line: some pages, including those marked *Draft*, have not had
-that careful check yet. Before release, every page was also checked against
-the engine's code by AI reviewers, and the errors they found were fixed, but
-that is not a substitute for a careful human read. So the pages may still contain
+While I have revised much of the content, I am still far from vetting every
+line, so many sections are marked *Draft*. The pages may still contain
 mistakes. If you find one, please open an issue on the
 [repository](https://github.com/sbkashif/MolSimWorkbench).
 :::
