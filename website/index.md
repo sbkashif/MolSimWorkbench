@@ -69,7 +69,7 @@ treats each atom as a soft sphere with two settings: how big it is and how
 sticky it is.
 
 A simulation of argon is a
-[simple loop](#behind-sim-run). It starts with a set of atoms at given
+{ref}`simple loop <behind-sim-run>`. It starts with a set of atoms at given
 positions. From the positions, the Lennard-Jones potential gives the potential
 energy. Differentiating the energy gives the force on each atom, and
 integrating the forces over a short time step gives the new positions.
@@ -224,6 +224,7 @@ Simulator panel from `traj.xyz`: the nearest-neighbour distance from how often p
 of atoms sit at each distance, and the diffusion constant from how fast the atoms
 spread from where they were.
 
+(behind-sim-run)=
 ## Behind `sim.run()`
 
 The last line of the script hands control to the C++ engine, which runs **the
