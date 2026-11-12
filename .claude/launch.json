@@ -4,8 +4,20 @@
     {
       "name": "website",
       "runtimeExecutable": "env",
-      "runtimeArgs": ["NO_OPEN=1", "website/preview.sh"],
+      "runtimeArgs": [
+        "NO_OPEN=1",
+        "website/preview.sh"
+      ],
       "port": 8000
+    },
+    {
+      "name": "website-web-edits",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NO_OPEN=1",
+        ".claude/worktrees/web-edits/website/preview.sh"
+      ],
+      "port": 8010
     }
   ]
 }
