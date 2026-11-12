@@ -1,6 +1,6 @@
 # Several files: headers, source files and linking
 
-Every program so far is one file. The engine's `src/` folder holds 33 files: mostly
+Every program so far is one file. The engine's `src/` folder holds 43 C++ files: mostly
 one header and one source file per class, plus the command-line tool and
 the Python bindings. This chapter splits the
 `LJPotential` of [Classes](04_classes.md) into a header, a source file and a
@@ -71,8 +71,8 @@ its own into an object file; the linker matches every function that
 
 `main.cpp` compiled without the code of `energy`: the declaration in `lj.h`
 was enough for the compiler to check the call, as `pow`'s declaration was in
-chapter 1. The object files record the difference. Listing their names, as
-chapter 1 did for `pow`, shows `U` (undefined, needed) in `main.o` and `T`
+chapter 1. The object files record the difference. Listing the names in each one
+with `nm` shows `U` (undefined, needed) in `main.o` and `T`
 (code present) in `lj.o`:
 
 ```console
@@ -161,6 +161,13 @@ that list into the compile and link commands. Three of its entries:
 add_library(EngineLib STATIC
     src/engine/force_calculator.cpp
     src/engine/molecular_dynamics.cpp
+    src/engine/md_state.cpp
+    src/engine/integrators/integrator.cpp
+    src/engine/integrators/velocity_verlet_integrator.cpp
+    src/engine/integrators/leapfrog_integrator.cpp
+    src/engine/thermostats/thermostat.cpp
+    src/engine/thermostats/velocity_rescale_thermostat.cpp
+    src/engine/thermostats/langevin_thermostat.cpp
     src/engine/potentials/lj_potential.cpp
     src/engine/potentials/lj_kernels.cpp
     src/engine/potentials/dft_potential.cpp
@@ -183,6 +190,13 @@ target_link_libraries(run_simulation PRIVATE BuilderLib EngineLib)
   __.SYMDEF
   force_calculator.cpp.o
   molecular_dynamics.cpp.o
+  md_state.cpp.o
+  integrator.cpp.o
+  velocity_verlet_integrator.cpp.o
+  leapfrog_integrator.cpp.o
+  thermostat.cpp.o
+  velocity_rescale_thermostat.cpp.o
+  langevin_thermostat.cpp.o
   lj_potential.cpp.o
   lj_kernels.cpp.o
   dft_potential.cpp.o

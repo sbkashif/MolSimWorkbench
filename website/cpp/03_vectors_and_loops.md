@@ -124,9 +124,9 @@ whole number that cannot be negative.
 The addresses start with `0x6000...`, not the `0x16...` of chapter 1's
 variables. The vector variable itself is small (24 bytes on this Mac) and
 sits with `main`'s other variables; it records where its elements are and
-how many there are. The elements live in another part of memory, which the
-vector asks the operating system for while the program runs, and can ask
-for more of when `push_back` needs room ({numref}`cpp3-vector-figure`).
+how many there are. The elements live in another part of memory, the heap,
+which the vector requests while the program runs, and requests more of when
+`push_back` needs room ({numref}`cpp3-vector-figure`).
 
 ```{figure} ../figures/cpp3_vector.svg
 :name: cpp3-vector-figure

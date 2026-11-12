@@ -163,8 +163,8 @@ energies:
 
 The list is a `std::vector<std::shared_ptr<Potential>>`. A `shared_ptr` is a
 pointer that several objects can share, and that deletes the object when
-the last one lets go; here it lets the list hold LJ and DFT potentials side
-by side, each reached through the `Potential` socket
+the last one lets go; here it lets the list hold different kinds of potential
+side by side, each reached through the `Potential` socket
 ([The plug](../cpp/05_the_plug.md)). With one potential in the list, as in
 every run on these pages, the sum has one term.
 
@@ -292,9 +292,9 @@ on these pages:
 - **Every pair is checked** on every step, so the work grows as $N^2$; there
   is no neighbour list yet that would skip far pairs cheaply.
 - **The LJ energy is cut, not shifted,** at the cutoff, and no tail
-  correction is added by default. `LJPotential` can add the tail correction
-  (`setTailCorrection`), but the YAML keys `tail_correction` and
-  `shift_potential` are not read by the parser.
+  correction is added by default. The tail correction is opt-in
+  (`tail_correction: true` in the potential YAML, or `setTailCorrection`),
+  but the YAML key `shift_potential` is not read by the parser.
 - **Every atom has mass 1.**
 - **The default thermostat is the simplest kind:** an exact rescaling after
   every step, which holds the temperature fixed but does not let it
@@ -327,9 +327,9 @@ $(i, j)$ once from atom $i$ and once from atom $j$. The potential energy that
 `calculateForcesAndEnergy`, so it costs no second loop.
 :::
 
-:::{dropdown} 4. A run's YAML says tail_correction: true. Is the tail correction applied?
-No. The parser does not read that key, so the run uses the default, no tail
-correction.
+:::{dropdown} 4. A run's YAML says shift_potential: true. Is the potential shifted?
+No. The parser does not read that key, so the run uses the default: the
+energy is cut at the cutoff, not shifted.
 :::
 
 ## Next

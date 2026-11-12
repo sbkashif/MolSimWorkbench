@@ -53,7 +53,7 @@ pybind11 itself is a header-only library: compiling with its headers is all
 it takes, with no extra library to link
 ([building manually](https://pybind11.readthedocs.io/en/stable/compiling.html)).
 Install it into the Python you will import the module with; the examples here
-use the `molsim-docs` conda environment and pybind11 2.13.1, the same version
+use pybind11 2.13.1, the same version
 the engine's build fetches:
 
 ```console

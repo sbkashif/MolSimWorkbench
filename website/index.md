@@ -220,7 +220,8 @@ spread from where they were.
 The last line of the script hands control to the C++ engine, which runs **the
 loop** of every molecular dynamics simulation: one turn per time step, thousands
 of turns per run. Here is that loop twice, as physics and as the code that does
-it. Each call is made by the one above it, and the highlighted part is the loop;
+it. Each call leads to the one below it (small helpers in between are left
+out), and the highlighted part is the loop;
 click a call to see its code.
 
 :::::{grid} 1 1 2 2
@@ -307,13 +308,18 @@ research projects have had little room for new and advanced concepts, such as
 agentic workflows, at the *rigor* needed for publication. So I built this
 *workbench* to learn such concepts hands-on, and used AI heavily to reduce the
 logistical friction: first to build working end-to-end applications, then to
-learn the basics interactively, and to write the webpages. After reading the
-code and the pages, I had the assistant quiz me on them; some of those
-questions became the "Check yourself" sections.
+learn the basics interactively, and to write the webpages. I read the code
+and the pages, had the assistant quiz me on them (some of those questions
+became the "Check yourself" sections), and revised the pages several times
+until they matched my own understanding, presentation style and language.
 
-What you read here is still my own understanding, written down with AI help.
-I am responsible for the content and have made reasonable checks, but it may
-still contain mistakes. If you find one, please open an issue on the
+What you read here is my own understanding, written down with AI help. I have
+read most of it and revised it more than once, but not all of it has been
+vetted line by line: some pages, including those marked *Draft*, have not had
+that careful check yet. Before release, every page was also checked against
+the engine's code by AI reviewers, and the errors they found were fixed, but
+that is not a substitute for a careful human read. So the pages may still contain
+mistakes. If you find one, please open an issue on the
 [repository](https://github.com/sbkashif/MolSimWorkbench).
 :::
 

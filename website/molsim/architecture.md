@@ -1,5 +1,11 @@
 # A simple molecular dynamics loop
 
+:::{admonition} Draft
+:class: warning
+This page is being revised. The runs on it are real runs of the engine, but
+the text may still change.
+:::
+
 On the [home page](../index.md) you ran liquid argon and read the loop in one
 paragraph: from the positions of the atoms comes the potential energy,
 differentiating it gives the forces, the forces move the atoms over a short
@@ -396,7 +402,7 @@ displacement** (MSD) tells the two apart: the average over all atoms of the
 squared distance each has travelled since the start. In a solid it levels
 off at a small value. In {numref}`run-msd-figure` it grows in a straight
 line, by 0.40σ² per unit of time. At t = 4 it is 1.65σ²: a typical atom has
-travelled 1.29σ, farther than the 1.08σ between neighbours on the starting
+travelled about 1.3σ, farther than the 1.08σ between neighbours on the starting
 grid.
 
 ```{figure} ../figures/run_msd.svg

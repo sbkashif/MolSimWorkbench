@@ -23,7 +23,8 @@ stickier one with twice the ε:
 `lj_energy` (lines 6–12) is the function of chapter 2 with the cutoff
 added, and `total_energy` (lines 21–31) is the double loop of chapter 3. The
 first two calls in `main` are correct. The last two each contain a slip of
-the kind that is easy to make when a call lists six or seven values:
+the kind that is easy to make when six loose values feed calls that each
+take several of them:
 
 ```console
 $ clang++ -std=c++17 -Wall -Wextra loose_settings.cpp -o loose_settings

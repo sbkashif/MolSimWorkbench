@@ -10,7 +10,7 @@ chapters will appear as their measurements are finished.
 [OpenMP and speedup](../parallel/03_openmp_and_speedup.md) ran the pair loop
 on the 10 cores of a processor. A graphics card, or **GPU**, runs thousands
 of threads at once, each at a lower clock speed than a processor core: on
-the machine below, 1.74 GHz at most against about 3.2 GHz. The card wins
+the machine below, 1.74 GHz at most against up to 3.5 GHz. The card wins
 only when it is given a great deal of the same work, and the pair loop of a
 large system is exactly that. This module will run the
 engine's gather loop on a GPU with **CUDA**, NVIDIA's way of programming its

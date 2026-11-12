@@ -69,7 +69,7 @@ Read the line one part at a time:
   iterations "will be executed in parallel by threads in the team", and the
   threads wait for each other at the end of the loop
   ([OpenMP 5.0, worksharing-loop construct](https://www.openmp.org/spec-html/5.0/openmpsu41.html)).
-  This is the block split and the `join` from the last chapter, done for you.
+  This is the split and the `join` from the last chapter, done for you.
 - **`schedule(guided)`**: how the iterations are handed out. With `static`,
   each thread gets an equal share up front, as in the last chapter. With
   `guided`, threads take chunks as they finish the previous one, and the
@@ -79,7 +79,10 @@ Read the line one part at a time:
 - **`reduction(+:acc)`**: every thread adds the energy into its own private
   copy of `acc`, and the copies are added together at the end
   ([OpenMP 5.0, reduction clause](https://www.openmp.org/spec-html/5.0/openmpsu107.html)).
-  It is the `partial[t]` slots of the last chapter, done for you.
+  It is the `partial[t]` slots of the last chapter, done for you, with one
+  difference: OpenMP does not fix the order in which the copies are added,
+  so the last digits of the energy can differ between runs. The forces do not
+  change, since each one is still added up by a single thread.
 - **`num_threads(numThreads)`**: how many threads to start.
 
 Each iteration calls `computeRange` for one atom, the gather kernel, so every
