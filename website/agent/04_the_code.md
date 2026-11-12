@@ -486,5 +486,8 @@ chooses better: each LLM ran once. The next
 steps are to repeat the runs, and to move the order of work from the goal into
 `check`, so that a model cannot be declared done without its checks.
 
-This is the last page of the module for now. To read it again from the task
-itself, go back to [the first page](01_training_an_mlip.md).
+Before either, the loop itself can be made sturdier. A run takes more than half
+an hour, and if it stops part-way it is lost.
+[The loop as a graph](05_the_graph.md) writes the same loop with LangGraph, so
+that a stopped run carries on where it stopped, and a person can be asked
+before each training.

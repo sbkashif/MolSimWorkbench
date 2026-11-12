@@ -20,3 +20,8 @@ dependencies:
       - ase==3.29.0
       - ollama==0.6.3      # the Python client for a local LLM
       - anthropic==2.6.0   # only for a Claude model (needs your own API key)
+      # Only for graph.py, the LangGraph version of the loop (added 2026-11-11).
+      - langchain-core==1.7.6
+      - langchain-ollama==1.1.0
+      - langgraph==1.2.20
+      - langgraph-checkpoint-sqlite==3.1.3

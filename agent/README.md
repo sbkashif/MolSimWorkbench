@@ -10,6 +10,8 @@ harness enforces the limits and writes every step to a log. The website section
 | `data.py` | turns rMD17 ethanol into the files MACE reads: training frames (official split, at most 1000), 500 selection frames from neither official set, and the official 1000 test frames as the final test |
 | `tools.py` | `train`, `evaluate`, `run_md`, `add_data`, `final_test`, and the tool list the LLM sees |
 | `harness.py` | the loop: send the history, check the call, run the tool, log it, then score the final test |
+| `graph.py` | the same loop as a LangGraph graph: saved after every step so a stopped run can resume, with an optional pause for your yes before each training |
+| `test_graph.py` | tests for `graph.py` with a scripted LLM and fake tools: `python -m agent.test_graph` |
 
 ## Run
 
@@ -24,6 +26,18 @@ python -m agent.harness --model qwen3:8b --run-dir agent/runs/mine
 A model name starting with `claude-` uses Anthropic's API instead, and needs
 `ANTHROPIC_API_KEY` set. Tested on macOS (Apple M4, CPU only); Linux and WSL
 are not tested yet.
+
+The LangGraph version takes the same Ollama models (not Claude yet):
+
+```bash
+python -m agent.graph --model qwen3:8b --run-dir agent/runs/graph_mine
+python -m agent.graph --run-dir agent/runs/graph_mine --resume     # after a stop
+python -m agent.graph --model qwen3:8b --run-dir agent/runs/graph_ok --approve
+```
+
+A training cut off by a stop runs again on `--resume` and counts once. With
+`--approve`, the run shows each training the LLM chose, with its reasoning, and
+waits for `y` or a reason to refuse; a refusal goes back to the LLM.
 
 Each run writes `log.jsonl` (one line per LLM reply and tool call, with the
 LLM's reasoning) and the trained models into its run folder. Run folders are not

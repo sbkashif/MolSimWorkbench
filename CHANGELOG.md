@@ -5,6 +5,24 @@ documentation edits are not listed here. Versions follow [Semantic Versioning](h
 before 1.0.0 a minor version may change the API. Dates are commit dates.
 Versions before 0.7.0 were numbered afterwards, from the history.
 
+## Unreleased
+
+### Added
+- `agent/graph.py`: the agent's loop as a LangGraph graph, with LangChain's
+  `ChatOllama` and tool binding. The goal, tool list, limit checks and log format are
+  `agent/harness.py`'s. It saves the run after every step to a SQLite file in the
+  run folder, so a stopped run carries on with `--resume`; a training cut off
+  part-way runs again and counts once, after the MACE checkpoints it left are
+  deleted (MACE would otherwise load the one with the highest epoch as the final
+  model). The history sent to the LLM leaves out its earlier reasoning, as
+  `harness.py` does; `ChatOllama` would send it back. `--approve` pauses before each training for a
+  yes, and a refusal goes back to the LLM. Ollama models only. `harness.py` is
+  unchanged.
+- `agent/test_graph.py`: tests for every path through the graph, with a scripted
+  LLM and fake tools (no Ollama or MACE needed).
+- `agent/environment.yml` pins `langchain-core`, `langchain-ollama`, `langgraph` and
+  `langgraph-checkpoint-sqlite`.
+
 ## 0.7.2 — 2026-11-11
 
 ### Changed
