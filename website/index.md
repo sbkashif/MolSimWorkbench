@@ -3,16 +3,15 @@
 *Prepared by [Salman Bin Kashif](https://sbkashif.github.io/) as part of the [US-RSE Mentorship Program](https://us-rse.org/wg/mentorship-program), with mentorship from [Chris Neely](https://github.com/cjneely10), and with the help of an AI assistant (see the [AI usage statement](#ai-usage-statement)).*
 
 Molecular simulations have become a routine part of materials discovery
-pipelines, and modern packages make a run easy to start. But a run that
-finishes without an error is not necessarily a correct one. Moreover,
-realistic systems are hardly ever set up with default options and standard
-methods. Setting up a simulation for a target system, and testing a hypothesis
-with it, needs an understanding of what its critical parts do and of the
-theory behind them, and that understanding usually comes from working the
-methods out on paper and in code. Writing that code needs knowledge of
-programming beyond basic scripting, and those concepts have a problem of their
-own: they are hard to learn without something real to build. This website
-teaches both at once.
+pipelines. While modern molecular simulation packages have a low barrier to
+entry, realistic systems that give insights relevant to wet-lab work are hardly
+ever simulated with default options and standard methods. Simulating a complex
+system, or analyzing it, needs an understanding of what its critical parts do
+and of the theory behind them. That level of understanding usually comes from
+working the methods out on paper and in code. Additionally, analyzing
+simulation data creatively needs more than beginner-level programming. But programming has a
+problem of its own: it is hard to learn without something real to build. This
+website teaches both at once.
 
 :::::{admonition} Learning approach: read, play, take apart and code your own
 :class: tip
@@ -50,14 +49,12 @@ Plug in your own energy function, integrator or thermostat.
 ::::
 :::::
 
-You take apart a small but real simulation engine piece by piece, and learn
-the C++ it is written in along the way. You can then use the engine as a
-starting point: plug in newer Hamiltonians, thermostats and barostats, and
-build advanced sampling algorithms on top of it. The current release focuses
-on the basic molecular dynamics loop, basic programming, parallelization (a
-serial code is hardly practical for real systems), and an agentic AI workflow.
-I chose C++ because I wanted to learn it myself; a simpler version in a
-more accessible programming language, Python, is coming soon.
+The engine can also grow beyond these steps, with advanced sampling
+methods, machine learning methods and automated workflows built on it. This release covers the
+basic molecular dynamics loop, basic programming, parallelization (a serial
+code is hardly practical for real systems) and an agentic AI workflow. I chose
+C++ for the engine backend because I wanted to learn it myself; a simpler version in Python is coming
+soon.
 
 ## Getting started
 
